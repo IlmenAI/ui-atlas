@@ -13,11 +13,13 @@ namespace UiAtlas.Core.Cli;
 internal sealed partial class RecordingHighlightOverlay
 {
     private IReadOnlyList<MapperHighlight> _mapperHighlights = [];
+    private IReadOnlyList<AutomationObservation> _mapperMsaaEvidence = [];
     private readonly HashSet<MapperHighlightKind> _hiddenMapperKinds = [];
     private readonly Dictionary<string, Window> _gridHitWindows = new(StringComparer.Ordinal);
     private MapperGridInspector? _gridInspector;
     private MapperLegendWindow? _mapperLegend;
     private RectI? _mapperCaptureRoot;
+    private bool _mapperUsesVisibleFrameBounds;
     private long _mapperSurfaceHwnd;
     private bool _mapperTargetVisible = true;
     private bool _mapperEnabled;
@@ -28,6 +30,7 @@ internal sealed partial class RecordingHighlightOverlay
     internal Func<CancellationToken, Task>? HideRecorderForExploration { get; set; }
     internal Action? RestoreRecorderAfterExploration { get; set; }
     internal Action<string, DataGridReviewContext, GridSchemaReview>? SaveReviewedDataGrid { get; set; }
+    internal FrameObservation? GridEvidenceFrame { get; set; }
     internal Action? ResumeAfterGridInspector { get; set; }
     internal IReadOnlyList<MapperHighlight> MapperHighlights => _mapperHighlights;
     internal MapperGridInspector? GridInspector => _gridInspector;
@@ -46,17 +49,21 @@ internal sealed partial class RecordingHighlightOverlay
 
     public void ReplaceMapperHighlights(RectI root, FrameObservation frame)
     {
-        var surfaceHwnd = ResolveMapperSurfaceHwnd(_target.Hwnd, frame.Window);
+        var surface = ResolveMapperSurface(frame);
+        var surfaceHwnd = ResolveMapperSurfaceHwnd(_target.Hwnd, surface);
+        if (surfaceHwnd != frame.Window.Hwnd) root = surface.Bounds;
         // Native fallback enumerates handles/geometry only; it sends no input and performs no OCR.
         IReadOnlyList<AutomationObservation> hints = [];
         try { hints = NativeGridHostDiscovery.Collect(WindowCatalog.Resolve(surfaceHwnd)); }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception) { }
-        var current = frame.Trigger == "mapped-resume-baseline" ? hints : frame.Automation.Concat(hints).ToArray();
+        var automation = MapperMsaaGeometry.ProjectLive(surface, MapperHighlightModel.FrameControls(frame, surfaceHwnd));
+        var current = frame.Trigger == "mapped-resume-baseline" ? hints : automation.Concat(hints).ToArray();
         if (_dispatcher is null || _dispatcher.HasShutdownStarted) return;
         Post(() =>
         {
             _mapperEnabled = true;
-            if (frame.Automation.Count == 0 && frame.AutomationStatus != "ok" &&
+            _mapperUsesVisibleFrameBounds = !string.IsNullOrEmpty(frame.NativeEpisodeEntry);
+            if (automation.Count == 0 && frame.AutomationStatus != "ok" &&
                 _mapperCaptureRoot == root && _mapperSurfaceHwnd == surfaceHwnd)
             {
                 // A screenshot-only / unavailable observation is not evidence that controls vanished.
@@ -64,7 +71,7 @@ internal sealed partial class RecordingHighlightOverlay
                 return;
             }
             ApplyMapperSnapshot(root, surfaceHwnd, current,
-                TabHighlightLayerResolver.ResolveVisibleLayerKey(frame.Window, frame.Automation));
+                TabHighlightLayerResolver.ResolveVisibleLayerKey(surface, automation));
             Console.WriteLine($"Mapper overlay: surface=0x{surfaceHwnd:X}; root={root.X},{root.Y},{root.Width},{root.Height}; " +
                 $"hostHints={hints.Count}; nativeGrids={_mapperHighlights.Count(g => g.Kind == MapperHighlightKind.NativeGrid)}; " +
                 $"gridCandidates={_mapperHighlights.Count(g => g.Kind == MapperHighlightKind.GridCandidate)}.");
@@ -83,6 +90,7 @@ internal sealed partial class RecordingHighlightOverlay
         _mapperSurfaceHwnd = surfaceHwnd;
         _visibleLayerKey = layer;
         _mapperHighlights = MapperHighlightModel.Build(root, controls);
+        _mapperMsaaEvidence = controls.Where(MapperHighlightModel.IsMsaa).ToArray();
         _mapperNeedsRefresh = false;
         if (_gridInspector is not null)
         {
@@ -97,20 +105,41 @@ internal sealed partial class RecordingHighlightOverlay
         SyncGridHitWindows();
     }
 
-    private void RefreshMapperFromLiveSurface(WindowTarget root, WindowTarget surface,
+    private void RefreshMapperFromLiveSurface(RectI rootBounds, WindowTarget surface,
         IReadOnlyList<AutomationObservation> automation, IReadOnlyList<AutomationObservation> hints,
-        string layer, bool layerChanged, long expectedRevision)
+        string layer, bool layerChanged, long expectedRevision, RectI? probedSurfaceBounds = null)
     {
         // An older background probe must not replace a newer recorded observation.
         if (!_mapperEnabled || _mapperRevision != expectedRevision || !_mapperTargetVisible) return;
-        if (_currentRootBounds != root.Bounds)
+        // Compare with the origin frozen before the background probe. Re-reading
+        // DWM here could make stale controls appear to belong to a newly moved window.
+        if (_currentRootBounds != rootBounds)
         { RequestMapperRefresh(invalidateVisual: false); return; }
-        var visual = !layerChanged && !_mapperNeedsRefresh && surface.Hwnd == _mapperSurfaceHwnd &&
-            _mapperCaptureRoot is { } captured && captured.Width == root.Bounds.Width && captured.Height == root.Bounds.Height
+        var surfaceBounds = probedSurfaceBounds ?? rootBounds;
+        if (probedSurfaceBounds is not null)
+        {
+            try
+            {
+                if (!WindowCatalog.IsSameProcessWindow(_target, surface.Hwnd) ||
+                    !NativeMethods.IsWindowVisible((nint)surface.Hwnd) ||
+                    MapperRootBounds(WindowCatalog.Resolve(surface.Hwnd)) != surfaceBounds)
+                { RequestMapperRefresh(invalidateVisual: false); return; }
+            }
+            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
+            { RequestMapperRefresh(invalidateVisual: false); return; }
+        }
+        var sameSurface = !layerChanged && surface.Hwnd == _mapperSurfaceHwnd &&
+            _mapperCaptureRoot is { } captured && captured.Width == surfaceBounds.Width && captured.Height == surfaceBounds.Height;
+        // A passive UIA query cannot retract a different provider's response.
+        // Preserve its full parent chain for visibility checks until the next
+        // recorded observation, surface transition or layer/size change.
+        var msaa = sameSurface ? _mapperMsaaEvidence.Select(c => c with { Bounds = CurrentBounds(c.Bounds) }) : [];
+        var visual = sameSurface && !_mapperNeedsRefresh
             ? _mapperHighlights.Where(g => MapperHighlightModel.IsVisual(g.Control))
                 .Select(g => g.Control with { Bounds = CurrentBounds(g) })
             : [];
-        ApplyMapperSnapshot(root.Bounds, surface.Hwnd, automation.Concat(hints).Concat(visual).ToArray(), layer);
+        ApplyMapperSnapshot(surfaceBounds, surface.Hwnd, automation.Concat(hints).Concat(msaa).Concat(visual).ToArray(), layer);
+        RefreshMapperOcclusion();
         RenderHighlights();
     }
 
@@ -124,10 +153,17 @@ internal sealed partial class RecordingHighlightOverlay
         observed.IsVisible && !observed.IsMinimized && !observed.IsCloaked &&
         observed.Bounds.Width > 0 && observed.Bounds.Height > 0 ? observed.Hwnd : selectedHwnd;
 
+    internal static WindowObservation ResolveMapperSurface(FrameObservation frame) =>
+        (frame.ScopedWindows ?? [frame.Window]).Where(window => window.ProcessId == frame.Window.ProcessId &&
+            (window.Hwnd == frame.Window.Hwnd || window.RootOwnerHwnd == frame.Window.RootOwnerHwnd) &&
+            window.IsVisible && !window.IsMinimized && !window.IsCloaked && window.Bounds is { Width: > 0, Height: > 0 })
+        .OrderByDescending(window => window.IsEnabled).ThenBy(window => window.ZOrder).FirstOrDefault() ?? frame.Window;
+
     private void ClearMapperHighlights()
     {
         _mapperRevision++;
         _mapperHighlights = [];
+        _mapperMsaaEvidence = [];
         _mapperCaptureRoot = null;
         foreach (var window in _gridHitWindows.Values) window.Close();
         _gridHitWindows.Clear();
@@ -137,9 +173,11 @@ internal sealed partial class RecordingHighlightOverlay
         RequestMapperRefresh();
     }
 
-    private RectI CurrentBounds(MapperHighlight item) => _mapperCaptureRoot is not { } captured ? item.Bounds :
-        item.Bounds with { X = item.Bounds.X + _currentRootBounds.X - captured.X,
-            Y = item.Bounds.Y + _currentRootBounds.Y - captured.Y };
+    private RectI CurrentBounds(MapperHighlight item) => CurrentBounds(item.Bounds);
+
+    private RectI CurrentBounds(RectI bounds) => _mapperCaptureRoot is not { } captured ? bounds :
+        bounds with { X = bounds.X + _currentRootBounds.X - captured.X,
+            Y = bounds.Y + _currentRootBounds.Y - captured.Y };
 
     private void SyncGridHitWindows()
     {
@@ -312,10 +350,16 @@ internal sealed partial class RecordingHighlightOverlay
         var window = _mapperSurfaceHwnd == 0 ? _target.Hwnd : _mapperSurfaceHwnd;
         var host = selection.Control.WindowHwnd == 0 ? window : selection.Control.WindowHwnd;
         var surface = WindowCatalog.Resolve(window);
+        var candidates = GridEvidenceFrame?.Automation.Where(control => control.Bounds == bounds
+            && control.ClassName == selection.Control.ClassName && control.AutomationId == selection.Control.AutomationId
+            && control.Name == selection.Control.Name).ToArray() ?? [];
+        var retainedHost = candidates.SingleOrDefault(control => control.RuntimeId == selection.Control.RuntimeId)
+            ?? (candidates.Length == 1 ? candidates[0] : null);
         inspector.ReviewContext = new(DataGridTargetBinding.DescribeLocator(window, host), _visibleLayerKey,
             new(selection.Control.ClassName, selection.Control.AutomationId, selection.Control.ControlType, selection.Control.Name),
             bounds with { X = bounds.X - surface.Bounds.X, Y = bounds.Y - surface.Bounds.Y },
-            IsUiaNative: selection.Kind == MapperHighlightKind.NativeGrid);
+            IsUiaNative: selection.Kind == MapperHighlightKind.NativeGrid,
+            SourceFrame: retainedHost is null ? null : GridEvidenceFrame!.Sequence, SourceEvidenceId: retainedHost?.RuntimeId);
         _gridExplorationActive = true;
         _mapperRevision++;
         var directory = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -339,7 +383,7 @@ internal sealed partial class RecordingHighlightOverlay
             });
             _ = DwmFlush();
             await Task.Delay(20, cancellation).ConfigureAwait(false);
-            var worker = System.IO.Path.ChangeExtension(typeof(RecordingHighlightOverlay).Assembly.Location, ".exe");
+            var worker = typeof(RecordingHighlightOverlay).Assembly.Location;
             return await Task.Run(() => new GridImageExplorer(worker).ExploreAsync(window, host, bounds,
                 selection.Name, directory, progress, cancellation), cancellation).ConfigureAwait(false);
         }
@@ -391,6 +435,11 @@ internal sealed partial class RecordingHighlightOverlay
     [DllImport("user32.dll")]
     private static extern nint SetThreadDpiAwarenessContext(nint context);
 
+    internal static RectI ResolveLiveRootBounds(WindowTarget target, bool useVisibleFrameBounds) => useVisibleFrameBounds
+        ? WindowSnapshotCapture.VisibleFrameBounds(target) : target.Bounds;
+
+    private RectI MapperRootBounds(WindowTarget target) => ResolveLiveRootBounds(target, _mapperUsesVisibleFrameBounds);
+
     private void RefreshMapperTarget()
     {
         if (_window is null) return;
@@ -398,6 +447,20 @@ internal sealed partial class RecordingHighlightOverlay
         try
         {
             var target = WindowCatalog.Resolve(_target.Hwnd);
+            if (_mapperEnabled && _mapperSurfaceHwnd != 0 && _mapperSurfaceHwnd != _target.Hwnd)
+            {
+                // Follow the dialog itself, including moves outside its owner's
+                // rectangle. Never translate dialog controls with the main HWND.
+                if (WindowCatalog.IsSameProcessWindow(_target, _mapperSurfaceHwnd) &&
+                    NativeMethods.IsWindowVisible((nint)_mapperSurfaceHwnd))
+                    target = WindowCatalog.Resolve(_mapperSurfaceHwnd);
+                else
+                {
+                    ClearMapperHighlights();
+                    _mapperSurfaceHwnd = _target.Hwnd;
+                }
+            }
+            var targetBounds = MapperRootBounds(target);
             var observed = WindowSnapshotCapture.Observe(target);
             visible = target.ProcessId == _target.ProcessId && target.ProcessStartedUtc == _target.ProcessStartedUtc &&
                 observed.IsVisible && !observed.IsMinimized && !observed.IsCloaked;
@@ -409,14 +472,14 @@ internal sealed partial class RecordingHighlightOverlay
                 return;
             }
             if (_mapperCaptureRoot is { } captured &&
-                (captured.Width != target.Bounds.Width || captured.Height != target.Bounds.Height))
+                (captured.Width != targetBounds.Width || captured.Height != targetBounds.Height))
             {
-                Console.WriteLine($"Mapper overlay invalidated: target size changed from {captured.Width}x{captured.Height} to {target.Bounds.Width}x{target.Bounds.Height}.");
+                Console.WriteLine($"Mapper overlay invalidated: target size changed from {captured.Width}x{captured.Height} to {targetBounds.Width}x{targetBounds.Height}.");
                 ClearMapperHighlights();
                 RenderHighlights();
             }
-            var moved = _currentRootBounds != target.Bounds;
-            _currentRootBounds = target.Bounds;
+            var moved = _currentRootBounds != targetBounds;
+            _currentRootBounds = targetBounds;
             // A destroyed/hidden/replaced native host invalidates its old hit region immediately.
             foreach (var item in _mapperHighlights.Where(g => g.IsGrid).ToArray())
             {
@@ -425,7 +488,7 @@ internal sealed partial class RecordingHighlightOverlay
                 _ = NativeMethods.GetWindowThreadProcessId((nint)host, out var process);
                 if (process != _target.ProcessId || !NativeMethods.IsWindowVisible((nint)host) ||
                     !NativeMethods.GetWindowRect((nint)host, out var hostRect) ||
-                    !MapperHighlightModel.Equivalent(CurrentBounds(item), new RectI(hostRect.Left, hostRect.Top,
+                    !MapperHighlightModel.Equivalent(CurrentBounds(item.Control.Bounds), new RectI(hostRect.Left, hostRect.Top,
                         hostRect.Right - hostRect.Left, hostRect.Bottom - hostRect.Top)))
                 {
                     // Replacing one grid must not erase all the other controls or stop refreshes.

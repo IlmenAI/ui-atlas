@@ -1,0 +1,68 @@
+<Window x:Class="UIMaps.Application.NewUiMapWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="New UI Map" Width="520" MinHeight="610" WindowStartupLocation="CenterOwner"
+        Background="White" Foreground="{StaticResource InkBrush}" ShowInTaskbar="False">
+    <Grid Margin="28,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="New UI Map" FontSize="24" FontWeight="SemiBold"/>
+                <TextBlock Text="Choose the application you want to map." Margin="0,7,0,0" Foreground="{StaticResource MutedInkBrush}"/>
+            </StackPanel>
+            <Button Grid.Column="1" Content="Refresh" Click="Refresh_Click" Padding="12,6" Background="Transparent" BorderThickness="0" Foreground="{StaticResource AccentBrush}"/>
+        </Grid>
+
+        <TextBlock Grid.Row="1" x:Name="EmptyState" Text="No recordable application windows are visible." Margin="0,22,0,0" Foreground="{StaticResource MutedInkBrush}" Visibility="Collapsed"/>
+        <TextBlock Grid.Row="1" x:Name="DisplayScopeText" Margin="0,18,0,0" FontSize="12" Foreground="{StaticResource AccentBrush}"/>
+        <ListBox x:Name="ApplicationsList" Grid.Row="2" Margin="0,10,0,0" ItemsSource="{Binding}" SelectionChanged="ApplicationsList_SelectionChanged"
+                 BorderThickness="0" Background="Transparent" ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Applications available for UI Map recording">
+            <ListBox.GroupStyle>
+                <GroupStyle>
+                    <GroupStyle.HeaderTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Name}" Margin="2,10,0,8" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource MutedInkBrush}"/>
+                        </DataTemplate>
+                    </GroupStyle.HeaderTemplate>
+                </GroupStyle>
+            </ListBox.GroupStyle>
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Margin" Value="0,0,0,8"/><Setter Property="Padding" Value="0"/>
+                </Style>
+            </ListBox.ItemContainerStyle>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="8" Padding="13" Background="White">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="46"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <Border Width="34" Height="34" CornerRadius="6" Background="#275D9A" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Initial}" Foreground="White" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="{Binding WindowTitle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding DisplayName}" FontSize="11.5" Foreground="{StaticResource MutedInkBrush}" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding ScopeSummary}" FontSize="11.5" Foreground="{StaticResource MutedInkBrush}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <Border Grid.Row="3" Margin="0,12,0,0" Padding="13" CornerRadius="8" Background="#EEF6FF" BorderBrush="#D9EAFB" BorderThickness="1">
+            <TextBlock Text="MapLock captures this app's screens, controls, and pointer actions. Keyboard text and clipboard content are not recorded." TextWrapping="Wrap" Foreground="#374151"/>
+        </Border>
+
+        <CheckBox x:Name="ScopeApproval" Grid.Row="4" Margin="0,16,0,0" Content="Only observe this application" IsChecked="True" Checked="ScopeApproval_Changed" Unchecked="ScopeApproval_Changed"/>
+
+        <Grid Grid.Row="5" Margin="0,22,0,0">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <Button Grid.Column="1" Content="Cancel" Click="Cancel_Click" MinWidth="120" Height="42" Margin="0,0,10,0" Style="{StaticResource RecorderSecondaryButtonStyle}"/>
+            <Button x:Name="StartButton" Grid.Column="2" Content="Record" Click="Start_Click" MinWidth="145" Height="42" Style="{StaticResource RecorderPrimaryButtonStyle}"/>
+        </Grid>
+    </Grid>
+</Window>

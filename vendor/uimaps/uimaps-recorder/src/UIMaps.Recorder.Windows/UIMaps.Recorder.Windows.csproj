@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <AssemblyName>UIMaps.Recorder.Windows</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.WindowsDesktop.App.WPF" />
+    <ProjectReference Include="../../../uimaps-protocol/src/UIMaps.Protocol/UIMaps.Protocol.csproj" />
+    <EmbeddedResource Include="../../profiles/capture-profiles.v1.json" LogicalName="UIMaps.Recorder.Windows.capture-profiles.v1.json" />
+  </ItemGroup>
+</Project>

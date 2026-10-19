@@ -1,0 +1,47 @@
+[
+  {
+    "Milliseconds": 4069.58,
+    "Before": "children begin ordinal=1",
+    "After": "children end ordinal=1 count=32"
+  },
+  {
+    "Milliseconds": 2913.89,
+    "Before": "children progress ordinal=12 count=100",
+    "After": "children progress ordinal=12 count=200"
+  },
+  {
+    "Milliseconds": 2880.28,
+    "Before": "children progress ordinal=12 count=200",
+    "After": "children progress ordinal=12 count=300"
+  },
+  {
+    "Milliseconds": 2856.64,
+    "Before": "children progress ordinal=12 count=300",
+    "After": "children progress ordinal=12 count=400"
+  },
+  {
+    "Milliseconds": 2822.79,
+    "Before": "children progress ordinal=12 count=400",
+    "After": "children progress ordinal=12 count=500"
+  },
+  {
+    "Milliseconds": 2809.94,
+    "Before": "children begin ordinal=12",
+    "After": "children progress ordinal=12 count=100"
+  },
+  {
+    "Milliseconds": 2504.76,
+    "Before": "children progress ordinal=12 count=500",
+    "After": "children end ordinal=12 count=588"
+  },
+  {
+    "Milliseconds": 59.07,
+    "Before": "uia root begin",
+    "After": "node begin ordinal=1 depth=0 retained=0"
+  },
+  {
+    "Milliseconds": 25.29,
+    "Before": "children begin ordinal=18",
+    "After": "children end ordinal=18 count=16"
+  }
+]

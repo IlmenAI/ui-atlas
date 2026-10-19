@@ -1,0 +1,66 @@
+[
+  {
+    "File": "ui-atlas.dll",
+    "MethodCount": 3224,
+    "DifferentMethodBodiesOrLiterals": 0,
+    "DifferentGeneratedTypeNames": 3,
+    "AtlasMvid": "58100b18-4f96-4358-896b-0ae4270fbdae",
+    "MapLockMvid": "ae68d7c8-a92a-4029-ba47-ea2b7e6a0a77"
+  },
+  {
+    "File": "UiAtlas.Core.Recording.Windows.dll",
+    "MethodCount": 5417,
+    "DifferentMethodBodiesOrLiterals": 0,
+    "DifferentGeneratedTypeNames": 0,
+    "AtlasMvid": "19760861-f68e-49cb-aec5-37941d4b89ee",
+    "MapLockMvid": "38be4df8-1752-4613-8ae9-37026edc7570"
+  },
+  {
+    "File": "UiAtlas.Core.Recording.dll",
+    "MethodCount": 349,
+    "DifferentMethodBodiesOrLiterals": 0,
+    "DifferentGeneratedTypeNames": 0,
+    "AtlasMvid": "ebd3a145-ab7e-44a2-973b-6208dc95fdb5",
+    "MapLockMvid": "62db7903-a6cb-4c0c-b013-aaee676cbc77"
+  },
+  {
+    "File": "UiAtlas.Core.Build.dll",
+    "MethodCount": 860,
+    "DifferentMethodBodiesOrLiterals": 0,
+    "DifferentGeneratedTypeNames": 0,
+    "AtlasMvid": "2189720d-c190-4500-9b86-fa0db2266591",
+    "MapLockMvid": "fce992f7-12c0-47d3-b1f7-0a9aa89de555"
+  },
+  {
+    "File": "UiAtlas.Core.Mapping.Atlas.dll",
+    "MethodCount": 421,
+    "DifferentMethodBodiesOrLiterals": 0,
+    "DifferentGeneratedTypeNames": 0,
+    "AtlasMvid": "2018f6bb-504d-4e27-abb5-90f86acab824",
+    "MapLockMvid": "dfd7ca7d-3250-487d-817f-5ccab52bc90e"
+  },
+  {
+    "File": "UIMaps.Recorder.Windows.dll",
+    "MethodCount": 854,
+    "DifferentMethodBodiesOrLiterals": 0,
+    "DifferentGeneratedTypeNames": 0,
+    "AtlasMvid": "0306c674-7650-4e4d-9212-d175d4e3f9a4",
+    "MapLockMvid": "68e25f98-8491-4135-99c3-8a37d5f3e351"
+  },
+  {
+    "File": "UIMaps.Protocol.dll",
+    "MethodCount": 9618,
+    "DifferentMethodBodiesOrLiterals": 0,
+    "DifferentGeneratedTypeNames": 0,
+    "AtlasMvid": "c3f7e9c8-6007-4c3c-ac2b-f9f9052f8bd2",
+    "MapLockMvid": "e806fa3b-3c3c-489b-b0fc-58c06c101a6b"
+  },
+  {
+    "File": "UIMaps.Recorder.ProviderProbe.dll",
+    "MethodCount": 25,
+    "DifferentMethodBodiesOrLiterals": 0,
+    "DifferentGeneratedTypeNames": 0,
+    "AtlasMvid": "97be726a-4985-47ea-a7e6-9ecd4456400c",
+    "MapLockMvid": "974b0fac-2f35-4157-9c4f-aff0d250d311"
+  }
+]

@@ -1,0 +1,112 @@
+syntax = "proto3";
+
+package uimaps.v1;
+option csharp_namespace = "UIMaps.Protocol.V1";
+
+message ProtocolVersion {
+  uint32 major = 1;
+  uint32 minor = 2;
+}
+message RectPx {
+  int32 x = 1;
+  int32 y = 2;
+  int32 width = 3;
+  int32 height = 4;
+}
+
+enum CoordinateSpaceKind {
+  COORDINATE_SPACE_KIND_UNSPECIFIED = 0;
+  PHYSICAL_DESKTOP_PIXELS = 1;
+}
+
+message CoordinateSpace {
+  CoordinateSpaceKind kind = 1;
+  string description = 2;
+}
+
+message CaptureInterval {
+  int64 started_at_monotonic_ticks = 1;
+  int64 ended_at_monotonic_ticks = 2;
+  string ended_at_utc = 3;
+}
+
+message ClockMetadata {
+  string clock_id = 1;
+  int64 monotonic_frequency_hz = 2;
+  string started_at_utc = 3;
+}
+
+enum HealthState {
+  HEALTH_STATE_UNSPECIFIED = 0;
+  COMPLETE = 1;
+  PARTIAL = 2;
+  TIMED_OUT = 3;
+  SENSOR_UNAVAILABLE = 4;
+  PROVIDER_FAILED = 5;
+  OCCLUDED = 6;
+  NODE_LIMITED = 7;
+  WINDOW_LIMITED = 8;
+  STALE = 9;
+  IDENTITY_AMBIGUOUS = 10;
+  UNSUPPORTED = 11;
+  PERMISSION_DENIED = 12;
+  INVALID = 13;
+  BUDGET_EXHAUSTED = 14;
+  CANCELLED_PARTIAL = 15;
+  FRONTIER_REMAINING = 16;
+  IDENTITY_CHANGED = 17;
+  WORKER_CRASHED = 18;
+  FALLBACK_USED = 19;
+  CONVERGENCE_NOT_REACHED = 20;
+  SEGMENT_MISSING = 21;
+  CAPABILITY_REDUCED = 22;
+}
+
+message HealthIssue {
+  HealthState state = 1;
+  string code = 2;
+  string safe_message = 3;
+  string source = 4;
+  bool retryable = 5;
+}
+
+message Health {
+  HealthState state = 1;
+  repeated HealthIssue issues = 2;
+}
+
+enum ConfidenceState {
+  CONFIDENCE_STATE_UNSPECIFIED = 0;
+  NOT_COMPUTED = 1;
+  COMPUTED = 2;
+}
+
+message Confidence {
+  ConfidenceState state = 1;
+  double value = 2;
+  string rationale = 3;
+}
+
+message Freshness {
+  CaptureInterval source_interval = 1;
+  double skew_from_anchor_ms = 2;
+  double age_at_publication_ms = 3;
+}
+
+message Lineage {
+  repeated string source_packet_ids = 1;
+  repeated string observation_ids = 2;
+}
+
+message StringProperty {
+  string key = 1;
+  string value = 2;
+}
+
+message Error {
+  string code = 1;
+  string message = 2;
+  bool retryable = 3;
+  string correlation_id = 4;
+  repeated StringProperty details = 5;
+}

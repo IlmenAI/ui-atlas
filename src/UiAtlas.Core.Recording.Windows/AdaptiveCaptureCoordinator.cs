@@ -168,7 +168,8 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
     public async Task<AdaptiveDialogCaptureResult> WaitForDialogCaptureAsync(
         AdaptiveDialogCaptureCheckpoint checkpoint,
         TimeSpan timeout,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool exploreTabs = false)
     {
         var deadline = DateTimeOffset.UtcNow.Add(timeout);
         while (DateTimeOffset.UtcNow < deadline)
@@ -201,8 +202,9 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
                 {
                     _capturedDialogs.TryAdd(dialog.Hwnd, 0);
                     RegisterFullFrame(frame);
-                    var finalFrame = await CaptureDialogTabVariantsAsync(
-                        dialog.Hwnd, frame, cancellationToken).ConfigureAwait(false);
+                    var finalFrame = exploreTabs
+                        ? await CaptureDialogTabVariantsAsync(dialog.Hwnd, frame, cancellationToken).ConfigureAwait(false)
+                        : frame;
                     return new(AdaptiveDialogCaptureOutcome.Captured, dialog.Hwnd, dialog.Title, finalFrame);
                 }
                 return new(AdaptiveDialogCaptureOutcome.Failed, dialog.Hwnd, dialog.Title, null);
@@ -365,7 +367,38 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
         // popup-producing click returns through the popup path below, so waiting
         // until after popup capture would lose the Ribbon button highlight.
         var clickScopeHwnd = ResolvePointScopeHwnd(clickWindowHwnd);
-        if (_session.FullRawObservations)
+        try
+        {
+            return await CaptureClickCoreAsync(point, checkpoint, cancellationToken,
+                clickScopeHwnd, dialogCheckpoint).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (
+            (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception) &&
+            clickScopeHwnd != 0 && clickScopeHwnd != _target.Hwnd &&
+            clickScopeHwnd != _target.RootOwnerHwnd &&
+            !WindowCatalog.IsSameProcessWindow(_target, clickScopeHwnd))
+        {
+            // Close/Cancel destroys the clicked HWND before post-click reads finish.
+            // Keep strict process checks in the collectors; recover only a lost
+            // transient scope here, where the original user interaction is known.
+            _session.AddCaptureHealth("adaptive", "clicked-window-closed",
+                "The clicked transient window closed during capture; recording continues on the selected application.");
+            var rootFrame = await RefreshRootSurfaceAsync(
+                ManualRootRefreshTimeout, cancellationToken).ConfigureAwait(false);
+            rootFrame ??= await CaptureFastVisualRootAsync(
+                checkpoint.InteractionId, cancellationToken).ConfigureAwait(false);
+            return rootFrame is not null ? AdaptiveClickCaptureOutcome.RootCaptured : AdaptiveClickCaptureOutcome.Failed;
+        }
+    }
+
+    private async Task<AdaptiveClickCaptureOutcome> CaptureClickCoreAsync(
+        RectI point,
+        AdaptiveCaptureCheckpoint checkpoint,
+        CancellationToken cancellationToken,
+        long clickScopeHwnd,
+        AdaptiveDialogCaptureCheckpoint? dialogCheckpoint)
+    {
+        if (_session.FullRawObservations || _session.UsesNativeRecorder)
         {
             if (_latestFullFrame is not null)
                 SetLastManualHighlight(ResolveManualHighlightTarget(_target, _latestFullFrame.Automation, point));
@@ -944,7 +977,7 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
     {
         if (timeout <= TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(nameof(timeout));
-        if (_session.FullRawObservations)
+        if (_session.FullRawObservations || _session.UsesNativeRecorder)
         {
             var full = await _session.CaptureFullObservationAsync("manual-refresh", cancellationToken,
                 _activeInteractionId).ConfigureAwait(false);
@@ -1069,7 +1102,7 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
 
     private void QueuePopup(long hwnd)
     {
-        if (_session.FullRawObservations) return;
+        if (_session.FullRawObservations || _session.UsesNativeRecorder) return;
         if (Volatile.Read(ref _draining) != 0 || hwnd == _target.RootOwnerHwnd ||
             !IsPopupCaptureCandidateClass(WindowCatalog.GetClass((nint)hwnd))) return;
         try
@@ -2326,7 +2359,7 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
 
     private void QueueChangedRootSurface()
     {
-        if (_session.FullRawObservations) return;
+        if (_session.FullRawObservations || _session.UsesNativeRecorder) return;
         try
         {
             if (!NativeMethods.GetWindowRect((nint)_target.Hwnd, out _))
@@ -2481,37 +2514,100 @@ public enum AdaptiveDialogCaptureOutcome
 
 internal sealed class PopupWindowEventMonitor : IDisposable
 {
-    private readonly WindowTarget _target;
     private readonly Action<long> _onPopup;
     private readonly NativeMethods.WinEventProc _callback;
+    private readonly Func<NativeMethods.WinEventProc, nint> _installHook;
+    private readonly Func<nint, bool> _removeHook;
+    private readonly object _lifecycleGate = new();
+    private readonly TaskCompletionSource _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private Thread? _thread;
+    private uint _threadId;
+    private int _stopping;
     private nint _hook;
 
     public PopupWindowEventMonitor(WindowTarget target, Action<long> onPopup)
+        : this(onPopup, callback => NativeMethods.SetWinEventHook(
+            NativeMethods.EventObjectShow, NativeMethods.EventObjectShow, 0, callback,
+            (uint)target.ProcessId, 0,
+            NativeMethods.WineventOutofcontext | NativeMethods.WineventSkipownprocess),
+            NativeMethods.UnhookWinEvent)
     {
-        _target = target;
+    }
+
+    internal PopupWindowEventMonitor(Action<long> onPopup,
+        Func<NativeMethods.WinEventProc, nint> installHook, Func<nint, bool> removeHook)
+    {
         _onPopup = onPopup;
         _callback = OnWinEvent;
+        _installHook = installHook;
+        _removeHook = removeHook;
     }
 
     public void Start()
     {
-        _hook = NativeMethods.SetWinEventHook(
-            NativeMethods.EventObjectShow,
-            NativeMethods.EventObjectShow,
-            0,
-            _callback,
-            (uint)_target.ProcessId,
-            0,
-            NativeMethods.WineventOutofcontext | NativeMethods.WineventSkipownprocess);
-        if (_hook == 0) throw new InvalidOperationException("Popup event monitoring could not start.");
+        lock (_lifecycleGate)
+        {
+            if (_thread is not null || Volatile.Read(ref _stopping) != 0)
+                throw new InvalidOperationException("Popup event monitor has already started or stopped.");
+            _thread = new Thread(Run) { IsBackground = true, Name = "UiAtlas popup event monitor" };
+            _thread.Start();
+        }
+        try
+        {
+            _ready.Task.WaitAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
+        }
+        catch
+        {
+            Dispose();
+            throw;
+        }
+    }
+
+    private void Run()
+    {
+        try
+        {
+            // WinEvent hooks are thread-affine. Async recorder continuations must
+            // neither install them on pooled threads nor remove them from another thread.
+            // Create the queue before publishing readiness so WM_QUIT cannot be lost.
+            _ = NativeMethods.PeekMessageW(out _, 0, 0, 0, NativeMethods.PmNoRemove);
+            Volatile.Write(ref _threadId, NativeMethods.GetCurrentThreadId());
+            if (Volatile.Read(ref _stopping) != 0) return;
+            _hook = _installHook(_callback);
+            if (_hook == 0) throw new InvalidOperationException("Popup event monitoring could not start.");
+            _ready.TrySetResult();
+            // Out-of-context WinEvent callbacks are dispatched by GetMessage.
+            while (Volatile.Read(ref _stopping) == 0 && NativeMethods.GetMessageW(out _, 0, 0, 0) > 0) { }
+        }
+        catch (Exception ex)
+        {
+            _ready.TrySetException(ex);
+        }
+        finally
+        {
+            try
+            {
+                if (_hook != 0) _ = _removeHook(_hook);
+                _hook = 0;
+            }
+            finally
+            {
+                lock (_lifecycleGate) _threadId = 0;
+                // Thread exit also removes any hook if native unhooking failed.
+                // Keep the delegate rooted throughout teardown, including failures.
+                GC.KeepAlive(_callback);
+                _ready.TrySetException(new ObjectDisposedException(nameof(PopupWindowEventMonitor)));
+            }
+        }
     }
 
     private void OnWinEvent(nint hook, uint eventType, nint hwnd, int objectId, int childId, uint eventThread, uint eventTime)
     {
-        if (hwnd == 0 || objectId != NativeMethods.ObjidWindow || childId != 0 ||
-            eventType != NativeMethods.EventObjectShow || !NativeMethods.IsWindowVisible(hwnd)) return;
         try
         {
+            if (Volatile.Read(ref _stopping) != 0 || hwnd == 0 ||
+                objectId != NativeMethods.ObjidWindow || childId != 0 ||
+                eventType != NativeMethods.EventObjectShow || !NativeMethods.IsWindowVisible(hwnd)) return;
             _onPopup(hwnd.ToInt64());
         }
         catch { }
@@ -2519,8 +2615,18 @@ internal sealed class PopupWindowEventMonitor : IDisposable
 
     public void Dispose()
     {
-        if (_hook == 0) return;
-        NativeMethods.UnhookWinEvent(_hook);
-        _hook = 0;
+        Thread? thread;
+        lock (_lifecycleGate)
+        {
+            var wasStopping = Interlocked.Exchange(ref _stopping, 1);
+            thread = _thread;
+            // Post once while the worker still owns this ID; an exited thread's
+            // ID can be reused by an unrelated thread between Dispose calls.
+            if (wasStopping == 0 && _threadId != 0)
+                NativeMethods.PostThreadMessageW(_threadId, NativeMethods.WmQuit, 0, 0);
+        }
+        if (thread is null) return;
+        if (thread != Thread.CurrentThread && !thread.Join(TimeSpan.FromSeconds(5)))
+            throw new TimeoutException("Popup event monitor did not stop.");
     }
 }

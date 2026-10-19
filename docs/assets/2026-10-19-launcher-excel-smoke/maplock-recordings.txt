@@ -1,0 +1,448 @@
+Window: "MapLock", App: MapLock.exe.
+	0 window MapLock Secondary Actions: Raise
+		1 text MapLock ID: ProductTitle
+		2 button Open Micro HUD Description: Open Micro HUD ID: MicroHudButton
+			3 text 
+		286 button Minimize
+			287 text 
+		288 button Maximize or restore
+			289 text  ID: MaximizeRestoreGlyph
+		290 button Close
+			291 text 
+		292 custom ID: ProductLogo
+			293 text MAPLOCK
+		294 combo box ID: ProfileSelector
+		295 list view ID: NavigationList
+			296 list item (selectable) ExperienceNavigationItem { Route = home, Label = Home, Glyph = , IsAvailable = True, Status = , StartsNewSection = False }
+				297 text 
+				298 text Home
+				299 text
+			300 list item (selectable, disabled) ExperienceNavigationItem { Route = work-sessions, Label = Work Sessions, Glyph = , IsAvailable = False, Status = In development, StartsNewSection = False }
+				301 text (disabled) 
+				302 text (disabled) Work Sessions
+				303 text (disabled) In development
+			304 list item (selectable, disabled) ExperienceNavigationItem { Route = runs, Label = Runs & Insights, Glyph = , IsAvailable = False, Status = In development, StartsNewSection = False }
+				305 text (disabled) 
+				306 text (disabled) Runs & Insights
+				307 text (disabled) In development
+			308 list item (selectable) ExperienceNavigationItem { Route = maps, Label = Maps, Glyph = , IsAvailable = True, Status = , StartsNewSection = False }
+				309 text 
+				310 text Maps
+				311 text
+			312 list item (selectable) ExperienceNavigationItem { Route = recordings, Label = Recordings, Glyph = , IsAvailable = True, Status = , StartsNewSection = False }
+				313 text 
+				314 text Recordings
+				315 text
+			316 list item (selectable, disabled) ExperienceNavigationItem { Route = integrations, Label = Integrations, Glyph = , IsAvailable = False, Status = In development, StartsNewSection = False }
+				317 text (disabled) 
+				318 text (disabled) Integrations
+				319 text (disabled) In development
+			320 list item (selectable, disabled) ExperienceNavigationItem { Route = models, Label = ML Models, Glyph = , IsAvailable = False, Status = In development, StartsNewSection = False }
+				321 text (disabled) 
+				322 text (disabled) ML Models
+				323 text (disabled) In development
+			324 list item (selectable) ExperienceNavigationItem { Route = recents, Label = Recents, Glyph = , IsAvailable = True, Status = , StartsNewSection = False }
+				325 text 
+				326 text Recents
+				327 text
+			328 list item (selectable) ExperienceNavigationItem { Route = diagnostics, Label = Diagnostics, Glyph = , IsAvailable = True, Status = , StartsNewSection = True }
+				329 text 
+				330 text Diagnostics
+				331 text
+			332 list item (selectable) ExperienceNavigationItem { Route = settings, Label = Settings, Glyph = , IsAvailable = True, Status = , StartsNewSection = True }
+				333 text 
+				334 text Settings
+				335 text
+		449 custom
+			450 text Recordings
+			451 text UI Atlas recordings, shared by both apps.
+			452 text C:\Users\danie\AppData\Local\UiAtlas\Core
+			453 button New recording
+				454 text New recording
+			455 button Refresh
+				456 text Refresh
+			457 button Build UI Map
+				458 text Build UI Map
+			459 button Open map
+				460 text Open map
+			461 button (disabled) Cancel build
+				462 text (disabled) Cancel build
+			463 button Import…
+				464 text Import…
+			465 button Find previous MapLock recordings…
+				466 text Find previous MapLock recordings…
+			467 text 25 recordings. Select one to build or open its Atlas map.
+			468 datagrid
+				469 header ID: PART_ColumnHeadersPresenter
+					470 header item Application
+						471 text Application
+						472 thumb ID: PART_RightHeaderGripper
+					473 header item Recorded
+						474 text Recorded
+						475 thumb ID: PART_LeftHeaderGripper
+						476 thumb ID: PART_RightHeaderGripper
+					477 header item Outcome
+						478 text Outcome
+						479 thumb ID: PART_LeftHeaderGripper
+						480 thumb ID: PART_RightHeaderGripper
+					481 header item Frames
+						482 text Frames
+						483 thumb ID: PART_LeftHeaderGripper
+						484 thumb ID: PART_RightHeaderGripper
+					485 header item Recording ID
+						486 text Recording ID
+						487 thumb ID: PART_LeftHeaderGripper
+						488 thumb ID: PART_RightHeaderGripper
+				489 dataitem (selectable) CatalogRecording { Id = 20261019-131419-excel-afa718e8, StartedUtc = 10/19/2026 1:14:41 PM +00:00, Outcome = partial, ProcessName = EXCEL, FrameCount = 5, MapId = 20261019-131419-excel-afa718e8 }
+					490 header item
+						491 thumb ID: PART_BottomHeaderGripper
+					492 data grid cell EXCEL Value: EXCEL
+						493 text EXCEL
+					494 data grid cell 10/19/2026 1:14 PM +00:00 Value: 10/19/2026 1:14 PM +00:00
+						495 text 10/19/2026 1:14 PM +00:00
+					496 data grid cell partial Value: partial
+						497 text partial
+					498 data grid cell 5 Value: 5
+						499 text 5
+					500 data grid cell 20261019-131419-excel-afa718e8 Value: 20261019-131419-excel-afa718e8
+						501 text 20261019-131419-excel-afa718e8
+				502 dataitem (selectable) CatalogRecording { Id = 20261019-130737-excel-e84d903d, StartedUtc = 10/19/2026 1:08:03 PM +00:00, Outcome = partial, ProcessName = EXCEL, FrameCount = 5, MapId = 20261019-130737-excel-e84d903d }
+					503 header item
+						504 thumb ID: PART_TopHeaderGripper
+						505 thumb ID: PART_BottomHeaderGripper
+					506 data grid cell EXCEL Value: EXCEL
+						507 text EXCEL
+					508 data grid cell 10/19/2026 1:08 PM +00:00 Value: 10/19/2026 1:08 PM +00:00
+						509 text 10/19/2026 1:08 PM +00:00
+					510 data grid cell partial Value: partial
+						511 text partial
+					512 data grid cell 5 Value: 5
+						513 text 5
+					514 data grid cell 20261019-130737-excel-e84d903d Value: 20261019-130737-excel-e84d903d
+						515 text 20261019-130737-excel-e84d903d
+				516 dataitem (selectable) CatalogRecording { Id = 20261019-083838-powerpnt-b6598185, StartedUtc = 10/19/2026 8:38:39 AM +00:00, Outcome = partial, ProcessName = POWERPNT, FrameCount = 50, MapId = 20261019-083838-powerpnt-b6598185 }
+					517 header item
+						518 thumb ID: PART_TopHeaderGripper
+						519 thumb ID: PART_BottomHeaderGripper
+					520 data grid cell POWERPNT Value: POWERPNT
+						521 text POWERPNT
+					522 data grid cell 10/19/2026 8:38 AM +00:00 Value: 10/19/2026 8:38 AM +00:00
+						523 text 10/19/2026 8:38 AM +00:00
+					524 data grid cell partial Value: partial
+						525 text partial
+					526 data grid cell 50 Value: 50
+						527 text 50
+					528 data grid cell 20261019-083838-powerpnt-b6598185 Value: 20261019-083838-powerpnt-b6598185
+						529 text 20261019-083838-powerpnt-b6598185
+				530 dataitem (selectable) CatalogRecording { Id = 20261018-172907-excel-dbb8ea28, StartedUtc = 10/18/2026 5:29:08 PM +00:00, Outcome = complete, ProcessName = EXCEL, FrameCount = 22, MapId = 20261018-172907-excel-dbb8ea28 }
+					531 header item
+						532 thumb ID: PART_TopHeaderGripper
+						533 thumb ID: PART_BottomHeaderGripper
+					534 data grid cell EXCEL Value: EXCEL
+						535 text EXCEL
+					536 data grid cell 10/18/2026 5:29 PM +00:00 Value: 10/18/2026 5:29 PM +00:00
+						537 text 10/18/2026 5:29 PM +00:00
+					538 data grid cell complete Value: complete
+						539 text complete
+					540 data grid cell 22 Value: 22
+						541 text 22
+					542 data grid cell 20261018-172907-excel-dbb8ea28 Value: 20261018-172907-excel-dbb8ea28
+						543 text 20261018-172907-excel-dbb8ea28
+				544 dataitem (selectable) CatalogRecording { Id = 20261018-150046-excel-6389ddd9, StartedUtc = 10/18/2026 3:01:34 PM +00:00, Outcome = partial, ProcessName = EXCEL, FrameCount = 1, MapId = }
+					545 header item
+						546 thumb ID: PART_TopHeaderGripper
+						547 thumb ID: PART_BottomHeaderGripper
+					548 data grid cell EXCEL Value: EXCEL
+						549 text EXCEL
+					550 data grid cell 10/18/2026 3:01 PM +00:00 Value: 10/18/2026 3:01 PM +00:00
+						551 text 10/18/2026 3:01 PM +00:00
+					552 data grid cell partial Value: partial
+						553 text partial
+					554 data grid cell 1 Value: 1
+						555 text 1
+					556 data grid cell 20261018-150046-excel-6389ddd9 Value: 20261018-150046-excel-6389ddd9
+						557 text 20261018-150046-excel-6389ddd9
+				558 dataitem (selectable) CatalogRecording { Id = 20261018-105733-excel-cc06cdb2, StartedUtc = 10/18/2026 10:58:52 AM +00:00, Outcome = partial, ProcessName = EXCEL, FrameCount = 8, MapId = 20261018-105733-excel-cc06cdb2 }
+					559 header item
+						560 thumb ID: PART_TopHeaderGripper
+						561 thumb ID: PART_BottomHeaderGripper
+					562 data grid cell EXCEL Value: EXCEL
+						563 text EXCEL
+					564 data grid cell 10/18/2026 10:58 AM +00:00 Value: 10/18/2026 10:58 AM +00:00
+						565 text 10/18/2026 10:58 AM +00:00
+					566 data grid cell partial Value: partial
+						567 text partial
+					568 data grid cell 8 Value: 8
+						569 text 8
+					570 data grid cell 20261018-105733-excel-cc06cdb2 Value: 20261018-105733-excel-cc06cdb2
+						571 text 20261018-105733-excel-cc06cdb2
+				572 dataitem (selectable) CatalogRecording { Id = 20261018-094439-excel-c63a40af, StartedUtc = 10/18/2026 9:45:51 AM +00:00, Outcome = partial, ProcessName = EXCEL, FrameCount = 38, MapId = }
+					573 header item
+						574 thumb ID: PART_TopHeaderGripper
+						575 thumb ID: PART_BottomHeaderGripper
+					576 data grid cell EXCEL Value: EXCEL
+						577 text EXCEL
+					578 data grid cell 10/18/2026 9:45 AM +00:00 Value: 10/18/2026 9:45 AM +00:00
+						579 text 10/18/2026 9:45 AM +00:00
+					580 data grid cell partial Value: partial
+						581 text partial
+					582 data grid cell 38 Value: 38
+						583 text 38
+					584 data grid cell 20261018-094439-excel-c63a40af Value: 20261018-094439-excel-c63a40af
+						585 text 20261018-094439-excel-c63a40af
+				586 dataitem (selectable) CatalogRecording { Id = 20261018-072025-excel-c3e5072b, StartedUtc = 10/18/2026 7:20:25 AM +00:00, Outcome = partial, ProcessName = EXCEL, FrameCount = 3, MapId = 20261018-072025-excel-c3e5072b }
+					587 header item
+						588 thumb ID: PART_TopHeaderGripper
+						589 thumb ID: PART_BottomHeaderGripper
+					590 data grid cell EXCEL Value: EXCEL
+						591 text EXCEL
+					592 data grid cell 10/18/2026 7:20 AM +00:00 Value: 10/18/2026 7:20 AM +00:00
+						593 text 10/18/2026 7:20 AM +00:00
+					594 data grid cell partial Value: partial
+						595 text partial
+					596 data grid cell 3 Value: 3
+						597 text 3
+					598 data grid cell 20261018-072025-excel-c3e5072b Value: 20261018-072025-excel-c3e5072b
+						599 text 20261018-072025-excel-c3e5072b
+				600 dataitem (selectable) CatalogRecording { Id = 20261015-103851-winword-1a1fd5a8, StartedUtc = 10/15/2026 5:04:48 PM +00:00, Outcome = partial, ProcessName = WINWORD, FrameCount = 10, MapId = 20261015-103851-winword-1a1fd5a8 }
+					601 header item
+						602 thumb ID: PART_TopHeaderGripper
+						603 thumb ID: PART_BottomHeaderGripper
+					604 data grid cell WINWORD Value: WINWORD
+						605 text WINWORD
+					606 data grid cell 10/15/2026 5:04 PM +00:00 Value: 10/15/2026 5:04 PM +00:00
+						607 text 10/15/2026 5:04 PM +00:00
+					608 data grid cell partial Value: partial
+						609 text partial
+					610 data grid cell 10 Value: 10
+						611 text 10
+					612 data grid cell 20261015-103851-winword-1a1fd5a8 Value: 20261015-103851-winword-1a1fd5a8
+						613 text 20261015-103851-winword-1a1fd5a8
+				614 dataitem (selectable) CatalogRecording { Id = 20261014-193900-winword-951ca23c, StartedUtc = 10/14/2026 7:39:01 PM +00:00, Outcome = partial, ProcessName = WINWORD, FrameCount = 22, MapId = 20261014-193900-winword-951ca23c }
+					615 header item
+						616 thumb ID: PART_TopHeaderGripper
+						617 thumb ID: PART_BottomHeaderGripper
+					618 data grid cell WINWORD Value: WINWORD
+						619 text WINWORD
+					620 data grid cell 10/14/2026 7:39 PM +00:00 Value: 10/14/2026 7:39 PM +00:00
+						621 text 10/14/2026 7:39 PM +00:00
+					622 data grid cell partial Value: partial
+						623 text partial
+					624 data grid cell 22 Value: 22
+						625 text 22
+					626 data grid cell 20261014-193900-winword-951ca23c Value: 20261014-193900-winword-951ca23c
+						627 text 20261014-193900-winword-951ca23c
+				628 dataitem (selectable) CatalogRecording { Id = 20261013-201130-winword-614f702d, StartedUtc = 10/13/2026 8:11:31 PM +00:00, Outcome = partial, ProcessName = WINWORD, FrameCount = 28, MapId = 20261013-201130-winword-614f702d }
+					629 header item
+						630 thumb ID: PART_TopHeaderGripper
+						631 thumb ID: PART_BottomHeaderGripper
+					632 data grid cell WINWORD Value: WINWORD
+						633 text WINWORD
+					634 data grid cell 10/13/2026 8:11 PM +00:00 Value: 10/13/2026 8:11 PM +00:00
+						635 text 10/13/2026 8:11 PM +00:00
+					636 data grid cell partial Value: partial
+						637 text partial
+					638 data grid cell 28 Value: 28
+						639 text 28
+					640 data grid cell 20261013-201130-winword-614f702d Value: 20261013-201130-winword-614f702d
+						641 text 20261013-201130-winword-614f702d
+				642 dataitem (selectable) CatalogRecording { Id = word-quality, StartedUtc = 10/12/2026 3:02:15 AM +00:00, Outcome = partial, ProcessName = WINWORD, FrameCount = 7, MapId = word-quality }
+					643 header item
+						644 thumb ID: PART_TopHeaderGripper
+						645 thumb ID: PART_BottomHeaderGripper
+					646 data grid cell WINWORD Value: WINWORD
+						647 text WINWORD
+					648 data grid cell 10/12/2026 3:02 AM +00:00 Value: 10/12/2026 3:02 AM +00:00
+						649 text 10/12/2026 3:02 AM +00:00
+					650 data grid cell partial Value: partial
+						651 text partial
+					652 data grid cell 7 Value: 7
+						653 text 7
+					654 data grid cell word-quality Value: word-quality
+						655 text word-quality
+				656 dataitem (selectable) CatalogRecording { Id = 20261011-061417-winword-fc338d13, StartedUtc = 10/11/2026 6:15:43 AM +00:00, Outcome = partial, ProcessName = WINWORD, FrameCount = 53, MapId = 20261011-061417-winword-fc338d13 }
+					657 header item
+						658 thumb ID: PART_TopHeaderGripper
+						659 thumb ID: PART_BottomHeaderGripper
+					660 data grid cell WINWORD Value: WINWORD
+						661 text WINWORD
+					662 data grid cell 10/11/2026 6:15 AM +00:00 Value: 10/11/2026 6:15 AM +00:00
+						663 text 10/11/2026 6:15 AM +00:00
+					664 data grid cell partial Value: partial
+						665 text partial
+					666 data grid cell 53 Value: 53
+						667 text 53
+					668 data grid cell 20261011-061417-winword-fc338d13 Value: 20261011-061417-winword-fc338d13
+						669 text 20261011-061417-winword-fc338d13
+				670 dataitem (selectable) CatalogRecording { Id = 20261008-232533-winword-79add407, StartedUtc = 10/8/2026 11:25:33 PM +00:00, Outcome = partial, ProcessName = WINWORD, FrameCount = 9, MapId = }
+					671 header item
+						672 thumb ID: PART_TopHeaderGripper
+						673 thumb ID: PART_BottomHeaderGripper
+					674 data grid cell WINWORD Value: WINWORD
+						675 text WINWORD
+					676 data grid cell 10/8/2026 11:25 PM +00:00 Value: 10/8/2026 11:25 PM +00:00
+						677 text 10/8/2026 11:25 PM +00:00
+					678 data grid cell partial Value: partial
+						679 text partial
+					680 data grid cell 9 Value: 9
+						681 text 9
+					682 data grid cell 20261008-232533-winword-79add407 Value: 20261008-232533-winword-79add407
+						683 text 20261008-232533-winword-79add407
+				684 dataitem (selectable) CatalogRecording { Id = 20261008-230838-winword-fca9bbb7, StartedUtc = 10/8/2026 11:08:38 PM +00:00, Outcome = partial, ProcessName = WINWORD, FrameCount = 10, MapId = }
+					685 header item
+						686 thumb ID: PART_TopHeaderGripper
+						687 thumb ID: PART_BottomHeaderGripper
+					688 data grid cell WINWORD Value: WINWORD
+						689 text WINWORD
+					690 data grid cell 10/8/2026 11:08 PM +00:00 Value: 10/8/2026 11:08 PM +00:00
+						691 text 10/8/2026 11:08 PM +00:00
+					692 data grid cell partial Value: partial
+						693 text partial
+					694 data grid cell 10 Value: 10
+						695 text 10
+					696 data grid cell 20261008-230838-winword-fca9bbb7 Value: 20261008-230838-winword-fca9bbb7
+						697 text 20261008-230838-winword-fca9bbb7
+				698 dataitem (selectable) CatalogRecording { Id = 20260919-235840-ahms-426893d1, StartedUtc = 9/19/2026 11:58:41 PM +00:00, Outcome = cancelled, ProcessName = ahms, FrameCount = 6, MapId = }
+					699 header item
+						700 thumb ID: PART_TopHeaderGripper
+						701 thumb ID: PART_BottomHeaderGripper
+					702 data grid cell ahms Value: ahms
+						703 text ahms
+					704 data grid cell 9/19/2026 11:58 PM +00:00 Value: 9/19/2026 11:58 PM +00:00
+						705 text 9/19/2026 11:58 PM +00:00
+					706 data grid cell cancelled Value: cancelled
+						707 text cancelled
+					708 data grid cell 6 Value: 6
+						709 text 6
+					710 data grid cell 20260919-235840-ahms-426893d1 Value: 20260919-235840-ahms-426893d1
+						711 text 20260919-235840-ahms-426893d1
+				712 dataitem (selectable) CatalogRecording { Id = 20260919-234317-ahms-12a321c8, StartedUtc = 9/19/2026 11:43:18 PM +00:00, Outcome = cancelled, ProcessName = ahms, FrameCount = 2, MapId = }
+					713 header item
+						714 thumb ID: PART_TopHeaderGripper
+						715 thumb ID: PART_BottomHeaderGripper
+					716 data grid cell ahms Value: ahms
+						717 text ahms
+					718 data grid cell 9/19/2026 11:43 PM +00:00 Value: 9/19/2026 11:43 PM +00:00
+						719 text 9/19/2026 11:43 PM +00:00
+					720 data grid cell cancelled Value: cancelled
+						721 text cancelled
+					722 data grid cell 2 Value: 2
+						723 text 2
+					724 data grid cell 20260919-234317-ahms-12a321c8 Value: 20260919-234317-ahms-12a321c8
+						725 text 20260919-234317-ahms-12a321c8
+				726 dataitem (selectable) CatalogRecording { Id = 20260919-234042-ahms-1bfa81a2, StartedUtc = 9/19/2026 11:40:42 PM +00:00, Outcome = cancelled, ProcessName = ahms, FrameCount = 2, MapId = }
+					727 header item
+						728 thumb ID: PART_TopHeaderGripper
+						729 thumb ID: PART_BottomHeaderGripper
+					730 data grid cell ahms Value: ahms
+						731 text ahms
+					732 data grid cell 9/19/2026 11:40 PM +00:00 Value: 9/19/2026 11:40 PM +00:00
+						733 text 9/19/2026 11:40 PM +00:00
+					734 data grid cell cancelled Value: cancelled
+						735 text cancelled
+					736 data grid cell 2 Value: 2
+						737 text 2
+					738 data grid cell 20260919-234042-ahms-1bfa81a2 Value: 20260919-234042-ahms-1bfa81a2
+						739 text 20260919-234042-ahms-1bfa81a2
+				740 dataitem (selectable) CatalogRecording { Id = 20260919-230818-ahms-2ba69ef4, StartedUtc = 9/19/2026 11:08:19 PM +00:00, Outcome = cancelled, ProcessName = ahms, FrameCount = 2, MapId = }
+					741 header item
+						742 thumb ID: PART_TopHeaderGripper
+						743 thumb ID: PART_BottomHeaderGripper
+					744 data grid cell ahms Value: ahms
+						745 text ahms
+					746 data grid cell 9/19/2026 11:08 PM +00:00 Value: 9/19/2026 11:08 PM +00:00
+						747 text 9/19/2026 11:08 PM +00:00
+					748 data grid cell cancelled Value: cancelled
+						749 text cancelled
+					750 data grid cell 2 Value: 2
+						751 text 2
+					752 data grid cell 20260919-230818-ahms-2ba69ef4 Value: 20260919-230818-ahms-2ba69ef4
+						753 text 20260919-230818-ahms-2ba69ef4
+				754 dataitem (selectable) CatalogRecording { Id = 20260919-225731-ahms-01a8a663, StartedUtc = 9/19/2026 10:57:31 PM +00:00, Outcome = cancelled, ProcessName = ahms, FrameCount = 2, MapId = }
+					755 header item
+						756 thumb ID: PART_TopHeaderGripper
+						757 thumb ID: PART_BottomHeaderGripper
+					758 data grid cell ahms Value: ahms
+						759 text ahms
+					760 data grid cell 9/19/2026 10:57 PM +00:00 Value: 9/19/2026 10:57 PM +00:00
+						761 text 9/19/2026 10:57 PM +00:00
+					762 data grid cell cancelled Value: cancelled
+						763 text cancelled
+					764 data grid cell 2 Value: 2
+						765 text 2
+					766 data grid cell 20260919-225731-ahms-01a8a663 Value: 20260919-225731-ahms-01a8a663
+						767 text 20260919-225731-ahms-01a8a663
+				768 dataitem (selectable) CatalogRecording { Id = 20260919-222233-ahms-1e5162c4, StartedUtc = 9/19/2026 10:22:33 PM +00:00, Outcome = cancelled, ProcessName = ahms, FrameCount = 2, MapId = }
+					769 header item
+						770 thumb ID: PART_TopHeaderGripper
+						771 thumb ID: PART_BottomHeaderGripper
+					772 data grid cell ahms Value: ahms
+						773 text ahms
+					774 data grid cell 9/19/2026 10:22 PM +00:00 Value: 9/19/2026 10:22 PM +00:00
+						775 text 9/19/2026 10:22 PM +00:00
+					776 data grid cell cancelled Value: cancelled
+						777 text cancelled
+					778 data grid cell 2 Value: 2
+						779 text 2
+					780 data grid cell 20260919-222233-ahms-1e5162c4 Value: 20260919-222233-ahms-1e5162c4
+						781 text 20260919-222233-ahms-1e5162c4
+				782 dataitem (selectable) CatalogRecording { Id = 20260919-215834-ahms-7229a677, StartedUtc = 9/19/2026 9:58:35 PM +00:00, Outcome = cancelled, ProcessName = ahms, FrameCount = 2, MapId = }
+					783 header item
+						784 thumb ID: PART_TopHeaderGripper
+						785 thumb ID: PART_BottomHeaderGripper
+					786 data grid cell ahms Value: ahms
+						787 text ahms
+					788 data grid cell 9/19/2026 9:58 PM +00:00 Value: 9/19/2026 9:58 PM +00:00
+						789 text 9/19/2026 9:58 PM +00:00
+					790 data grid cell cancelled Value: cancelled
+						791 text cancelled
+					792 data grid cell 2 Value: 2
+						793 text 2
+					794 data grid cell 20260919-215834-ahms-7229a677 Value: 20260919-215834-ahms-7229a677
+						795 text 20260919-215834-ahms-7229a677
+				796 dataitem (selectable) CatalogRecording { Id = 20260919-211718-ahms-75f4cbe8, StartedUtc = 9/19/2026 9:17:49 PM +00:00, Outcome = cancelled, ProcessName = ahms, FrameCount = 2, MapId = }
+					797 header item
+						798 thumb ID: PART_TopHeaderGripper
+						799 thumb ID: PART_BottomHeaderGripper
+					800 data grid cell ahms Value: ahms
+						801 text ahms
+					802 data grid cell 9/19/2026 9:17 PM +00:00 Value: 9/19/2026 9:17 PM +00:00
+						803 text 9/19/2026 9:17 PM +00:00
+					804 data grid cell cancelled Value: cancelled
+						805 text cancelled
+					806 data grid cell 2 Value: 2
+						807 text 2
+					808 data grid cell 20260919-211718-ahms-75f4cbe8 Value: 20260919-211718-ahms-75f4cbe8
+						809 text 20260919-211718-ahms-75f4cbe8
+				810 dataitem (selectable) CatalogRecording { Id = 20260919-210202-ahms-226f033b, StartedUtc = 9/19/2026 9:02:02 PM +00:00, Outcome = cancelled, ProcessName = ahms, FrameCount = 2, MapId = }
+					811 header item
+						812 thumb ID: PART_TopHeaderGripper
+						813 thumb ID: PART_BottomHeaderGripper
+					814 data grid cell ahms Value: ahms
+						815 text ahms
+					816 data grid cell 9/19/2026 9:02 PM +00:00 Value: 9/19/2026 9:02 PM +00:00
+						817 text 9/19/2026 9:02 PM +00:00
+					818 data grid cell cancelled Value: cancelled
+						819 text cancelled
+					820 data grid cell 2 Value: 2
+						821 text 2
+					822 data grid cell 20260919-210202-ahms-226f033b Value: 20260919-210202-ahms-226f033b
+						823 text 20260919-210202-ahms-226f033b
+				824 dataitem (selectable) CatalogRecording { Id = 20260919-201544-ahms-866386a3, StartedUtc = 9/19/2026 8:17:40 PM +00:00, Outcome = cancelled, ProcessName = ahms, FrameCount = 2, MapId = }
+					825 header item
+						826 thumb ID: PART_TopHeaderGripper
+						827 thumb ID: PART_BottomHeaderGripper
+					828 data grid cell ahms Value: ahms
+						829 text ahms
+					830 data grid cell 9/19/2026 8:17 PM +00:00 Value: 9/19/2026 8:17 PM +00:00
+						831 text 9/19/2026 8:17 PM +00:00
+					832 data grid cell cancelled Value: cancelled
+						833 text cancelled
+					834 data grid cell 2 Value: 2
+						835 text 2
+					836 data grid cell 20260919-201544-ahms-866386a3 Value: 20260919-201544-ahms-866386a3
+						837 text 20260919-201544-ahms-866386a3
+
+Document text: ```
+MAPLOCK
+```

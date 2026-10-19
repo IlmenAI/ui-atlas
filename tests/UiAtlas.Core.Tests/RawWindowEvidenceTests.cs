@@ -69,10 +69,16 @@ public sealed class RawWindowEvidenceTests
         using var reader = UiEvidenceReader.Open(output);
         var reference = new EvidenceRef("golden", 1, "raw/observations/frame-000001.json", frame.Window.Bounds);
         var image = Assert.IsType<UiEvidenceImage>(reader.ReadWindow(reference, frame.Window.Hwnd));
-        Assert.Equal(mode == "owned-menu" ? frame.FrameEntry : canonical, image.Entry);
-        Assert.Contains(mode == "owned-menu" ? "owned popup" : "independent HWND", image.PixelProvenance);
+        Assert.Equal(canonical, image.Entry);
+        Assert.Contains("independent HWND", image.PixelProvenance);
+        Assert.Null(image.DisplayBounds);
         Assert.Null(image.OccludedRegions);
         Assert.Equal(frame.FrameEntry, reader.Read(reference)!.Entry);
+        var raw = Assert.IsType<UiEvidenceImage>(reader.ReadRawSurface(reference, frame.Window.Hwnd));
+        Assert.Equal(frame.FrameEntry, raw.Entry);
+        Assert.Null(raw.OccludedRegions);
+        Assert.False(raw.InheritedPixels);
+        Assert.Throws<InvalidDataException>(() => reader.ReadRawSurface(reference, 987654321));
         Assert.Throws<InvalidDataException>(() => reader.ReadWindow(reference, 987654321));
     }
 

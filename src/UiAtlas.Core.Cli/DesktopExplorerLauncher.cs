@@ -14,9 +14,9 @@ internal static class DesktopExplorerLauncher
         if (!File.Exists(assembly))
             throw new InvalidOperationException("The map viewer is missing. Rebuild the UI Atlas recorder or reinstall the complete package.");
 
-        foreach (var name in new[] { "Contracts", "Build", "Storage", "Reader" })
+        foreach (var file in new[] { "UiAtlas.Core.Contracts.dll", "UiAtlas.Core.Build.dll", "UiAtlas.Core.Storage.dll", "UiAtlas.Core.Reader.dll",
+            "UiAtlas.Core.Mapping.dll", "UiAtlas.Core.Mapping.Atlas.dll", "UIMaps.Protocol.dll", "UIMaps.Perception.Core.dll", "UIMaps.Map.Core.dll" })
         {
-            var file = $"UiAtlas.Core.{name}.dll";
             if (!SameFileContent(Path.Combine(basePath, file), Path.Combine(viewerDirectory, file)))
                 throw new InvalidOperationException("The recorder and map viewer are from different builds. Rebuild the UI Atlas recorder or reinstall the complete package.");
         }

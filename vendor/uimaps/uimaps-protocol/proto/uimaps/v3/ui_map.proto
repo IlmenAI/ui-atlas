@@ -1,0 +1,1100 @@
+syntax = "proto3";
+
+package uimaps.v3;
+option csharp_namespace = "UIMaps.Protocol.V3";
+
+// Local, explicit snapshot handoff between the mapping editor and a Map library.
+// A transferred draft is not published and does not authorize target input.
+message MappingDraftSnapshot {
+  MappingSessionDescriptor session = 1;
+  UiMapDraft draft = 2;
+}
+message ImportMappingWorkspaceRequest {
+  string request_id = 1;
+  repeated MappingDraftSnapshot snapshots = 2;
+  string source_archive_path = 3;
+  string source_archive_sha256 = 4;
+  string source_format = 5;
+}
+message ImportMappingWorkspaceResponse {
+  repeated string mapping_session_refs = 1;
+  repeated string map_draft_refs = 2;
+  string retained_archive_sha256 = 3;
+  bool already_present = 4;
+}
+
+import "uimaps/v1/common.proto";
+import "uimaps/v1/perception.proto";
+import "uimaps/v1/survey.proto";
+import "uimaps/v2_1/grid_map.proto";
+import "uimaps/v2_1/grid_analysis.proto";
+import "uimaps/v2_1/grid_region.proto";
+import "uimaps/v2_1/grid_delta.proto";
+
+enum MappingSessionStatus {
+  MAPPING_SESSION_STATUS_UNSPECIFIED = 0;
+  MAPPING_SESSION_READY = 1;
+  MAPPING_SESSION_ACQUIRING = 2;
+  MAPPING_SESSION_PROCESSING = 3;
+  MAPPING_SESSION_PAUSED = 4;
+  MAPPING_SESSION_FINALIZING = 5;
+  MAPPING_SESSION_MAP_READY = 6;
+  MAPPING_SESSION_PARTIAL = 7;
+  MAPPING_SESSION_CANCELLED = 8;
+  MAPPING_SESSION_FAILED = 9;
+}
+
+enum AcquisitionSemantic {
+  ACQUISITION_SEMANTIC_UNSPECIFIED = 0;
+  ACQUISITION_SNAPSHOT = 1;
+  ACQUISITION_SURVEY = 2;
+}
+
+enum SurfaceExposure {
+  SURFACE_EXPOSURE_UNSPECIFIED = 0;
+  SURFACE_EXPOSURE_TOPMOST = 1;
+  SURFACE_EXPOSURE_OCCLUDED_BY_SAME_APPLICATION = 2;
+  SURFACE_EXPOSURE_AMBIGUOUS = 3;
+}
+
+enum EvidenceStreamKind {
+  EVIDENCE_STREAM_KIND_UNSPECIFIED = 0;
+  EVIDENCE_STREAM_ACCESSIBILITY = 1;
+  EVIDENCE_STREAM_NATIVE = 2;
+  EVIDENCE_STREAM_SCREENSHOT_GEOMETRY = 3;
+  EVIDENCE_STREAM_VISUAL_OCR = 4;
+  EVIDENCE_STREAM_REVIEWED_MAP_ASSERTION = 5;
+}
+
+enum EvidenceStreamEligibility {
+  EVIDENCE_STREAM_ELIGIBILITY_UNSPECIFIED = 0;
+  EVIDENCE_STREAM_ENABLED = 1;
+  EVIDENCE_STREAM_INSPECT_ONLY = 2;
+  EVIDENCE_STREAM_DISABLED = 3;
+}
+
+enum GridHostAssertionKind {
+  GRID_HOST_ASSERTION_KIND_UNSPECIFIED = 0;
+  GRID_HOST_POSSIBLE = 1;
+  GRID_HOST_PRESENT = 2;
+  GRID_HOST_ABSENT = 3;
+  GRID_HOST_DISPUTED = 4;
+}
+
+enum HostedGridKnowledgeStatus {
+  HOSTED_GRID_KNOWLEDGE_STATUS_UNSPECIFIED = 0;
+  HOSTED_GRID_KNOWLEDGE_PRESENT = 1;
+  HOSTED_GRID_KNOWLEDGE_ABSENT = 2;
+  HOSTED_GRID_KNOWLEDGE_UNKNOWN = 3;
+  HOSTED_GRID_KNOWLEDGE_DISPUTED = 4;
+}
+
+enum GridIdentificationStatus {
+  GRID_IDENTIFICATION_STATUS_UNSPECIFIED = 0;
+  GRID_IDENTIFICATION_DECLARED_ONLY = 1;
+  GRID_IDENTIFICATION_CANDIDATE_IDENTIFIED = 2;
+  GRID_IDENTIFICATION_REVIEWED = 3;
+  GRID_IDENTIFICATION_NOT_IDENTIFIED = 4;
+  GRID_IDENTIFICATION_AMBIGUOUS = 5;
+  GRID_IDENTIFICATION_PARTIAL = 6;
+  GRID_IDENTIFICATION_PROVIDER_UNAVAILABLE = 7;
+  GRID_IDENTIFICATION_DRIFTED = 8;
+}
+
+enum GridSchemaStatus {
+  GRID_SCHEMA_STATUS_UNSPECIFIED = 0;
+  GRID_SCHEMA_UNKNOWN = 1;
+  GRID_SCHEMA_PARTIAL = 2;
+  GRID_SCHEMA_REVIEWED = 3;
+  GRID_SCHEMA_CONFLICTING = 4;
+}
+
+enum GridProviderCapabilityKind {
+  GRID_PROVIDER_CAPABILITY_KIND_UNSPECIFIED = 0;
+  GRID_PROVIDER_NATIVE_GRID_PATTERN = 1;
+  GRID_PROVIDER_NATIVE_TABLE_PATTERN = 2;
+  GRID_PROVIDER_NATIVE_GRID_AND_TABLE_PATTERNS = 3;
+  GRID_PROVIDER_ACCESSIBILITY_DESCENDANTS = 4;
+  GRID_PROVIDER_NATIVE_STRUCTURE = 5;
+  GRID_PROVIDER_VISUAL_RECONSTRUCTION = 6;
+  GRID_PROVIDER_MIXED_EVIDENCE = 7;
+  GRID_PROVIDER_UNKNOWN = 8;
+}
+
+enum GridReadScope {
+  GRID_READ_SCOPE_UNSPECIFIED = 0;
+  GRID_READ_METADATA_ONLY = 1;
+  GRID_READ_VISIBLE_VIEWPORT = 2;
+  GRID_READ_RETAINED_PROVIDER_SNAPSHOT = 3;
+}
+
+enum GridCoverageKind {
+  GRID_COVERAGE_KIND_UNSPECIFIED = 0;
+  GRID_COVERAGE_COMPLETE_FOR_CLAIMED_SCOPE = 1;
+  GRID_COVERAGE_VISIBLE_ONLY = 2;
+  GRID_COVERAGE_PROVIDER_ENUMERATED = 3;
+  GRID_COVERAGE_PARTIAL = 4;
+  GRID_COVERAGE_CLIPPED = 5;
+  GRID_COVERAGE_VIRTUALIZED = 6;
+  GRID_COVERAGE_OCCLUDED = 7;
+  GRID_COVERAGE_UNAVAILABLE = 8;
+  GRID_COVERAGE_STALE = 9;
+  GRID_COVERAGE_UNKNOWN = 10;
+}
+
+enum RenderedEvidenceEligibilityKind {
+  RENDERED_EVIDENCE_ELIGIBILITY_KIND_UNSPECIFIED = 0;
+  RENDERED_EVIDENCE_ELIGIBLE = 1;
+  RENDERED_EVIDENCE_WRONG_SURFACE = 2;
+  RENDERED_EVIDENCE_OCCLUDED = 3;
+  RENDERED_EVIDENCE_PREMATURE = 4;
+  RENDERED_EVIDENCE_SCREENSHOT_MISMATCH = 5;
+  RENDERED_EVIDENCE_OUT_OF_CROP = 6;
+  RENDERED_EVIDENCE_AMBIGUOUS = 7;
+  RENDERED_EVIDENCE_UNAVAILABLE = 8;
+}
+
+enum MapEntityKind {
+  MAP_ENTITY_KIND_UNSPECIFIED = 0;
+  MAP_APPLICATION = 1;
+  MAP_APPLICATION_STATE = 2;
+  MAP_SURFACE = 3;
+  MAP_SURFACE_VARIANT = 4;
+  MAP_CONTROL = 5;
+  MAP_DATA_GRID = 6;
+  MAP_GRID_COLUMN = 7;
+}
+
+enum MapRelationshipKind {
+  MAP_RELATIONSHIP_KIND_UNSPECIFIED = 0;
+  MAP_HAS_STATE = 1;
+  MAP_HAS_SURFACE = 2;
+  MAP_HAS_VARIANT = 3;
+  MAP_INCLUDES_VARIANT = 4;
+  MAP_CONTAINS = 5;
+  MAP_HOSTS_DATA_GRID = 6;
+  MAP_HAS_COLUMN = 7;
+  MAP_SUPPORTED_BY = 8;
+  MAP_ALIAS_OF = 9;
+  MAP_SUPERSEDES = 10;
+  MAP_OBSERVED_TRANSITION = 11;
+}
+
+enum MapObservationRole {
+  MAP_OBSERVATION_ROLE_UNSPECIFIED = 0;
+  MAP_OBSERVATION_INITIAL = 1;
+  MAP_OBSERVATION_ACTION_RESULT = 2;
+  MAP_OBSERVATION_MANUAL_REFRESH = 3;
+}
+
+enum MapInteractionKind {
+  MAP_INTERACTION_KIND_UNSPECIFIED = 0;
+  MAP_INTERACTION_POINTER_PRIMARY = 1;
+  MAP_INTERACTION_POINTER_DOUBLE_CLICK = 2;
+  MAP_INTERACTION_POINTER_SECONDARY = 3;
+  MAP_INTERACTION_POINTER_MIDDLE = 4;
+  MAP_INTERACTION_POINTER_WHEEL = 5;
+}
+
+enum MapInteractionOutcome {
+  MAP_INTERACTION_OUTCOME_UNSPECIFIED = 0;
+  MAP_INTERACTION_STATE_CHANGED = 1;
+  MAP_INTERACTION_NO_OBSERVABLE_STRUCTURAL_CHANGE = 2;
+  MAP_INTERACTION_PARTIAL_RESULT = 3;
+  MAP_INTERACTION_UNRESOLVED = 4;
+}
+
+enum EpistemicStatus {
+  EPISTEMIC_STATUS_UNSPECIFIED = 0;
+  EPISTEMIC_OBSERVED = 1;
+  EPISTEMIC_DERIVED = 2;
+  EPISTEMIC_INFERRED = 3;
+  EPISTEMIC_REVIEWED = 4;
+  EPISTEMIC_IMPORTED_UNVERIFIED = 5;
+}
+
+enum ReviewState {
+  REVIEW_STATE_UNSPECIFIED = 0;
+  REVIEW_UNREVIEWED = 1;
+  REVIEW_ACCEPTED = 2;
+  REVIEW_CORRECTED = 3;
+  REVIEW_REJECTED = 4;
+  REVIEW_CONFLICTING = 5;
+  REVIEW_DEFERRED = 6;
+}
+
+enum DispositionKind {
+  DISPOSITION_KIND_UNSPECIFIED = 0;
+  DISPOSITION_MAPPED = 1;
+  DISPOSITION_MERGED_AS_EVIDENCE = 2;
+  DISPOSITION_EXCLUDED = 3;
+  DISPOSITION_UNRESOLVED = 4;
+  DISPOSITION_DEFERRED = 5;
+}
+
+enum ReviewCommandKind {
+  REVIEW_COMMAND_KIND_UNSPECIFIED = 0;
+  REVIEW_ACCEPT_ENTITY = 1;
+  REVIEW_REJECT_ENTITY = 2;
+  REVIEW_RENAME_ENTITY = 3;
+  REVIEW_SET_PARENT = 4;
+  REVIEW_SET_DISPOSITION = 5;
+  REVIEW_ATTACH_GRID = 6;
+  REVIEW_SET_VARIANT = 7;
+  REVIEW_UNDO = 8;
+  REVIEW_REDO = 9;
+  REVIEW_ACCEPT_INTERACTION = 10;
+  REVIEW_REJECT_INTERACTION = 11;
+  REVIEW_ACCEPT_ALL_BLOCKING = 12;
+}
+
+enum ValidationSeverity {
+  VALIDATION_SEVERITY_UNSPECIFIED = 0;
+  VALIDATION_INFO = 1;
+  VALIDATION_WARNING = 2;
+  VALIDATION_ERROR = 3;
+}
+
+enum CompatibilityStatus {
+  COMPATIBILITY_STATUS_UNSPECIFIED = 0;
+  COMPATIBILITY_UNCHANGED = 1;
+  COMPATIBILITY_COMPATIBLE = 2;
+  COMPATIBILITY_DEPRECATED = 3;
+  COMPATIBILITY_RETIRED = 4;
+  COMPATIBILITY_SPLIT = 5;
+  COMPATIBILITY_MERGED = 6;
+  COMPATIBILITY_REPLACED = 7;
+  COMPATIBILITY_UNRESOLVED = 8;
+}
+
+message TargetApplicationIdentity {
+  string application_ref = 1;
+  string display_name = 2;
+  string executable_name = 3;
+  repeated string process_identity_evidence = 4;
+  repeated string window_identity_evidence = 5;
+  string application_version = 6;
+}
+
+message PrivacyScopeAcknowledgement {
+  string scope_version = 1;
+  string scope_hash = 2;
+  string acknowledged_by = 3;
+  string acknowledged_at = 4;
+  bool screenshots_permitted = 5;
+  bool printable_text_permitted = 6;
+  bool protected_values_excluded = 7;
+  bool target_input_prohibited = 8;
+}
+
+message EvidenceStreamSelection {
+  EvidenceStreamKind stream_kind = 1;
+  EvidenceStreamEligibility eligibility = 2;
+  string saved_scope = 3;
+  string selected_by = 4;
+  string selected_at = 5;
+}
+
+message EvidenceStreamSummary {
+  string source_observation_set_ref = 1;
+  EvidenceStreamKind stream_kind = 2;
+  int32 evidence_count = 3;
+  int32 mapped_entity_count = 4;
+  repeated string limitations = 5;
+}
+
+message ControlDetectionPolicy {
+  bool visual_control_detection_enabled = 1;
+  bool ocr_on_visual_controls_enabled = 2;
+  bool automatic_data_grid_detection_enabled = 3;
+  string automatic_data_grid_shape_policy = 4;
+}
+
+message AppliedControlDetectionPolicy {
+  ControlDetectionPolicy requested = 1;
+  ControlDetectionPolicy effective = 2;
+  repeated string limitations = 3;
+}
+
+message SourceObservationSet {
+  string source_observation_set_ref = 1;
+  string application_ref = 2;
+  AcquisitionSemantic acquisition_semantic = 3;
+  string publication_ref = 4;
+  string episode_id = 5;
+  string perception_epoch = 6;
+  uint64 world_state_version = 7;
+  string world_state_hash = 8;
+  string simultaneity_group_ref = 9;
+  string captured_at = 10;
+  string attached_at = 11;
+  repeated string evidence_refs = 12;
+  repeated string provider_versions = 13;
+  repeated string coverage_limitations = 14;
+  string grid_map_revision_ref = 15;
+  string source_payload_hash = 16;
+  repeated SourceSurfaceObservation surface_observations = 17;
+  repeated EvidenceStreamSummary evidence_stream_summaries = 18;
+  AppliedControlDetectionPolicy applied_control_detection_policy = 19;
+}
+
+message SurfaceVisualFingerprint {
+  string source_world_object_ref = 1;
+  string algorithm = 2;
+  string fingerprint = 3;
+  uimaps.v1.RectPx source_bounds_px = 4;
+}
+
+message SourceSurfaceObservation {
+  string source_world_object_ref = 1;
+  string resulting_map_surface_ref = 2;
+  string resulting_map_variant_ref = 3;
+  SurfaceExposure exposure = 4;
+  int32 z_order = 5;
+  bool z_order_observed = 6;
+  bool contextual_menu = 7;
+  string visual_fingerprint_algorithm = 8;
+  string visual_fingerprint = 9;
+}
+
+message MapEvidenceLink {
+  string evidence_link_ref = 1;
+  string source_observation_set_ref = 2;
+  string source_artifact_ref = 3;
+  string source_object_ref = 4;
+  string evidence_family = 5;
+  string observed_at = 6;
+  string simultaneity_group_ref = 7;
+  uimaps.v1.RectPx bounds_px = 8;
+  repeated string limitations = 9;
+  string source_surface_world_object_ref = 10;
+}
+
+message MapMatcher {
+  string matcher_ref = 1;
+  string family = 2;
+  string key = 3;
+  string expected_value = 4;
+  double weight = 5;
+  bool hard_gate = 6;
+  bool volatile_value = 7;
+  ReviewState review_state = 8;
+  repeated string evidence_link_refs = 9;
+}
+
+message MapAssertion {
+  string assertion_ref = 1;
+  string subject_ref = 2;
+  string predicate = 3;
+  string value = 4;
+  EpistemicStatus epistemic_status = 5;
+  ReviewState review_state = 6;
+  double confidence = 7;
+  repeated string evidence_link_refs = 8;
+  repeated string limitations = 9;
+  string reviewed_by = 10;
+  string reviewed_at = 11;
+}
+
+message DataGridHostDeclaration {
+  string declaration_ref = 1;
+  string mapping_session_ref = 2;
+  string map_draft_ref = 3;
+  uint64 declaration_version = 4;
+  GridHostAssertionKind assertion_kind = 5;
+  string application_ref = 6;
+  string surface_ref = 7;
+  repeated string surface_variant_refs = 8;
+  string host_control_ref = 9;
+  string source_observation_set_ref = 10;
+  string source_host_world_object_ref = 11;
+  string grid_region_ref = 12;
+  string data_grid_ref = 13;
+  ReviewState review_state = 14;
+  string reviewer_identity = 15;
+  string reviewed_at = 16;
+  repeated string evidence_link_refs = 17;
+  repeated string limitations = 18;
+  string created_at = 19;
+  string updated_at = 20;
+}
+
+message GridHostObservationBinding {
+  string binding_ref = 1;
+  string declaration_ref = 2;
+  string map_draft_ref = 3;
+  string application_ref = 4;
+  string surface_ref = 5;
+  string surface_variant_ref = 6;
+  string host_control_ref = 7;
+  string source_observation_set_ref = 8;
+  string source_host_world_object_ref = 9;
+  string source_surface_world_object_ref = 10;
+  string source_publication_ref = 11;
+  string screenshot_ref = 12;
+  string screenshot_hash = 13;
+  uimaps.v1.RectPx host_bounds_px = 14;
+  repeated string evidence_health = 15;
+  repeated string limitations = 16;
+  string binding_hash = 17;
+}
+
+message RenderedEvidenceContext {
+  string map_entity_ref = 1;
+  string evidence_link_ref = 2;
+  string source_observation_set_ref = 3;
+  string source_surface_world_object_ref = 4;
+  string surface_ref = 5;
+  string surface_variant_ref = 6;
+  string screenshot_ref = 7;
+  string screenshot_hash = 8;
+  uimaps.v1.RectPx crop_bounds_px = 9;
+  uimaps.v1.RectPx fragment_bounds_px = 10;
+  RenderedEvidenceEligibilityKind eligibility = 11;
+  string synchronized_from_source_observation_set_ref = 12;
+  repeated string limitations = 13;
+}
+
+message HostedDataGridObservation {
+  string grid_observation_ref = 1;
+  string map_revision_ref = 2;
+  string map_payload_hash = 3;
+  string data_grid_ref = 4;
+  string host_control_ref = 5;
+  string application_ref = 6;
+  string surface_ref = 7;
+  string surface_variant_ref = 8;
+  string source_observation_set_ref = 9;
+  string host_source_world_object_ref = 10;
+  string analysis_ref = 11;
+  uimaps.v2_1.DataGridInstance data_grid_instance = 12;
+  repeated GridProviderCapabilityKind provider_capabilities = 13;
+  repeated GridCoverageKind coverage = 14;
+  repeated string limitations = 15;
+  bool not_authorization = 16;
+  string observation_hash = 17;
+}
+
+message DataGridExplorationReceipt {
+  string exploration_ref = 1;
+  string data_grid_ref = 2;
+  string host_control_ref = 3;
+  string source_observation_set_ref = 4;
+  string source_analysis_ref = 5;
+  repeated string observed_headers = 6;
+  int32 observed_row_count = 7;
+  int32 accepted_viewports = 8;
+  bool reached_top = 9;
+  bool reached_bottom = 10;
+  bool reached_left = 11;
+  bool reached_right = 12;
+  bool restoration_succeeded = 13;
+  repeated GridCoverageKind coverage = 14;
+  repeated string limitations = 15;
+  string explored_by = 16;
+  string explored_at = 17;
+  bool not_authorization = 18;
+  string receipt_hash = 19;
+}
+
+message HostedDataGridDescriptor {
+  string host_control_ref = 1;
+  string grid_map_revision_ref = 2;
+  string source_grid_ref = 3;
+  repeated string expected_headers = 4;
+  uimaps.v1.RectPx expected_relative_bounds = 5;
+  repeated string limitations = 6;
+  string declaration_ref = 7;
+  repeated string applicable_surface_variant_refs = 8;
+  HostedGridKnowledgeStatus knowledge_status = 9;
+  GridIdentificationStatus identification_status = 10;
+  GridSchemaStatus schema_status = 11;
+  repeated GridProviderCapabilityKind provider_capabilities = 12;
+  string source_observation_set_ref = 13;
+  string source_analysis_ref = 14;
+  string source_candidate_ref = 15;
+  DataGridExplorationReceipt exploration_receipt = 16;
+  uimaps.v2_1.ReviewedGridImageSchema reviewed_image_schema = 17;
+}
+
+message MapEntity {
+  string map_entity_ref = 1;
+  MapEntityKind entity_kind = 2;
+  string application_ref = 3;
+  string parent_entity_ref = 4;
+  string display_name = 5;
+  string role = 6;
+  bool applicable = 7;
+  ReviewState review_state = 8;
+  repeated MapAssertion assertions = 9;
+  repeated MapMatcher matchers = 10;
+  repeated MapEvidenceLink evidence_links = 11;
+  repeated string limitations = 12;
+  HostedDataGridDescriptor hosted_data_grid = 13;
+  int32 reviewed_order = 14;
+  bool structurally_necessary = 15;
+  string grid_internal_data_grid_ref = 16;
+}
+
+message MapRelationship {
+  string map_relationship_ref = 1;
+  MapRelationshipKind relationship_kind = 2;
+  string from_entity_ref = 3;
+  string to_entity_ref = 4;
+  ReviewState review_state = 5;
+  repeated string evidence_link_refs = 6;
+  repeated string limitations = 7;
+  string interaction_ref = 8;
+}
+
+message MapRecordingContext {
+  string recording_session_ref = 1;
+  uint64 observation_ordinal = 2;
+  MapObservationRole observation_role = 3;
+  string preceding_source_observation_set_ref = 4;
+  string action_event_ref = 5;
+  MapInteractionKind action_kind = 6;
+  string action_observed_at = 7;
+  int32 screen_x = 8;
+  int32 screen_y = 9;
+  string source_world_object_ref = 10;
+  bool user_performed = 11;
+  bool not_authorization = 12;
+  int32 wheel_x = 13;
+  int32 wheel_y = 14;
+}
+
+message ObservedMapInteraction {
+  string interaction_ref = 1;
+  string recording_session_ref = 2;
+  uint64 sequence_number = 3;
+  MapInteractionKind kind = 4;
+  string occurred_at = 5;
+  string source_observation_set_ref = 6;
+  string result_observation_set_ref = 7;
+  string source_world_object_ref = 8;
+  string source_map_entity_ref = 9;
+  repeated string result_surface_variant_refs = 10;
+  MapInteractionOutcome outcome = 11;
+  ReviewState review_state = 12;
+  repeated string limitations = 13;
+  bool user_performed = 14;
+  bool not_authorization = 15;
+  int32 screen_x = 16;
+  int32 screen_y = 17;
+  string action_event_ref = 18;
+  int32 wheel_x = 19;
+  int32 wheel_y = 20;
+}
+
+message ConstructionDisposition {
+  string source_world_object_ref = 1;
+  string source_observation_set_ref = 2;
+  DispositionKind disposition_kind = 3;
+  repeated string resulting_map_entity_refs = 4;
+  string reason_code = 5;
+  string explanation = 6;
+  ReviewState review_state = 7;
+  repeated string evidence_link_refs = 8;
+}
+
+message ReviewItem {
+  string review_item_ref = 1;
+  string category = 2;
+  string severity = 3;
+  string subject_ref = 4;
+  string message = 5;
+  bool blocking = 6;
+  ReviewState review_state = 7;
+  repeated string candidate_refs = 8;
+}
+
+message UiMapDraft {
+  string map_draft_ref = 1;
+  string mapping_session_ref = 2;
+  string application_ref = 3;
+  uint64 version = 4;
+  string etag = 5;
+  repeated SourceObservationSet sources = 6;
+  repeated MapEntity entities = 7;
+  repeated MapRelationship relationships = 8;
+  repeated ConstructionDisposition dispositions = 9;
+  repeated ReviewItem review_items = 10;
+  repeated string limitations = 11;
+  string base_map_revision_ref = 12;
+  string updated_at = 13;
+  repeated ObservedMapInteraction interactions = 14;
+  repeated DataGridHostDeclaration grid_host_declarations = 15;
+  repeated EvidenceStreamSelection evidence_stream_selections = 16;
+  repeated HostedDataGridObservation hosted_grid_observations = 17;
+}
+
+message MappingSessionDescriptor {
+  string mapping_session_ref = 1;
+  MappingSessionStatus status = 2;
+  TargetApplicationIdentity target = 3;
+  PrivacyScopeAcknowledgement privacy_scope = 4;
+  string map_draft_ref = 5;
+  string base_map_revision_ref = 6;
+  string published_map_revision_ref = 7;
+  uint64 version = 8;
+  string etag = 9;
+  string created_at = 10;
+  string updated_at = 11;
+  string status_message = 12;
+  int32 attached_source_count = 13;
+  int32 blocking_review_count = 14;
+  repeated string warnings = 15;
+  bool not_authorization = 16;
+}
+
+message ValidationFinding {
+  ValidationSeverity severity = 1;
+  string code = 2;
+  string message = 3;
+  repeated string affected_refs = 4;
+}
+
+message MapValidationReport {
+  string validation_run_ref = 1;
+  string map_draft_ref = 2;
+  string draft_etag = 3;
+  bool publication_eligible = 4;
+  int32 source_object_count = 5;
+  int32 disposition_count = 6;
+  int32 mapped_entity_count = 7;
+  repeated ValidationFinding findings = 8;
+  string canonical_payload_hash = 9;
+  string completed_at = 10;
+}
+
+message UiMapRevision {
+  string map_revision_ref = 1;
+  string schema_version = 2;
+  string application_ref = 3;
+  TargetApplicationIdentity target = 4;
+  repeated string parent_revision_refs = 5;
+  repeated SourceObservationSet sources = 6;
+  repeated MapEntity entities = 7;
+  repeated MapRelationship relationships = 8;
+  repeated ConstructionDisposition disposition_summary = 9;
+  repeated string limitations = 10;
+  string validation_run_ref = 11;
+  string canonical_payload_hash = 12;
+  string published_by = 13;
+  string published_at = 14;
+  bool immutable = 15;
+  bool not_authorization = 16;
+  repeated ObservedMapInteraction interactions = 17;
+  repeated DataGridHostDeclaration grid_host_declarations = 18;
+  repeated EvidenceStreamSelection evidence_stream_selections = 19;
+}
+
+message ReviewCommand {
+  string request_id = 1;
+  string map_draft_ref = 2;
+  string expected_etag = 3;
+  ReviewCommandKind command_kind = 4;
+  string subject_ref = 5;
+  string value = 6;
+  string secondary_ref = 7;
+  string reason = 8;
+  string reviewed_by = 9;
+}
+
+message ReviewCommandResult {
+  string review_command_ref = 1;
+  string map_draft_ref = 2;
+  string etag = 3;
+  uint64 version = 4;
+  repeated string affected_refs = 5;
+  bool undo_available = 6;
+}
+
+message MapLibraryEntry {
+  string application_ref = 1;
+  string application_display_name = 2;
+  string mapping_session_ref = 3;
+  MappingSessionStatus session_status = 4;
+  string map_draft_ref = 5;
+  string latest_map_revision_ref = 6;
+  string updated_at = 7;
+  int32 blocking_review_count = 8;
+  repeated string warnings = 9;
+  bool archived = 10;
+  string application_version = 11;
+  bool is_ready = 12;
+}
+
+message CompatibilityEntry {
+  string old_entity_ref = 1;
+  repeated string new_entity_refs = 2;
+  CompatibilityStatus status = 3;
+  string rationale = 4;
+  bool automatic_carry_forward = 5;
+}
+
+message CompatibilityReport {
+  string compatibility_report_ref = 1;
+  string old_map_revision_ref = 2;
+  string new_map_revision_ref = 3;
+  repeated CompatibilityEntry entries = 4;
+  string completed_at = 5;
+}
+
+message MapCapabilitiesRequest {
+  string correlation_id = 1;
+}
+
+message MapCapabilitiesResponse {
+  string service_version = 1;
+  string schema_version = 2;
+  repeated string features = 3;
+}
+
+message CreateMappingSessionRequest {
+  string request_id = 1;
+  TargetApplicationIdentity target = 2;
+  PrivacyScopeAcknowledgement privacy_scope = 3;
+  string base_map_revision_ref = 4;
+}
+
+message CreateMappingSessionResponse {
+  MappingSessionDescriptor session = 1;
+  UiMapDraft draft = 2;
+}
+
+message AttachObservationRequest {
+  string request_id = 1;
+  string mapping_session_ref = 2;
+  string expected_etag = 3;
+  uimaps.v1.WorldStateSnapshot snapshot = 4;
+  uimaps.v1.SurveyScenePublication survey = 5;
+  uimaps.v2_1.DataGridMapPackage reviewed_grid_map = 6;
+  string publication_ref = 7;
+  string simultaneity_group_ref = 8;
+  uimaps.v2_1.GridAnalysisResult reviewed_grid_analysis = 9;
+  string grid_host_world_object_ref = 10;
+  MapRecordingContext recording_context = 11;
+  repeated SurfaceVisualFingerprint surface_visual_fingerprints = 12;
+  string grid_host_control_ref = 13;
+  string grid_host_source_observation_set_ref = 14;
+  ControlDetectionPolicy control_detection_policy = 15;
+}
+
+message AttachObservationResponse {
+  MappingSessionDescriptor session = 1;
+  UiMapDraft draft = 2;
+}
+
+message GetMappingSessionRequest {
+  string mapping_session_ref = 1;
+}
+
+message GetMappingSessionResponse {
+  MappingSessionDescriptor session = 1;
+}
+
+message UpdateMappingSessionStatusRequest {
+  string request_id = 1;
+  string mapping_session_ref = 2;
+  string expected_etag = 3;
+  MappingSessionStatus requested_status = 4;
+  string reason = 5;
+}
+
+message UpdateMappingSessionStatusResponse {
+  MappingSessionDescriptor session = 1;
+}
+
+message ListMapLibraryRequest {
+  string query = 1;
+  int32 page_size = 2;
+  string continuation_token = 3;
+  bool include_archived = 4;
+}
+
+message ListMapLibraryResponse {
+  repeated MapLibraryEntry entries = 1;
+  string continuation_token = 2;
+}
+
+message DeleteMapLibraryEntriesRequest {
+  string request_id = 1;
+  repeated MapLibraryEntry entries = 2;
+  string deleted_by = 3;
+}
+
+message DeleteMapLibraryEntriesResponse {
+  int32 deleted_entry_count = 1;
+  repeated string deleted_mapping_session_refs = 2;
+  repeated string deleted_map_draft_refs = 3;
+  repeated string deleted_map_revision_refs = 4;
+}
+
+message ArchiveMapLibraryEntriesRequest {
+  string request_id = 1;
+  repeated MapLibraryEntry entries = 2;
+  string archived_by = 3;
+}
+
+message ArchiveMapLibraryEntriesResponse {
+  int32 archived_entry_count = 1;
+  repeated string archived_mapping_session_refs = 2;
+  repeated string archived_map_revision_refs = 3;
+  string archived_at = 4;
+}
+
+message RestoreMapLibraryEntriesRequest {
+  string request_id = 1;
+  repeated MapLibraryEntry entries = 2;
+  string restored_by = 3;
+}
+
+message RestoreMapLibraryEntriesResponse {
+  int32 restored_entry_count = 1;
+  repeated string restored_mapping_session_refs = 2;
+  repeated string restored_map_revision_refs = 3;
+  string restored_at = 4;
+}
+
+message SetMapLibraryReadinessRequest {
+  string request_id = 1;
+  MapLibraryEntry entry = 2;
+  bool ready = 3;
+  string changed_by = 4;
+}
+
+message SetMapLibraryReadinessResponse {
+  string application_ref = 1;
+  string application_version = 2;
+  string selected_map_revision_ref = 3;
+  string displaced_map_revision_ref = 4;
+  bool ready = 5;
+  string changed_at = 6;
+}
+
+message GetMapDraftRequest {
+  string map_draft_ref = 1;
+}
+
+message GetMapDraftResponse {
+  UiMapDraft draft = 1;
+}
+
+message ApplyReviewCommandRequest {
+  ReviewCommand command = 1;
+}
+
+message ApplyReviewCommandResponse {
+  ReviewCommandResult result = 1;
+  UiMapDraft draft = 2;
+}
+
+message ValidateMapDraftRequest {
+  string map_draft_ref = 1;
+  string expected_etag = 2;
+}
+
+message ValidateMapDraftResponse {
+  MapValidationReport report = 1;
+}
+
+message PublishMapDraftRequest {
+  string request_id = 1;
+  string map_draft_ref = 2;
+  string expected_etag = 3;
+  string validation_run_ref = 4;
+  string published_by = 5;
+}
+
+message PublishMapDraftResponse {
+  UiMapRevision revision = 1;
+  MappingSessionDescriptor session = 2;
+}
+
+message GetMapRevisionRequest {
+  string map_revision_ref = 1;
+}
+
+message GetMapRevisionResponse {
+  UiMapRevision revision = 1;
+}
+
+message CompareMapRevisionsRequest {
+  string old_map_revision_ref = 1;
+  string new_map_revision_ref = 2;
+}
+
+message CompareMapRevisionsResponse {
+  CompatibilityReport report = 1;
+}
+
+message ExportMapRevisionRequest {
+  string map_revision_ref = 1;
+  bool include_sensitive_evidence = 2;
+}
+
+message ExportMapRevisionResponse {
+  bytes package_bytes = 1;
+  string package_hash = 2;
+  repeated string warnings = 3;
+}
+
+message ImportMapRevisionRequest {
+  bytes package_bytes = 1;
+  bool commit = 2;
+}
+
+message ImportMapRevisionResponse {
+  bool valid = 1;
+  bool committed = 2;
+  string map_revision_ref = 3;
+  repeated ValidationFinding findings = 4;
+}
+
+message UpdateEvidenceStreamSelectionRequest {
+  string request_id = 1;
+  string mapping_session_ref = 2;
+  string expected_etag = 3;
+  repeated EvidenceStreamSelection selections = 4;
+}
+
+message UpdateEvidenceStreamSelectionResponse {
+  MappingSessionDescriptor session = 1;
+  UiMapDraft draft = 2;
+}
+
+message UpsertDataGridHostDeclarationRequest {
+  string request_id = 1;
+  string mapping_session_ref = 2;
+  string expected_etag = 3;
+  uint64 expected_declaration_version = 4;
+  DataGridHostDeclaration declaration = 5;
+}
+
+message UpsertDataGridHostDeclarationResponse {
+  MappingSessionDescriptor session = 1;
+  UiMapDraft draft = 2;
+  DataGridHostDeclaration declaration = 3;
+}
+
+message ResolveGridHostObservationRequest {
+  string map_draft_ref = 1;
+  string application_ref = 2;
+  string surface_ref = 3;
+  string surface_variant_ref = 4;
+  string host_control_ref = 5;
+  string source_observation_set_ref = 6;
+}
+
+message ResolveGridHostObservationResponse {
+  GridHostObservationBinding binding = 1;
+}
+
+message HostedGridIdentificationRequest {
+  string request_id = 1;
+  string mapping_session_ref = 2;
+  string expected_session_etag = 3;
+  string declaration_ref = 4;
+  GridHostObservationBinding host_observation_binding = 5;
+  uimaps.v2_1.GridRegionOfInterest grid_region_of_interest = 6;
+  uimaps.v2_1.GridAnalysisRequest grid_analysis_request = 7;
+  string privacy_policy_ref = 8;
+  int32 deadline_ms = 9;
+  bool allow_visual_override_of_structured_collection = 10;
+  string override_reason = 11;
+}
+
+message HostedGridIdentificationResult {
+  string identification_ref = 1;
+  string request_id = 2;
+  string declaration_ref = 3;
+  string host_observation_binding_ref = 4;
+  GridIdentificationStatus status = 5;
+  uimaps.v2_1.GridAnalysisResult grid_analysis_result = 6;
+  repeated GridProviderCapabilityKind provider_capabilities = 7;
+  repeated GridCoverageKind coverage = 8;
+  repeated string limitations = 9;
+  string completed_at = 10;
+  bool not_authorization = 11;
+  string result_hash = 12;
+  bool structured_collection_available = 13;
+}
+
+message PromoteHostedGridCandidateRequest {
+  string request_id = 1;
+  string mapping_session_ref = 2;
+  string expected_session_etag = 3;
+  string declaration_ref = 4;
+  uint64 expected_declaration_version = 5;
+  string source_observation_set_ref = 6;
+  string candidate_ref = 7;
+  string reviewed_grid_name = 8;
+  uimaps.v2_1.GridAnalysisResult analysis = 9;
+  repeated string applicable_surface_variant_refs = 10;
+  string reviewer_identity = 11;
+  string review_reason = 12;
+  DataGridExplorationReceipt exploration_receipt = 13;
+}
+
+message PromoteHostedGridCandidateResponse {
+  MappingSessionDescriptor session = 1;
+  UiMapDraft draft = 2;
+  DataGridHostDeclaration declaration = 3;
+  string data_grid_ref = 4;
+  repeated string grid_column_refs = 5;
+}
+
+message GetHostedDataGridKnowledgeRequest {
+  string map_ref = 1;
+  string host_control_ref = 2;
+  string surface_variant_ref = 3;
+}
+
+message GetHostedDataGridKnowledgeResponse {
+  HostedGridKnowledgeStatus status = 1;
+  repeated string data_grid_refs = 2;
+  repeated DataGridHostDeclaration assertions = 3;
+  repeated string limitations = 4;
+  bool not_authorization = 5;
+}
+
+message GetHostedDataGridMetadataRequest {
+  string map_ref = 1;
+  string data_grid_ref = 2;
+}
+
+message GetHostedDataGridMetadataResponse {
+  MapEntity data_grid = 1;
+  MapRelationship host_relationship = 2;
+  repeated MapEntity columns = 3;
+  string map_payload_hash = 4;
+  bool not_authorization = 5;
+}
+
+message GetObservedDataGridMetadataRequest {
+  string map_draft_ref = 1;
+  string grid_observation_ref = 2;
+}
+
+message GetObservedDataGridMetadataResponse {
+  HostedDataGridObservation observation = 1;
+}
+
+message GetObservedDataGridContentsRequest {
+  string map_draft_ref = 1;
+  string grid_observation_ref = 2;
+  GridReadScope read_scope = 3;
+  string privacy_policy_ref = 4;
+}
+
+message GetObservedDataGridContentsResponse {
+  string grid_observation_ref = 1;
+  GridReadScope requested_scope = 2;
+  GridReadScope effective_scope = 3;
+  repeated uimaps.v2_1.VisibleGridRowInstance rows = 4;
+  repeated GridCoverageKind coverage = 5;
+  repeated string limitations = 6;
+  bool not_authorization = 7;
+}

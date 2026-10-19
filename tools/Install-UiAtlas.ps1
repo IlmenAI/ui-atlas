@@ -41,17 +41,20 @@ try {
   if (-not $NoShortcut) {
     $startMenu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'
     New-Item -ItemType Directory -Path $startMenu -Force | Out-Null
-    $shortcutPath = Join-Path $startMenu 'UiAtlas Recorder.lnk'
+    $shortcutPath = Join-Path $startMenu 'UI Atlas.lnk'
     $shell = New-Object -ComObject WScript.Shell
     $shortcut = $shell.CreateShortcut($shortcutPath)
     $shortcut.TargetPath = (Join-Path $destination 'ui-atlas.cmd')
+    $shortcut.Arguments = 'app'
+    $shortcut.WindowStyle = 7
     $shortcut.WorkingDirectory = $destination
     $shortcut.Description = 'Map legacy Windows interfaces with UiAtlas'
     $shortcut.Save()
   }
 
   Write-Output "UiAtlas installed to $destination"
-  Write-Output "Start it with: $destination\ui-atlas.cmd"
+  Write-Output "Open the desktop with: $destination\ui-atlas.cmd app"
+  Write-Output "Command-line help: $destination\ui-atlas.cmd"
   if ($backup) { Write-Output "Previous installation kept at $backup" }
 }
 catch {

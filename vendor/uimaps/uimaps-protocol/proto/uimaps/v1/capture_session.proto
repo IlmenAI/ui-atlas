@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package uimaps.v1;
+option csharp_namespace = "UIMaps.Protocol.V1";
+
+import "uimaps/v1/capture_policy.proto";
+import "uimaps/v1/coverage.proto";
+
+message CaptureSessionDescriptor {
+  string session_id = 1; string episode_id = 2; string selected_display_id = 3;
+  ProfileRef requested_profile_ref = 4; EffectiveCapturePolicy effective_policy = 5;
+  string state = 6; string started_at = 7;
+}
+
+message CaptureProgress {
+  string session_id = 1; uint64 sequence_number = 2; string state = 3; string current_pass = 4;
+  int32 cataloged_windows = 5; int32 eligible_windows = 6; int32 windows_completed = 7;
+  int32 windows_terminal = 8; int64 nodes_observed = 9; int64 nodes_included = 10;
+  repeated ReasonCount current_failure_counts = 11; int64 elapsed_ms = 12; int64 hard_budget_ms = 13;
+  int32 checkpoint_count = 14; int32 segment_count = 15;
+  ConvergenceState current_convergence_state = 16; bool cancellation_requested = 17;
+}
+
+message CaptureSegmentDescriptor {
+  string segment_id = 1; string episode_id = 2; uint64 sequence_number = 3;
+  int64 byte_length = 4; string checksum = 5; string packet_time_range = 6;
+  repeated string window_refs = 7; repeated string final_for_window_refs = 8; string created_at = 9;
+}
+
+message CaptureCheckpoint {
+  string checkpoint_id = 1; string session_id = 2; int32 pass_number = 3;
+  string created_at = 4; repeated string segment_refs = 5; CoverageReport provisional_coverage_summary = 6;
+}

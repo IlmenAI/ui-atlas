@@ -8,6 +8,7 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.WindowsDesktop.App.WPF" />
     <ProjectReference Include="../UiAtlas.Core.Contracts/UiAtlas.Core.Contracts.csproj" />
+    <ProjectReference Include="../UiAtlas.Core.Mapping.Atlas/UiAtlas.Core.Mapping.Atlas.csproj" />
     <ProjectReference Include="../UiAtlas.Core.Reader/UiAtlas.Core.Reader.csproj" />
     <ProjectReference Include="../UiAtlas.Core.Recording.Windows/UiAtlas.Core.Recording.Windows.csproj" />
   </ItemGroup>

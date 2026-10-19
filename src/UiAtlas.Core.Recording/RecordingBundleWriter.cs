@@ -10,7 +10,7 @@ public sealed class RecordingBundleWriter : IDisposable
     private readonly string _staging;
     private bool _completed;
     private long _totalBytes;
-    private const long MaxStagingBytes = 512L * 1024 * 1024;
+    private const long MaxStagingBytes = UiAtlas.Core.Contracts.RecordingContractLimits.MaxRecordingBytes;
     private const string OwnerMarkerName = ".ui-atlas-staging-owner";
     private const string OwnerMarkerContent = "ui-atlas-recording-staging/1";
 

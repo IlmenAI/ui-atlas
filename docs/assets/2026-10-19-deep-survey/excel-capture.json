@@ -1,0 +1,213 @@
+{
+  "seconds": 149.9890853,
+  "profile": "deep-survey",
+  "version": "1.1.0",
+  "policy": {
+    "requestedProfileRef": {
+      "profileId": "deep-survey"
+    },
+    "resolvedProfileRef": {
+      "profileId": "deep-survey",
+      "profileVersion": "1.1.0"
+    },
+    "catalogVersion": "1.0.0",
+    "resolverVersion": "phase1-resolver/1",
+    "captureSemantics": "CAPTURE_SEMANTICS_SURVEY",
+    "captureScope": {
+      "selectedDisplayId": "atlas-target:200060",
+      "interactiveSessionEvidence": "48356",
+      "observableStateOnly": true,
+      "passiveReadOnly": true,
+      "targetWindowHandleEvidence": [
+        "200060",
+        "49879696"
+      ],
+      "targetProcessInstanceEvidence": "pid:31092:started:2026-10-17T22:40:09.1145089Z"
+    },
+    "providerBudgets": [
+      {
+        "providerId": "screen",
+        "hardDurationMs": "1000",
+        "maxAttempts": 1,
+        "maxBytes": "16777216"
+      },
+      {
+        "providerId": "native-window-topology",
+        "hardDurationMs": "15000",
+        "maxAttempts": 1
+      },
+      {
+        "providerId": "uia",
+        "maxAttempts": 2,
+        "maxConcurrentGlobalContribution": 4
+      },
+      {
+        "providerId": "msaa",
+        "maxAttempts": 1,
+        "maxConcurrentGlobalContribution": 4
+      }
+    ],
+    "retryPolicy": {
+      "maxAttempts": 2,
+      "requireFreshWorker": true
+    },
+    "fallbackPolicy": {
+      "preservePrimaryFailure": true
+    },
+    "maxBytesPerSegment": "16777216",
+    "maxBytesPerEpisode": "134217728",
+    "schedulingPolicy": {
+      "strategyId": "coverage-exhaustive/1",
+      "globalConcurrency": 4,
+      "perProcessConcurrency": 1,
+      "foregroundPriority": 100,
+      "visiblePriority": 50,
+      "displayIntersectionPriority": 25,
+      "unfinishedFrontierPriority": 75,
+      "recoveryPriority": 10
+    },
+    "synchronizationPolicy": {
+      "frameAnchorSource": "screenshot",
+      "targetToleranceMs": "250",
+      "hardAttachmentToleranceMs": "500",
+      "staleEvidencePolicy": "retain_in_episode_exclude_from_frame"
+    },
+    "coverageTarget": "all_eligible_passive_evidence_accounted",
+    "checkpointPolicy": {
+      "enabled": true,
+      "intervalMs": "10000",
+      "afterEachPass": true
+    },
+    "adjustments": [
+      {
+        "code": "target_window_priority",
+        "safeDescription": "The passively observed target window is prioritized for provider scheduling."
+      },
+      {
+        "code": "capture_wide_visual_control_detection_opt_in",
+        "safeDescription": "Capture-wide visual control detection and OCR were explicitly enabled."
+      },
+      {
+        "code": "exhaustive_coverage",
+        "safeDescription": "Window, node, depth, and overall-duration profile ceilings are disabled; cancellation and accounted provider outcomes terminate the survey."
+      }
+    ],
+    "resolvedAt": "2026-10-19T13:59:51.3612421\u002B00:00",
+    "exhaustiveCoverage": true,
+    "visualControlDetectionEnabled": true,
+    "ocrOnVisualControlsEnabled": true
+  },
+  "health": "Complete",
+  "consistency": "stable",
+  "frameControls": 8353,
+  "streams": [
+    {
+      "Source": "screenshot",
+      "Status": "ok",
+      "Count": 0
+    },
+    {
+      "Source": "native-window-topology",
+      "Status": "ok",
+      "Count": 0
+    },
+    {
+      "Source": "native-hwnd",
+      "Status": "ok",
+      "Count": 6
+    },
+    {
+      "Source": "uia",
+      "Status": "ok",
+      "Count": 651
+    },
+    {
+      "Source": "msaa",
+      "Status": "ok",
+      "Count": 3570
+    },
+    {
+      "Source": "native-hwnd",
+      "Status": "ok",
+      "Count": 22
+    },
+    {
+      "Source": "uia",
+      "Status": "ok",
+      "Count": 983
+    },
+    {
+      "Source": "msaa",
+      "Status": "ok",
+      "Count": 3121
+    }
+  ],
+  "attempts": [
+    {
+      "provider": "native-hwnd",
+      "window": "07242d67fd5c40d080ffda9e6592f36b",
+      "Status": "completed",
+      "count": 6,
+      "DepthLimited": false,
+      "NodeLimited": false,
+      "TimeLimited": false,
+      "cancel": false,
+      "fonts": 0
+    },
+    {
+      "provider": "uia",
+      "window": "07242d67fd5c40d080ffda9e6592f36b",
+      "Status": "completed",
+      "count": 651,
+      "DepthLimited": false,
+      "NodeLimited": false,
+      "TimeLimited": false,
+      "cancel": true,
+      "fonts": 608
+    },
+    {
+      "provider": "msaa",
+      "window": "07242d67fd5c40d080ffda9e6592f36b",
+      "Status": "completed",
+      "count": 3570,
+      "DepthLimited": false,
+      "NodeLimited": false,
+      "TimeLimited": false,
+      "cancel": true,
+      "fonts": 3232
+    },
+    {
+      "provider": "native-hwnd",
+      "window": "0919bb04a61a4579b8fa85f9b9d57ed4",
+      "Status": "completed",
+      "count": 22,
+      "DepthLimited": false,
+      "NodeLimited": false,
+      "TimeLimited": false,
+      "cancel": false,
+      "fonts": 0
+    },
+    {
+      "provider": "uia",
+      "window": "0919bb04a61a4579b8fa85f9b9d57ed4",
+      "Status": "completed",
+      "count": 983,
+      "DepthLimited": false,
+      "NodeLimited": false,
+      "TimeLimited": false,
+      "cancel": true,
+      "fonts": 608
+    },
+    {
+      "provider": "msaa",
+      "window": "0919bb04a61a4579b8fa85f9b9d57ed4",
+      "Status": "completed",
+      "count": 3121,
+      "DepthLimited": false,
+      "NodeLimited": false,
+      "TimeLimited": false,
+      "cancel": false,
+      "fonts": 133
+    }
+  ]
+}

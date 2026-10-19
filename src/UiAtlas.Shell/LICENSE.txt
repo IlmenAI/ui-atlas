@@ -1,0 +1,11 @@
+Copyright (c) AI Successors Corp.
+
+This shell contains presentation code extracted from UIMaps.Application and the
+Windows application classifier from UIMaps.LocalServices. Their original notice
+is retained:
+
+All rights reserved. Licensing terms for public distribution will be supplied
+before publication as open source.
+
+Extraction into this directory does not relicense that source under the repository
+root license.

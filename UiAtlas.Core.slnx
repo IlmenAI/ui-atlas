@@ -1,4 +1,15 @@
 <Solution>
+  <Project Path="src/Launcher/Launcher.csproj" DefaultStartup="true" />
+  <Project Path="src/UiAtlas.Shell/UiAtlas.Shell.csproj" />
+  <Folder Name="/foundation/">
+    <Project Path="vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/UIMaps.Recorder.Windows.csproj" />
+    <Project Path="vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.ProviderProbe/UIMaps.Recorder.ProviderProbe.csproj" />
+    <Project Path="vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/UIMaps.Protocol.csproj" />
+    <Project Path="vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/UIMaps.Perception.Core.csproj" />
+    <Project Path="vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/UIMaps.Map.Core.csproj" />
+    <Project Path="src/UiAtlas.Core.Mapping/UiAtlas.Core.Mapping.csproj" />
+    <Project Path="src/UiAtlas.Core.Mapping.Atlas/UiAtlas.Core.Mapping.Atlas.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/UiAtlas.Core.Contracts/UiAtlas.Core.Contracts.csproj" />
     <Project Path="src/UiAtlas.Core.Recording/UiAtlas.Core.Recording.csproj" />
@@ -9,14 +20,22 @@
     <Project Path="src/UiAtlas.Core.Migration/UiAtlas.Core.Migration.csproj" />
     <Project Path="src/UiAtlas.Core.Migration.Firebird/UiAtlas.Core.Migration.Firebird.csproj" />
     <Project Path="src/UiAtlas.Core.Desktop/UiAtlas.Core.Desktop.csproj" />
-    <Project Path="src/UiAtlas.Core.Cli/UiAtlas.Core.Cli.csproj" />
+    <Project Path="src/UiAtlas.Core.Cli/UiAtlas.Core.Cli.csproj">
+      <BuildDependency Project="samples/UiAtlas.Core.Consumer/UiAtlas.Core.Consumer.csproj" />
+      <BuildDependency Project="src/UiAtlas.Core.Mcp/UiAtlas.Core.Mcp.csproj" />
+      <BuildDependency Project="src/UiAtlas.Core.Migration/UiAtlas.Core.Migration.csproj" />
+      <BuildDependency Project="tests/UiAtlas.Core.Windows.Tests/UiAtlas.Core.Windows.Tests.csproj" />
+    </Project>
     <Project Path="src/UiAtlas.Core.Mcp/UiAtlas.Core.Mcp.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/UiAtlas.Core.Consumer/UiAtlas.Core.Consumer.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/UiAtlas.Shell.Tests/UiAtlas.Shell.Tests.csproj" />
+    <Project Path="tests/UiAtlas.Core.Mapping.Tests/UiAtlas.Core.Mapping.Tests.csproj" />
     <Project Path="tests/UiAtlas.Core.Tests/UiAtlas.Core.Tests.csproj" />
     <Project Path="tests/UiAtlas.Core.Windows.Tests/UiAtlas.Core.Windows.Tests.csproj" />
   </Folder>
+  <Project Path="src/UiAtlas.Catalog.Contracts/UiAtlas.Catalog.Contracts.csproj" />
 </Solution>

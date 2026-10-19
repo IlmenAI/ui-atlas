@@ -1,0 +1,222 @@
+<Window x:Class="UiAtlas.Shell.ShellWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        xmlns:views="clr-namespace:UIMaps.Application.Views"
+        Width="1320" Height="820" MinWidth="1040" MinHeight="650"
+        WindowStartupLocation="CenterScreen" WindowStyle="None" ResizeMode="CanResize"
+        StateChanged="MainWindow_StateChanged"
+        Background="{StaticResource CanvasBrush}"
+        FontFamily="Segoe UI Variable Text, Segoe UI"
+        TextOptions.TextFormattingMode="Display">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="38"
+                            ResizeBorderThickness="6"
+                            GlassFrameThickness="0"
+                            CornerRadius="8"
+                            UseAeroCaptionButtons="False" />
+    </shell:WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <Style x:Key="ProfileItemStyle" TargetType="ComboBoxItem">
+            <Setter Property="IsEnabled" Value="{Binding IsAvailable}" />
+            <Setter Property="Padding" Value="10,8" />
+        </Style>
+
+        <Style x:Key="NavigationItemStyle" TargetType="ListBoxItem">
+            <Setter Property="IsEnabled" Value="{Binding IsAvailable}" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,2" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="ItemSurface" MinHeight="43" CornerRadius="7" Background="{TemplateBinding Background}">
+                            <Grid>
+                                <Border x:Name="SelectionIndicator" Width="3" Height="25" Margin="0,0,0,0"
+                                        HorizontalAlignment="Left" VerticalAlignment="Center"
+                                        Background="{StaticResource AccentBrush}" CornerRadius="2"
+                                        Visibility="Collapsed" />
+                                <ContentPresenter Margin="12,0,10,0" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ItemSurface" Property="Background" Value="#EDF3F9" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemSurface" Property="Background" Value="{StaticResource AccentSelectionBrush}" />
+                                <Setter TargetName="SelectionIndicator" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.68" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding StartsNewSection}" Value="True">
+                    <Setter Property="Margin" Value="0,14,0,2" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="TitleBarButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="46" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+            <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Surface" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="#E9EEF4" />
+                                
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="#DDE5ED" />
+                                
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CloseTitleBarButtonStyle" TargetType="Button" BasedOn="{StaticResource TitleBarButtonStyle}">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#C42B1C" />
+                    <Setter Property="Foreground" Value="Red" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="38" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border x:Name="TitleBar" Grid.Row="0" Background="#FAFBFD" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Button x:Name="BackButton" Grid.Column="0" Style="{StaticResource TitleBarButtonStyle}" Visibility="Collapsed"
+                        Click="BackButton_Click" AutomationProperties.Name="Back" ToolTip="Back">
+                    <TextBlock Text="&#xE72B;" FontFamily="Segoe Fluent Icons" FontSize="14" />
+                </Button>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="12,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
+                    <Path Width="17" Height="13" Stretch="Fill" Data="M0,0 L17,0 L13,13 L0,13 Z">
+                        <Path.Fill>
+                            <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                                <GradientStop Color="#41D7FF" Offset="0" />
+                                <GradientStop Color="#7067FF" Offset="0.65" />
+                                <GradientStop Color="#B238F2" Offset="1" />
+                            </LinearGradientBrush>
+                        </Path.Fill>
+                    </Path>
+                    <TextBlock x:Name="ProductTitle" Text="MapLock" Margin="8,0,0,0" FontSize="12.5" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button x:Name="MicroHudButton" Style="{StaticResource TitleBarButtonStyle}" Click="MicroHudButton_Click"
+                            ToolTip="Open Micro HUD" AutomationProperties.Name="Open Micro HUD">
+                        <TextBlock Text="&#xE7F4;" FontFamily="Segoe Fluent Icons" FontSize="16" Foreground="{StaticResource AccentBrush}" />
+                    </Button>
+                    <Button Style="{StaticResource TitleBarButtonStyle}" Click="MinimizeButton_Click" AutomationProperties.Name="Minimize">
+                        <TextBlock Text="&#xE921;" FontFamily="Segoe Fluent Icons" FontSize="10" />
+                    </Button>
+                    <Button Style="{StaticResource TitleBarButtonStyle}" Click="MaximizeRestoreButton_Click" AutomationProperties.Name="Maximize or restore">
+                        <TextBlock x:Name="MaximizeRestoreGlyph" Text="&#xE922;" FontFamily="Segoe Fluent Icons" FontSize="10" />
+                    </Button>
+                    <Button Style="{StaticResource CloseTitleBarButtonStyle}" Click="CloseButton_Click" AutomationProperties.Name="Close">
+                        <TextBlock Text="&#xE8BB;" FontFamily="Segoe Fluent Icons" FontSize="10" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="298" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border x:Name="Sidebar" Grid.Column="0" Background="{StaticResource SidebarBrush}"
+                    BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,1,0">
+                <Grid Margin="18,23,18,18">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <views:BrandLogo x:Name="ProductLogo" Width="202" Height="48" HorizontalAlignment="Left"
+                                     WordmarkBrush="{StaticResource InkBrush}" />
+
+                    <ComboBox x:Name="ProfileSelector" Grid.Row="1" Height="42" Margin="0,18,0,0"
+                              HorizontalContentAlignment="Stretch"
+                              ItemContainerStyle="{StaticResource ProfileItemStyle}"
+                              SelectionChanged="ProfileSelector_SelectionChanged">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid MinWidth="215">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Status}" Margin="12,0,0,0"
+                                               FontSize="10" Foreground="{StaticResource MutedInkBrush}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                    <ListBox x:Name="NavigationList" Grid.Row="2" Margin="0,20,0,0"
+                             Background="Transparent" BorderThickness="0"
+                             ItemContainerStyle="{StaticResource NavigationItemStyle}"
+                             SelectionChanged="NavigationList_SelectionChanged">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="31" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding Glyph}" FontFamily="Segoe Fluent Icons" FontSize="16" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Label}" FontSize="14" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="2" Text="{Binding Status}" Margin="8,0,0,0" FontSize="9.5"
+                                               Foreground="{StaticResource MutedInkBrush}" VerticalAlignment="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Column="1" Margin="48,52,48,34">
+                <ContentControl x:Name="PageHost" />
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

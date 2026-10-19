@@ -1,0 +1,571 @@
+{
+  "format": "ui-atlas.uimaps-source-import/1",
+  "atlasBase": "3735554abfb5979420e5b6acf07e95a84b66e8eb",
+  "sourceWorkspaceCommit": "c8fd44525a98497dc84364c7bb4d91828c6c4147",
+  "files": [
+    {
+      "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v1/capture_policy.proto",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "proto/uimaps/v1/capture_policy.proto",
+      "sha256": "48befcd0cfdd266e1aaf8ce71183dd3c34cc3985b4b42ace66cd8e7d78032837",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v1/capture_session.proto",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "proto/uimaps/v1/capture_session.proto",
+      "sha256": "f1717697d11dce470c8aaa2d87098717fa5098ab80eb92c4c29dcc7562f8acc7",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v1/common.proto",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "proto/uimaps/v1/common.proto",
+      "sha256": "33abb0f10a23cd4fceff5129b2a6c14e7a0537548199f83aead45a26ba007668",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v1/coverage.proto",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "proto/uimaps/v1/coverage.proto",
+      "sha256": "04319b13cc9f524151b16ce884a875c83a0e89ef4e6c03cf529f6b68b4f6875b",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v1/perception.proto",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "proto/uimaps/v1/perception.proto",
+      "sha256": "cd188011983db3e06e167a0c49dbfd2ac25548f4fc47b19932bcbf5ade3093e5",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v1/sensor.proto",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "proto/uimaps/v1/sensor.proto",
+      "sha256": "0a79dba4a33000df14a6bac943dc81d3e3d0f070480d63511d89c738839a0494",
+      "disposition": "adapted-source: mapping parity; immutable provider responses, bounded verified observations, window metadata and source validation"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v1/services.proto",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "98724b2fc6b98d741879306f47523bde168fe5f3",
+      "source": "proto/uimaps/v1/services.proto",
+      "sha256": "adf005ddbe32ec7c2092f254e02a89777e0e7a357d9fe70bba4edfc24d84bb0b",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v1/survey.proto",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "proto/uimaps/v1/survey.proto",
+      "sha256": "7ca83d386194fd4890d63357fce7088cb3664dbe3ef6c9d6149d50d235c0688c",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v2_1/grid_analysis.proto",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "proto/uimaps/v2_1/grid_analysis.proto",
+      "sha256": "87d1dd42fc58571ace414a35f34bb4080ddb59ab3d60ea2d474859dba7351c92",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v2_1/grid_delta.proto",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "proto/uimaps/v2_1/grid_delta.proto",
+      "sha256": "703e34e6bd345c7e14348f0c24c24491c16c5fcd4b4506147792e9294803076c",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v2_1/grid_grounding.proto",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "proto/uimaps/v2_1/grid_grounding.proto",
+      "sha256": "5063824ac20f6450ba53c9f36d8b7994dfa3d37d5acfe2a4042cb8bccf72937a",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v2_1/grid_inspector.proto",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "proto/uimaps/v2_1/grid_inspector.proto",
+      "sha256": "61438745aa7c5ed07f23e0a59d5c0e5746b84df3d4cd8c45e57cab71f78a65dd",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v2_1/grid_map.proto",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "proto/uimaps/v2_1/grid_map.proto",
+      "sha256": "9eb5949c1554057d319dff74a8f18f6f6f9308857145d68113330b048d0bd5e4",
+      "disposition": "adapted-source: native recorder integration, exact source provenance and explicit workspace snapshot handoff"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v2_1/grid_region.proto",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "proto/uimaps/v2_1/grid_region.proto",
+      "sha256": "b030242afaaf17fdfa56c1a0ff4985a92c075219a3179132de21d91114c07006",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v2_1/grid_service.proto",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "proto/uimaps/v2_1/grid_service.proto",
+      "sha256": "1084b6fb1fb10c3e486b7596f91cee3336e757529c14b96e113db9a4d7f1f916",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v2_2/grid_workspace.proto",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "proto/uimaps/v2_2/grid_workspace.proto",
+      "sha256": "c98f6610e99641295798d949915842a3d544bbba9b7c0f382e575d0f07005bad",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v3/live_grid_service.proto",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "proto/uimaps/v3/live_grid_service.proto",
+      "sha256": "b27cb836ff9a8896b11c1269fe142179c440f7c0e626fd77620db1462e027ef3",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v3/ui_localization.proto",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "proto/uimaps/v3/ui_localization.proto",
+      "sha256": "e6db1ad3f7600708c5ce3fad693e0eba40b82b005d1ab69d8abce90492f7338f",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v3/ui_map.proto",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "98724b2fc6b98d741879306f47523bde168fe5f3",
+      "source": "proto/uimaps/v3/ui_map.proto",
+      "sha256": "992cfac31ea82b7a079e337a672b70ce7baa911fc5bdc3be9e9463b03fa0774d",
+      "disposition": "adapted-source: native recorder integration, exact source provenance and explicit workspace snapshot handoff"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/GridColumnHeaderResolver.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "src/UIMaps.Protocol/GridColumnHeaderResolver.cs",
+      "sha256": "826af6c810264435e456e9ee83bc5eb0fb0847b21366087d9704bf1ef273a361",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/LiveGridCaptureLimits.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "src/UIMaps.Protocol/LiveGridCaptureLimits.cs",
+      "sha256": "9598ff7892bf3bba366da6992d1ebc8135e477e41fe70f1c115baf1cfbf7feee",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/ReviewedGridImageSchemaValidation.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "src/UIMaps.Protocol/ReviewedGridImageSchemaValidation.cs",
+      "sha256": "037550cb403661b65647d03f65d660f4e5cedca89f14f8347df3fe3fca6dc8d0",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/ReviewedGridTranscriptionPlan.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "src/UIMaps.Protocol/ReviewedGridTranscriptionPlan.cs",
+      "sha256": "b79de563dc7d8003b50aa0618ea066ca6df1316c25058ea52078a7faea3a0f53",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/LICENSE.txt",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "LICENSE.txt",
+      "sha256": "002c2696d92b5c8cf956c11072baa58eaf9f6ade995c031ea635c6a1ee342ad1",
+      "disposition": "unmodified-license"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/AssociationPolicyV1.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-perception",
+      "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
+      "source": "src/UIMaps.Perception.Core/AssociationPolicyV1.cs",
+      "sha256": "4df8f21aa667fb26211671501585d0cf6cfc9d0548f9509aabb3b5764c6f7ec9",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/FrameSynchronizer.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-perception",
+      "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
+      "source": "src/UIMaps.Perception.Core/FrameSynchronizer.cs",
+      "sha256": "e4026f14a8a5b719d49642a56b5116926431489eb4426c65eaeeddaeb9468c82",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/Grid/WindowsOcrProvider.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-perception",
+      "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
+      "source": "src/UIMaps.Perception.Core/Grid/WindowsOcrProvider.cs",
+      "sha256": "d10916a680f2273052bba029673eebadb85465567eaf42eeddbb01dc3ab2646c",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/ObservationNormalizer.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-perception",
+      "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
+      "source": "src/UIMaps.Perception.Core/ObservationNormalizer.cs",
+      "sha256": "b1015dd1ae39c2bb77d75fd8cd298addc7e50d9c1fa0d3a2f2772035c4666b8e",
+      "disposition": "adapted-source: native recorder integration, exact source provenance and explicit workspace snapshot handoff"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/PacketValidator.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-perception",
+      "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
+      "source": "src/UIMaps.Perception.Core/PacketValidator.cs",
+      "sha256": "92a34173eb17595051496965e7ec205b9355f47d1150965804ba7721211590eb",
+      "disposition": "adapted-source: mapping parity; immutable provider responses, bounded verified observations, window metadata and source validation"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/PerceptionEngine.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-perception",
+      "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
+      "source": "src/UIMaps.Perception.Core/PerceptionEngine.cs",
+      "sha256": "ed03f295ff6f46d106ca22d57cc5c0c56b8bc76ff786d23e169d949f2e4eaaef",
+      "disposition": "adapted-source: shared observation-scoped Raw World reconstruction and surface identity continuity"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/PerceptionPolicy.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-perception",
+      "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
+      "source": "src/UIMaps.Perception.Core/PerceptionPolicy.cs",
+      "sha256": "9252ca18a0b5c18a8b00a0cc0b9e22aecb8f753017c3bf9c903c5c1dc49b72e7",
+      "disposition": "adapted-source: configurable capture sizes, 256 MiB defaults and 512 MiB reader capacity"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/TrackAssociator.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-perception",
+      "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
+      "source": "src/UIMaps.Perception.Core/TrackAssociator.cs",
+      "sha256": "728cbcde38ba092d0e481077bde1547551208ac240d9ac09a2fd0a22efdb63a7",
+      "disposition": "adapted-source: shared observation-scoped Raw World reconstruction and surface identity continuity"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/VisualTextObservationProvider.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-perception",
+      "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
+      "source": "src/UIMaps.Perception.Core/VisualTextObservationProvider.cs",
+      "sha256": "bf0bcb5194d79c5547bf9220388612531d43a1090b904111faacac2a751d47c0",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/WorldObjectBuilder.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-perception",
+      "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
+      "source": "src/UIMaps.Perception.Core/WorldObjectBuilder.cs",
+      "sha256": "045717c0153c56a02dfe8e1d58ab643bb24a41d4efd39ea155205cf8b9df7f73",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-perception/LICENSE.txt",
+      "repository": "https://github.com/AI-Successors/uimaps-perception",
+      "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
+      "source": "LICENSE.txt",
+      "sha256": "002c2696d92b5c8cf956c11072baa58eaf9f6ade995c031ea635c6a1ee342ad1",
+      "disposition": "unmodified-license"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/ControlDetectionPolicyNormalizer.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-map",
+      "commit": "fc005f5fc1787da409f9667c10ef109e25e8d2c8",
+      "source": "src/UIMaps.Map.Core/ControlDetectionPolicyNormalizer.cs",
+      "sha256": "a7f7697378a9b7d1e539ca5bf8c7ed8b9a2176a0930e172c7d62fe884fd68275",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/Grid/DataGridMapStore.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-map",
+      "commit": "fc005f5fc1787da409f9667c10ef109e25e8d2c8",
+      "source": "src/UIMaps.Map.Core/Grid/DataGridMapStore.cs",
+      "sha256": "c160240af51ddf14557f243e0346c8a51b8473c48d1d18f2068617d552546816",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/UiMapConstructionEngine.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-map",
+      "commit": "d9c7c6d721efb70d09d516dbf9828f06f59c6a0c",
+      "source": "src/UIMaps.Map.Core/UiMapConstructionEngine.cs",
+      "sha256": "7e02680b366da2430345d2702c44906127c946dc266d02aae5cdf369a55d8f62",
+      "disposition": "adapted-source: native recorder integration, exact source provenance and explicit workspace snapshot handoff"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/UiMapException.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-map",
+      "commit": "fc005f5fc1787da409f9667c10ef109e25e8d2c8",
+      "source": "src/UIMaps.Map.Core/UiMapException.cs",
+      "sha256": "54c6cd98587a7fc3341b4b26351d535dcfceafed6db18188a02680616bd23337",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/UiMapService.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-map",
+      "commit": "fc005f5fc1787da409f9667c10ef109e25e8d2c8",
+      "source": "src/UIMaps.Map.Core/UiMapService.cs",
+      "sha256": "72e5166725675cf2087141d1c0782d2834fd9148f68bafecdfd85c4920a891b4",
+      "disposition": "adapted-source: native recorder integration, exact source provenance and explicit workspace snapshot handoff"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/UiMapStore.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-map",
+      "commit": "fc005f5fc1787da409f9667c10ef109e25e8d2c8",
+      "source": "src/UIMaps.Map.Core/UiMapStore.cs",
+      "sha256": "3e2549351b72f12c71b4692454254892a13c559662cf5e0c6c2b9ab69451138b",
+      "disposition": "adapted-source: native recorder integration, exact source provenance and explicit workspace snapshot handoff"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-map/LICENSE.txt",
+      "repository": "https://github.com/AI-Successors/uimaps-map",
+      "commit": "fc005f5fc1787da409f9667c10ef109e25e8d2c8",
+      "source": "LICENSE.txt",
+      "sha256": "002c2696d92b5c8cf956c11072baa58eaf9f6ade995c031ea635c6a1ee342ad1",
+      "disposition": "unmodified-license"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/UIMaps.Protocol.csproj",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
+      "source": "src/UIMaps.Protocol/UIMaps.Protocol.csproj",
+      "sha256": "dd7d0a93c1f6cd85158ac8c355747372ccdd439d6824e7e42fa446acc65e7b8a",
+      "source_sha256": "1b948a7597bf5eee666774bc4ca94bc405998a2fc829a12b665e2f6fb0880520",
+      "disposition": "atlas-build-adapter"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/UIMaps.Perception.Core.csproj",
+      "repository": "https://github.com/AI-Successors/uimaps-perception",
+      "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
+      "source": "src/UIMaps.Perception.Core/UIMaps.Perception.Core.csproj",
+      "sha256": "ad8297d9e30146235a806f844c10a0ba3cd26af6d4c1d52c6a38362fb89896d9",
+      "source_sha256": "7038d1c8fa852c4803a9640bf707112fdd3ab1977935ad4212b5ae8099467a2d",
+      "disposition": "atlas-build-adapter"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/UIMaps.Map.Core.csproj",
+      "repository": "https://github.com/AI-Successors/uimaps-map",
+      "commit": "fc005f5fc1787da409f9667c10ef109e25e8d2c8",
+      "source": "src/UIMaps.Map.Core/UIMaps.Map.Core.csproj",
+      "sha256": "ab7ec599a40d2142c1e6926197efd10aff30cb575328384356141a412706284c",
+      "source_sha256": "519ef9027cd51d5b711fc63ccc30eeee908e203c933f242a1e8a552a1e49ce35",
+      "disposition": "atlas-build-adapter"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/Grid/GridOcrContracts.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-perception",
+      "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
+      "source": "src/UIMaps.Perception.Core/Grid/GridAnalysisEngine.cs",
+      "sha256": "2ead0b88adaffafce1a2498b7625bc26fc79669fdf2f5b554d2b3758e8cfdf66",
+      "source_sha256": "b91a6239632470921124c7fa5d46f8b1c79663baa8900fba4dd789c6e0c7666b",
+      "disposition": "local-ocr-contract-extraction"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/AccessibilityPacketMerger.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-recorder",
+      "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
+      "source": "src/UIMaps.Recorder.Windows/AccessibilityPacketMerger.cs",
+      "sha256": "5f90f54d24baf71b7c312525e2db8dfec7c4f27b75a59e682b7705cfe1f3138f",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/CaptureProfiles.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-recorder",
+      "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
+      "source": "src/UIMaps.Recorder.Windows/CaptureProfiles.cs",
+      "sha256": "39b80feea850821a234217d711ea29235609bef70202ed0fad198a898e72401f",
+      "disposition": "adapted-source: configurable capture sizes, 256 MiB defaults and 512 MiB reader capacity"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/CaptureSessions.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-recorder",
+      "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
+      "source": "src/UIMaps.Recorder.Windows/CaptureSessions.cs",
+      "sha256": "5ba8b86fcc166726aa5fb324269dd48fbd7e2b202717aeb07a192cd1f7c97fb5",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/EpisodeCaptureService.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-recorder",
+      "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
+      "source": "src/UIMaps.Recorder.Windows/EpisodeCaptureService.cs",
+      "sha256": "3dee7428e4bfce0c7a28d8dd48b2efe5256eee513578b51208205bf39a88792f",
+      "disposition": "adapted-source: mapping parity and complete deep surveys; cancellable unlimited accessibility, retained MSAA evidence and full-coverage retries"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/NativeAccessibilitySupplement.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-recorder",
+      "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
+      "source": "src/UIMaps.Recorder.Windows/NativeAccessibilitySupplement.cs",
+      "sha256": "d4d5b40a00b85b54fb0e1e8e3301e43af03d8f79b9dfa7966955438242b35f9c",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/NativeDisplayCatalog.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-recorder",
+      "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
+      "source": "src/UIMaps.Recorder.Windows/NativeDisplayCatalog.cs",
+      "sha256": "bc8febb1577b3079ccb054ca255bc262c264c47ddfa9d9d9c0dda1feed24aaba",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/NativeScreenCaptureProvider.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-recorder",
+      "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
+      "source": "src/UIMaps.Recorder.Windows/NativeScreenCaptureProvider.cs",
+      "sha256": "a2813d51d218883a9c7977e0e0fbef497a30cc2159195fa0c3eccefd630c1677",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/NativeWindowTopologyProvider.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-recorder",
+      "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
+      "source": "src/UIMaps.Recorder.Windows/NativeWindowTopologyProvider.cs",
+      "sha256": "9de084ff1562794a6ed2e3e26598a6127f1cfbcb8aabc174b3fd638cd3153922",
+      "disposition": "adapted-source: mapping parity; immutable provider responses, bounded verified observations, window metadata and source validation"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/ProviderIsolation.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-recorder",
+      "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
+      "source": "src/UIMaps.Recorder.Windows/ProviderIsolation.cs",
+      "sha256": "8edd869d777e2499e515060c5ffb53bfb8485a840c4d32ab6f7bf86011a98ae5",
+      "disposition": "adapted-source: mapping parity and complete deep surveys; cancellable unlimited accessibility, retained MSAA evidence and full-coverage retries"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/ProviderPropertyValue.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-recorder",
+      "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
+      "source": "src/UIMaps.Recorder.Windows/ProviderPropertyValue.cs",
+      "sha256": "89ddbbfcbbc172400fda0b65fb46aed3cfb940b90d585c31f9bd474992e61d70",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/RecorderContracts.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-recorder",
+      "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
+      "source": "src/UIMaps.Recorder.Windows/RecorderContracts.cs",
+      "sha256": "5dc14dd9b34394d28f009eccbadd6eb6c6b20567ce844456a7a41953b4d90c5d",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/RecorderPolicy.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-recorder",
+      "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
+      "source": "src/UIMaps.Recorder.Windows/RecorderPolicy.cs",
+      "sha256": "1af472c3b61ce1d39536711a94f85ce14f3cfdf487a6d1e3bb06638eec93263f",
+      "disposition": "adapted-source: configurable capture sizes, 256 MiB defaults and 512 MiB reader capacity"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.ProviderProbe/Program.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-recorder",
+      "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
+      "source": "src/UIMaps.Recorder.ProviderProbe/Program.cs",
+      "sha256": "3dd9310a100ed9605fd0bfd2b31dfafffbefa03ba38cf17d3f6c91951c59cc9e",
+      "disposition": "adapted-source: mapping parity; immutable provider responses, bounded verified observations, window metadata and source validation"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/profiles/capture-profiles.v1.json",
+      "repository": "https://github.com/AI-Successors/uimaps-recorder",
+      "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
+      "source": "profiles/capture-profiles.v1.json",
+      "sha256": "3f41a03ccec3f66edbbc86134e35e843de055c7830631ae07fe726d3fd91e4b4",
+      "disposition": "adapted-source: mapping parity and complete deep surveys; cancellable unlimited accessibility, retained MSAA evidence and full-coverage retries"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/LICENSE.txt",
+      "repository": "https://github.com/AI-Successors/uimaps-recorder",
+      "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
+      "source": "LICENSE.txt",
+      "sha256": "002c2696d92b5c8cf956c11072baa58eaf9f6ade995c031ea635c6a1ee342ad1",
+      "disposition": "unmodified-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.ProviderProbe/UIMaps.Recorder.ProviderProbe.csproj",
+      "repository": "https://github.com/AI-Successors/uimaps-recorder",
+      "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
+      "source": "src/UIMaps.Recorder.ProviderProbe/UIMaps.Recorder.ProviderProbe.csproj",
+      "sha256": "5e763604350e7330076d9cf695796f6e84260e1720099e194c5c99f665bbe9a6",
+      "disposition": "adapted-source: native recorder integration, exact source provenance and explicit workspace snapshot handoff"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/UIMaps.Recorder.Windows.csproj",
+      "repository": "https://github.com/AI-Successors/uimaps-recorder",
+      "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
+      "source": "src/UIMaps.Recorder.Windows/UIMaps.Recorder.Windows.csproj",
+      "sha256": "f3c348bf13ede60994441b76de725ef2152815a4ef6013ba3cca234471407a41",
+      "disposition": "adapted-source: mapping parity; immutable provider responses, bounded verified observations, window metadata and source validation"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/MappingWorkspaceTransfer.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-map",
+      "commit": "fc005f5fc1787da409f9667c10ef109e25e8d2c8",
+      "source": "new shared mapping snapshot interchange",
+      "sha256": "9772be3518aecdae0d10c84f8e1a3dedc6a1abb3dd1c68fd25dfe1aedd7d562f",
+      "disposition": "new-shared-implementation"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/NativeGraphicsCapture.cs",
+      "repository": "https://github.com/IlmenAI/UI-Atlas",
+      "commit": "3735554abfb5979420e5b6acf07e95a84b66e8eb",
+      "source": "src/UiAtlas.Core.Recording.Windows/WindowsGraphicsCapture.cs",
+      "sha256": "43093f19eab9f6983ecd897047ff226e291285a97fed32ad75ce9ba8dabe4372",
+      "disposition": "adapted-source: Atlas MIT capture implementation with native recorder PNG encoding"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/NativeMsaaProvider.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-recorder",
+      "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
+      "source": "new shared implementation; not present at base commit",
+      "sha256": "7933ae83d21a5f4d8af59f884954602d9f4e976d3b58f4eb9e623662b538e79b",
+      "disposition": "new-shared-implementation"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/MappingObservationEvidence.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-recorder",
+      "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
+      "source": "new shared implementation; not present at base commit",
+      "sha256": "17a612368c99e98490977fa8aa7db0fab37f13bceb896e0e4e5298ed37835082",
+      "disposition": "new-shared-implementation"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/SurfaceSceneReconstructor.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-perception",
+      "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
+      "source": "new shared implementation; not present at base commit",
+      "sha256": "f9d4f0886ab67993e46012a3327db38c8ed92f7e3beb246362fc8ee511d4308b",
+      "disposition": "new-shared-implementation: test5 behavioral reference; observation-scoped surface reconstruction"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/OfficeMsaaGeometry.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-perception",
+      "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
+      "source": "new shared implementation; not present at base commit",
+      "sha256": "3aa661762026334f13c9984930dce7c56a20327e260cb474a076e3202553d83b",
+      "disposition": "new-shared-implementation: observation-local Office MSAA client coordinates corroborated by native edit geometry"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/CaptureSizeLimits.cs",
+      "repository": "https://github.com/IlmenAI/UI-Atlas",
+      "commit": "3735554abfb5979420e5b6acf07e95a84b66e8eb",
+      "source": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/CaptureSizeLimits.cs",
+      "sha256": "ec9aa5998a3ab00bfcb54aa47ecb6e939b09bf0104998060d96959b8a0253900",
+      "disposition": "atlas-authored: shared capture size defaults and transport capacity"
+    }
+  ]
+}

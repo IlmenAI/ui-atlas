@@ -1,0 +1,289 @@
+{
+  "IsValid": true,
+  "Issues": [],
+  "Nodes": 173201,
+  "Edges": 187985,
+  "SemanticHash": "d09b2b22418b910aa94a5478280adc64f14a2ac5237de91eccdc7d365cd7ac7e",
+  "Surfaces": [
+    {
+      "DisplayName": "\u0026Add Animation",
+      "SurfaceKind": "RawPopupWindow",
+      "ControlCount": 438,
+      "Frames": [
+        30,
+        31,
+        33
+      ]
+    },
+    {
+      "DisplayName": "\u0026Bullets",
+      "SurfaceKind": "RawPopupWindow",
+      "ControlCount": 76,
+      "Frames": [
+        6,
+        7
+      ]
+    },
+    {
+      "DisplayName": "\u0026Custom Slide Show",
+      "SurfaceKind": "RawPopupWindow",
+      "ControlCount": 16,
+      "Frames": [
+        35
+      ]
+    },
+    {
+      "DisplayName": "\u0026Dictate",
+      "SurfaceKind": "RawPopupWindow",
+      "ControlCount": 250,
+      "Frames": [
+        12,
+        13
+      ]
+    },
+    {
+      "DisplayName": "\u0026Gradient",
+      "SurfaceKind": "RawPopupWindow",
+      "ControlCount": 115,
+      "Frames": [
+        48
+      ]
+    },
+    {
+      "DisplayName": "\u0026Select",
+      "SurfaceKind": "RawPopupWindow",
+      "ControlCount": 40,
+      "Frames": [
+        10,
+        11
+      ]
+    },
+    {
+      "DisplayName": "\u0026Subtitle Settings",
+      "SurfaceKind": "RawPopupWindow",
+      "ControlCount": 78,
+      "Frames": [
+        36,
+        37
+      ]
+    },
+    {
+      "DisplayName": "\u0026Texture",
+      "SurfaceKind": "RawPopupWindow",
+      "ControlCount": 64,
+      "Frames": [
+        49
+      ]
+    },
+    {
+      "DisplayName": "\u0026Zoom",
+      "SurfaceKind": "RawPopupWindow",
+      "ControlCount": 20,
+      "Frames": [
+        22
+      ]
+    },
+    {
+      "DisplayName": "Animation Styles",
+      "SurfaceKind": "RawPopupWindow",
+      "ControlCount": 141,
+      "Frames": [
+        29
+      ]
+    },
+    {
+      "DisplayName": "BIG THINGS HAVE SMALL BEGI...",
+      "SurfaceKind": "RawTooltipWindow",
+      "ControlCount": 6,
+      "Frames": [
+        6,
+        7,
+        22,
+        48
+      ]
+    },
+    {
+      "DisplayName": "Change Case",
+      "SurfaceKind": "RawPopupWindow",
+      "ControlCount": 36,
+      "Frames": [
+        3,
+        4
+      ]
+    },
+    {
+      "DisplayName": "Dune - PowerPoint",
+      "SurfaceKind": "RawWindow",
+      "ControlCount": 16065,
+      "Frames": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50
+      ]
+    },
+    {
+      "DisplayName": "Font",
+      "SurfaceKind": "RawDialogWindow",
+      "ControlCount": 105,
+      "Frames": [
+        14,
+        15
+      ]
+    },
+    {
+      "DisplayName": "Font Color",
+      "SurfaceKind": "RawPopupWindow",
+      "ControlCount": 166,
+      "Frames": [
+        5
+      ]
+    },
+    {
+      "DisplayName": "Insert Table",
+      "SurfaceKind": "RawDialogWindow",
+      "ControlCount": 32,
+      "Frames": [
+        20
+      ]
+    },
+    {
+      "DisplayName": "Interactive Slide",
+      "SurfaceKind": "RawPopupWindow",
+      "ControlCount": 23,
+      "Frames": [
+        18
+      ]
+    },
+    {
+      "DisplayName": "L\u0026ink",
+      "SurfaceKind": "RawPopupWindow",
+      "ControlCount": 138,
+      "Frames": [
+        23,
+        24
+      ]
+    },
+    {
+      "DisplayName": "Line Spacing",
+      "SurfaceKind": "RawPopupWindow",
+      "ControlCount": 58,
+      "Frames": [
+        8,
+        9
+      ]
+    },
+    {
+      "DisplayName": "Presentation title",
+      "SurfaceKind": "RawTooltipWindow",
+      "ControlCount": 25,
+      "Frames": [
+        3,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        23,
+        24,
+        29,
+        30,
+        31,
+        34,
+        36,
+        37,
+        39,
+        41,
+        42,
+        46,
+        50
+      ]
+    },
+    {
+      "DisplayName": "Quick Styles",
+      "SurfaceKind": "RawPopupWindow",
+      "ControlCount": 187,
+      "Frames": [
+        46
+      ]
+    },
+    {
+      "DisplayName": "Shape Fill",
+      "SurfaceKind": "RawPopupWindow",
+      "ControlCount": 571,
+      "Frames": [
+        47,
+        48,
+        49
+      ]
+    },
+    {
+      "DisplayName": "Share",
+      "SurfaceKind": "RawPopupWindow",
+      "ControlCount": 23,
+      "Frames": [
+        44
+      ]
+    },
+    {
+      "DisplayName": "Table",
+      "SurfaceKind": "RawPopupWindow",
+      "ControlCount": 103,
+      "Frames": [
+        19
+      ]
+    }
+  ],
+  "RawNodes": 145911,
+  "SemanticTooltips": [
+    "BIG THINGS HAVE SMALL BEGI...",
+    "Presentation title"
+  ]
+}

@@ -5,60 +5,18 @@ namespace UiAtlas.Core.Reader;
 
 public sealed record RawSurfaceImageLayout(RectI SourcePixels, RectI WindowLocalBounds, string Coverage)
 {
-    // A raw image may include an owned menu without making its automation records
-    // children of the owner. Follow only the recorded immediate HWND owner chain;
-    // a dialog is a boundary, not a route to the application's root window.
-    public static IReadOnlyList<WindowObservation> WindowContext(FrameObservation frame, WindowObservation window)
+    public static RectI QueryViewport(RectI window, RectI image, IEnumerable<RectI> controlBounds)
     {
-        var result = new List<WindowObservation> { window };
-        var candidates = (frame.ScopedWindows ?? [frame.Window]).Where(other =>
-            other.Hwnd != window.Hwnd && other.ProcessId == window.ProcessId &&
-            other.IsVisible && !other.IsMinimized && !other.IsCloaked &&
-            ControlGeometry.IsRenderable(other.Bounds) &&
-            RawObservationSemantics.NativeKind(other) is "borderless-window" or "borderless-tool-window").ToArray();
-        for (var index = 0; index < result.Count; index++)
-            foreach (var candidate in candidates.Where(other => other.OwnerHwnd == result[index].Hwnd))
-                if (result.All(other => other.Hwnd != candidate.Hwnd)) result.Add(candidate);
-        return result;
-    }
-
-    public static RectI ContextBounds(IReadOnlyList<WindowObservation> context)
-    {
-        var left = context.Min(window => window.Bounds.X);
-        var top = context.Min(window => window.Bounds.Y);
-        var right = context.Max(window => (long)window.Bounds.X + window.Bounds.Width);
-        var bottom = context.Max(window => (long)window.Bounds.Y + window.Bounds.Height);
+        var bounds = new[] { window }.Concat(controlBounds)
+            .Where(ControlGeometry.IsRenderable)
+            .Select(bound => RawObservationSemantics.Intersection(bound, image))
+            .Where(bound => bound is not null).Cast<RectI>().ToArray();
+        if (bounds.Length == 0) return window;
+        var left = bounds.Min(bound => bound.X);
+        var top = bounds.Min(bound => bound.Y);
+        var right = bounds.Max(bound => (long)bound.X + bound.Width);
+        var bottom = bounds.Max(bound => (long)bound.Y + bound.Height);
         return new(left, top, checked((int)(right - left)), checked((int)(bottom - top)));
-    }
-
-    public static IReadOnlyList<RectI> VisibleContextRegions(FrameObservation frame, IReadOnlyList<WindowObservation> context)
-    {
-        var windows = frame.ScopedWindows ?? [frame.Window];
-        var regions = new List<RectI>();
-        foreach (var window in context)
-        {
-            IEnumerable<RectI> visible = [window.Bounds];
-            foreach (var other in windows.Where(other => context.All(item => item.Hwnd != other.Hwnd) &&
-                         other.IsVisible && !other.IsMinimized && !other.IsCloaked &&
-                         (other.ZOrder < window.ZOrder || other.OwnerHwnd == window.Hwnd)))
-                visible = visible.SelectMany(region => Subtract(region, other.Bounds)).ToArray();
-            regions.AddRange(visible);
-        }
-        return regions;
-    }
-
-    private static IEnumerable<RectI> Subtract(RectI region, RectI covering)
-    {
-        var overlap = RawObservationSemantics.Intersection(region, covering);
-        if (overlap is null) { yield return region; yield break; }
-        if (overlap.Y > region.Y) yield return region with { Height = overlap.Y - region.Y };
-        var bottom = (long)region.Y + region.Height;
-        var overlapBottom = (long)overlap.Y + overlap.Height;
-        if (overlapBottom < bottom) yield return new(region.X, (int)overlapBottom, region.Width, (int)(bottom - overlapBottom));
-        if (overlap.X > region.X) yield return new(region.X, overlap.Y, overlap.X - region.X, overlap.Height);
-        var right = (long)region.X + region.Width;
-        var overlapRight = (long)overlap.X + overlap.Width;
-        if (overlapRight < right) yield return new((int)overlapRight, overlap.Y, (int)(right - overlapRight), overlap.Height);
     }
 
     public static IReadOnlyList<RectI> Occluders(FrameObservation frame, WindowObservation window) =>
@@ -68,17 +26,10 @@ public sealed record RawSurfaceImageLayout(RectI SourcePixels, RectI WindowLocal
         .Select(other => RawObservationSemantics.Intersection(window.Bounds, other.Bounds))
         .Where(bounds => bounds is not null).Cast<RectI>().ToArray();
 
-    public static IReadOnlyList<RectI> VisibleControlRegions(FrameObservation frame, WindowObservation window, RectI bounds)
-    {
-        IEnumerable<RectI> regions = ControlGeometry.IsRenderable(bounds) ? [bounds] : [];
-        foreach (var occluder in Occluders(frame, window))
-            regions = regions.SelectMany(region => Subtract(region, occluder)).ToArray();
-        return regions.ToArray();
-    }
-
     public static bool CanCropControl(UiEvidenceImage image, RectI bounds) =>
-        ControlGeometry.IsRenderable(bounds) &&
+        !image.InheritedPixels && ControlGeometry.IsRenderable(bounds) &&
         RawObservationSemantics.Intersection(bounds, image.ScreenshotBounds) == bounds &&
+        (image.DisplayBounds is null || RawObservationSemantics.Intersection(bounds, image.DisplayBounds) == bounds) &&
         !(image.OccludedRegions ?? []).Any(region => RawObservationSemantics.Intersection(bounds, region) is not null);
 
     public static RawSurfaceImageLayout? Create(RectI window, RectI image, int pixelWidth, int pixelHeight)
@@ -100,6 +51,52 @@ public sealed record RawSurfaceImageLayout(RectI SourcePixels, RectI WindowLocal
 
 public static class RawVariantPresentation
 {
+    public static string ProviderSummary(IEnumerable<RawDataStreamObservation> streams) => string.Join(" · ",
+        streams.Select(stream => $"{(ProviderRank(stream.Source) == 0 ? "UIA" : "MSAA")}: {stream.Status}, {stream.Controls.Count} records"));
+
+    public static bool HasOutOfSurfaceGeometry(FrameObservation? frame, long hwnd, string? source)
+    {
+        var window = (frame?.ScopedWindows ?? (frame is null ? [] : [frame.Window])).FirstOrDefault(window => window.Hwnd == hwnd);
+        if (window is null || RawObservationSemantics.NativeKind(window) != "dialog-window") return false;
+        return StreamsForWindow(frame!, hwnd).Where(stream => ProviderRank(stream.Source) == ProviderRank(source))
+            .Any(stream => AutomationObservationVisibility.FilterEffectivelyVisible(stream.Controls).Any(control =>
+                control.ControlType is "Button" or "Edit" or "CheckBox" or "ControlType.Button" or "ControlType.Edit" or "ControlType.CheckBox" &&
+                ControlGeometry.IsRenderable(control.Bounds) && RawObservationSemantics.Intersection(control.Bounds, window.Bounds) is null));
+    }
+
+    public static bool IsAccessibilitySource(string? source) => ProviderRank(source) < 2;
+
+    public static bool IsSourceEnabled(string? source, bool uia, bool msaa) => ProviderRank(source) switch
+    {
+        0 => uia,
+        1 => msaa,
+        _ => false
+    };
+
+    private static int ProviderRank(string? source) => source switch
+    {
+        "uia" => 0,
+        "msaa" => 1,
+        not null when source.StartsWith("uia.", StringComparison.Ordinal) || source.StartsWith("uia/", StringComparison.Ordinal) => 0,
+        not null when source.StartsWith("msaa/", StringComparison.Ordinal) => 1,
+        _ => 2
+    };
+
+    public static RawDataStreamObservation? PreferredAttempt(IReadOnlyList<RawDataStreamObservation> streams) =>
+        // UIA is the default even when empty or failed; MSAA is an explicit choice.
+        streams.Where(stream => ProviderRank(stream.Source) == 0)
+            .OrderBy(stream => stream.Status == "ok" ? 0 : 1)
+            .ThenByDescending(stream => AutomationObservationVisibility.FilterEffectivelyVisible(stream.Controls)
+                .Any(control => !string.IsNullOrEmpty(control.ParentRuntimeId) && ControlGeometry.IsRenderable(control.Bounds)))
+            .ThenByDescending(stream => stream.Controls.Count).FirstOrDefault();
+
+    public static bool ShouldUseControlCrop(UiMapControlView control, UiMapSurfaceView surface) =>
+        // Static text, titles and small images are visible content too. Their
+        // recorded pixels must survive disabling accessibility annotations.
+        (surface.SurfaceKind is "RawTooltipWindow" or "SemanticTooltipWindow" ||
+            !UiMapPresentation.IsLargeStructuralControl(control, surface)) &&
+        ControlGeometry.IsRenderable(control.Bounds);
+
     public static string? ExclusionReason(FrameObservation frame, long hwnd)
     {
         var windows = frame.ScopedWindows ?? [frame.Window];
@@ -121,9 +118,9 @@ public static class RawVariantPresentation
             owner = parent;
         if (front is not null && owner.Hwnd != front.Hwnd && front.ZOrder < owner.ZOrder)
             return $"Background window; {(string.IsNullOrEmpty(front.Title) ? front.ClassName : front.Title)} (0x{front.Hwnd:X}) is in front.";
-        // Acquisition timing controls image/geometry pairing, not whether a
-        // successful provider response exists. Keep foreground evidence even
-        // when another attempt was interrupted; AllowsOverlay gates the pairing.
+        // Acquisition timing qualifies alignment, not whether a successful
+        // provider response exists. Keep foreground evidence inspectable even
+        // when another attempt was interrupted.
         // Image-only menus/tooltips are still valid raw surfaces. Normal windows
         // and dialogs need a usable native response, not just a root rectangle.
         if (Standalone(window) && !StreamsForWindow(frame, hwnd).Any(stream =>
@@ -153,7 +150,7 @@ public static class RawVariantPresentation
 
     public static IReadOnlyList<RawDataStreamObservation> StreamsForWindow(FrameObservation frame, long hwnd) =>
         (frame.RawStreams ?? []).Where(stream =>
-            RawObservationSemantics.Kind(stream.Source) == "native-automation" &&
+            IsAccessibilitySource(stream.Source) &&
             (stream.TargetWindowHwnd is { } target ? target == hwnd :
              stream.Source.EndsWith($"/0x{hwnd:X}", StringComparison.OrdinalIgnoreCase) ||
              stream.Controls.Any(control => (control.QueryWindowHwnd ?? control.WindowHwnd) == hwnd))).ToArray();
@@ -171,16 +168,23 @@ public static class RawVariantPresentation
     public static UiMapProjectionPolicy PolicyFor(UiMapProjectionMode mode, FrameObservation? frame, bool showLabels = false) =>
         UiMapPresentation.PolicyFor(mode) with {
             ShowsControlLabels = showLabels && UiMapPresentation.PolicyFor(mode).ShowsControlGeometry,
-            ShowsControlCrops = mode == UiMapProjectionMode.Controls && AllowsOverlay(frame) };
+            // Offline inspection can compare this frame's recorded pixels and
+            // provider bounds without asserting that acquisition was atomic.
+            // The evidence reader and crop geometry still enforce image scope.
+            ShowsControlCrops = frame is not null && mode is UiMapProjectionMode.Controls or UiMapProjectionMode.Overlay };
 
-    public static bool AllowsOverlay(FrameObservation? frame) =>
+    public static bool HasVerifiedAlignment(FrameObservation? frame) =>
         frame?.Acquisition is { StabilityStatus: "stable", Status: "ok" or "partial" };
 
-    public static string? CaptureWarning(FrameObservation? frame) => AllowsOverlay(frame) ? null :
-        $"Incomplete capture — {frame?.Acquisition?.Status ?? "timing unknown"}. " +
-        "The screenshot and control records may show different moments. " +
-        "Controls and Structure show geometry only; overlays and control images are withheld. " +
-        "Choose a stable observation to inspect paired evidence. All attempts remain in Frame streams.";
+    // Compatibility for callers that ask whether an overlay is verified.
+    // Display eligibility is separate from this acquisition-quality predicate.
+    public static bool AllowsOverlay(FrameObservation? frame) => HasVerifiedAlignment(frame);
+
+    public static string? CaptureWarning(FrameObservation? frame) => HasVerifiedAlignment(frame) ? null :
+        (frame?.Acquisition?.StabilityStatus == "changed"
+            ? "The application changed during capture. " : "Capture timing was not verified. ") +
+        "Crops and overlays compare this observation's recorded pixels and control bounds; their alignment is unverified. " +
+        "Capture quality and provider records are unchanged.";
 
     public static UiMapVariantView? SelectionInScope(UiMapVariantView? current,
         IEnumerable<UiMapSurfaceView> surfaces) => current is null ? null : surfaces

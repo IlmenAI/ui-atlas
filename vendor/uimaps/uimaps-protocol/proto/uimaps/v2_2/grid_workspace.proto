@@ -1,0 +1,258 @@
+syntax = "proto3";
+
+package uimaps.v2_2;
+option csharp_namespace = "UIMaps.Protocol.V2_2";
+
+import "uimaps/v1/common.proto";
+import "uimaps/v2_1/grid_analysis.proto";
+import "uimaps/v2_1/grid_region.proto";
+
+enum GridSourceKind {
+  GRID_SOURCE_KIND_UNSPECIFIED = 0;
+  WORLD_OBJECT = 1;
+  EXPLICIT_REGION = 2;
+}
+
+enum GridAcquisitionRecipeKind {
+  GRID_ACQUISITION_RECIPE_KIND_UNSPECIFIED = 0;
+  LOCAL_ONLY = 1;
+  LOCAL_AND_AZURE = 2;
+  AUTOMATIC = 3;
+  CUSTOM = 4;
+}
+
+enum GridAcquisitionMethodKind {
+  GRID_ACQUISITION_METHOD_KIND_UNSPECIFIED = 0;
+  EXACT_SCREENSHOT = 1;
+  NATIVE_TOPOLOGY = 2;
+  ACCESSIBILITY_HINTS = 3;
+  LOCAL_OCR = 4;
+  DETERMINISTIC_GEOMETRY = 5;
+  AZURE_OPENAI_PROPOSAL = 6;
+}
+
+enum GridMethodAttemptStatus {
+  GRID_METHOD_ATTEMPT_STATUS_UNSPECIFIED = 0;
+  NOT_REQUESTED = 1;
+  UNAVAILABLE = 2;
+  SKIPPED_BY_POLICY = 3;
+  FAILED = 4;
+  CONTRIBUTED = 5;
+  AVAILABLE_NON_CONTRIBUTING = 6;
+}
+
+message GridObjectInterpretationRequest {
+  string request_ref = 1;
+  GridSourceKind source_kind = 2;
+  string source_world_object_ref = 3;
+  string source_world_state_ref = 4;
+  string source_screenshot_hash = 5;
+  string application_instance_ref = 6;
+  string window_or_surface_ref = 7;
+  uimaps.v1.RectPx initial_bounds_px = 8;
+  uimaps.v1.RectPx adjusted_bounds_px = 9;
+  string requested_by = 10;
+  string requested_at = 11;
+}
+
+message GridObjectInterpretationResult {
+  string request_ref = 1;
+  uimaps.v2_1.GridRegionOfInterest region = 2;
+  repeated string candidate_refs = 3;
+  repeated string issues = 4;
+  bool source_object_mutated = 5;
+}
+
+message GridAcquisitionMethod {
+  GridAcquisitionMethodKind kind = 1;
+  bool required = 2;
+  int32 order = 3;
+  bool available = 4;
+  string safe_status = 5;
+}
+
+message GridAcquisitionRecipe {
+  string recipe_ref = 1;
+  uint64 recipe_version = 2;
+  GridAcquisitionRecipeKind preset_kind = 3;
+  string display_name = 4;
+  repeated GridAcquisitionMethod methods = 5;
+  string fusion_policy_ref = 6;
+  double minimum_confidence = 7;
+  int32 request_timeout_ms = 8;
+  int32 maximum_remote_requests = 9;
+  bool screenshot_lineage_required = 10;
+  bool deterministic_validation_required = 11;
+  string created_by = 12;
+  string created_at = 13;
+}
+
+message GridMethodAttempt {
+  GridAcquisitionMethodKind kind = 1;
+  GridMethodAttemptStatus status = 2;
+  string provider_attempt_ref = 3;
+  string safe_status = 4;
+}
+
+message VisibleGridCellValue {
+  string inspector_element_ref = 1;
+  string column_ref = 2;
+  string column_label = 3;
+  string original_text = 4;
+  string normalized_text = 5;
+  double confidence = 6;
+  string viewport_ref = 7;
+  string observed_at = 8;
+  repeated string prior_values = 9;
+  repeated string evidence_refs = 10;
+  bool unresolved = 11;
+}
+
+message VisibleGridRowValue {
+  string row_ref = 1;
+  int32 visible_ordinal = 2;
+  string identity_kind = 3;
+  string viewport_ref = 4;
+  repeated VisibleGridCellValue cells = 5;
+}
+
+message VisibleGridDataViewModel {
+  string view_model_ref = 1;
+  string grid_or_draft_ref = 2;
+  repeated string viewport_refs = 3;
+  repeated VisibleGridRowValue rows = 4;
+  string completeness = 5;
+  string generated_at = 6;
+  repeated string unresolved_assignments = 7;
+  string data_source = 8;
+  string provider_display_name = 9;
+  string model_family = 10;
+  string quality_profile = 11;
+  string reasoning_effort_display = 12;
+}
+
+enum GridViewportCollectionState {
+  GRID_VIEWPORT_COLLECTION_STATE_UNSPECIFIED = 0;
+  READY = 1;
+  ACTIVE = 2;
+  PAUSED = 3;
+  STOPPING = 4;
+  TERMINAL = 5;
+}
+
+message GridViewportRecord {
+  string viewport_ref = 1;
+  string collection_ref = 2;
+  uint64 sequence_number = 3;
+  string snapshot_world_state_ref = 4;
+  string screenshot_hash = 5;
+  string crop_hash = 6;
+  string captured_at = 7;
+  string duplicate_of_viewport_ref = 8;
+  string analysis_ref = 9;
+  string status = 10;
+  repeated string issues = 11;
+}
+
+message GridViewportCollectionSession {
+  string collection_ref = 1;
+  string grid_or_draft_ref = 2;
+  string application_instance_ref = 3;
+  string window_or_surface_ref = 4;
+  uimaps.v1.RectPx grid_bounds_px = 5;
+  string acquisition_recipe_ref = 6;
+  int32 capture_interval_ms = 7;
+  int32 maximum_accepted_viewports = 8;
+  int64 maximum_retained_bytes = 9;
+  GridViewportCollectionState state = 10;
+  int32 accepted_count = 11;
+  int32 duplicate_count = 12;
+  int32 rejected_count = 13;
+  int32 ambiguous_count = 14;
+  int32 failed_count = 15;
+  string started_by = 16;
+  string started_at = 17;
+  string terminal_reason = 18;
+  repeated GridViewportRecord viewports = 19;
+  bool target_input_capability = 20;
+  string coverage_claim = 21;
+}
+
+enum GridWorkspaceResetScope {
+  GRID_WORKSPACE_RESET_SCOPE_UNSPECIFIED = 0;
+  SELECTION = 1;
+  ANALYSIS = 2;
+  CORRECTIONS = 3;
+  UNPUBLISHED_DRAFT = 4;
+  VIEWPORT_COLLECTION = 5;
+  NEW_COLLECTION = 6;
+  TO_PUBLISHED = 7;
+}
+
+message GridWorkspaceResetPreview {
+  string reset_ref = 1;
+  GridWorkspaceResetScope scope = 2;
+  repeated string removed_active_refs = 3;
+  repeated string retained_refs = 4;
+  repeated string newly_stale_refs = 5;
+  bool recoverable = 6;
+  string safe_summary = 7;
+}
+
+message GridWorkspaceResetResult {
+  string reset_ref = 1;
+  uint64 prior_workspace_version = 2;
+  uint64 resulting_workspace_version = 3;
+  repeated string removed_active_refs = 4;
+  repeated string retained_refs = 5;
+  repeated string newly_stale_refs = 6;
+  bool recoverable = 7;
+  string audit_record_ref = 8;
+  string completed_at = 9;
+}
+
+enum GridProviderConfigurationState {
+  GRID_PROVIDER_CONFIGURATION_STATE_UNSPECIFIED = 0;
+  PROVIDER_DRAFT = 1;
+  PROVIDER_VALIDATED = 2;
+  PROVIDER_QUALIFIED = 3;
+  PROVIDER_ACTIVE = 4;
+  PROVIDER_DISABLED = 5;
+  PROVIDER_REVOKED = 6;
+}
+
+message GridProviderConfigurationStatus {
+  uimaps.v2_1.AzureOpenAIGridProviderConfiguration configuration = 1;
+  GridProviderConfigurationState state = 2;
+  string safe_status = 3;
+  string qualification_ref = 4;
+  string validated_at = 5;
+  string qualified_at = 6;
+}
+
+message SetGridProviderConfigurationRequest {
+  uimaps.v2_1.AzureOpenAIGridProviderConfiguration configuration = 1;
+  string correlation_id = 2;
+}
+
+message SetGridProviderConfigurationResponse {
+  GridProviderConfigurationStatus status = 1;
+  uimaps.v1.Error error = 2;
+}
+
+message QualifyGridProviderRequest {
+  string provider_configuration_ref = 1;
+  bool synthetic_fixture_egress_confirmed = 2;
+  string correlation_id = 3;
+}
+
+message QualifyGridProviderResponse {
+  GridProviderConfigurationStatus status = 1;
+  uimaps.v1.Error error = 2;
+}
+
+message GetGridProviderConfigurationRequest { string correlation_id = 1; }
+message GetGridProviderConfigurationResponse {
+  GridProviderConfigurationStatus status = 1;
+  uimaps.v1.Error error = 2;
+}

@@ -8,8 +8,11 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../UiAtlas.Catalog.Contracts/UiAtlas.Catalog.Contracts.csproj" />
     <FrameworkReference Include="Microsoft.WindowsDesktop.App.WPF" />
     <ProjectReference Include="../UiAtlas.Core.Contracts/UiAtlas.Core.Contracts.csproj" />
+    <ProjectReference Include="../UiAtlas.Core.Mapping/UiAtlas.Core.Mapping.csproj" />
+    <ProjectReference Include="../UiAtlas.Core.Mapping.Atlas/UiAtlas.Core.Mapping.Atlas.csproj" />
     <ProjectReference Include="../UiAtlas.Core.Recording/UiAtlas.Core.Recording.csproj" />
     <ProjectReference Include="../UiAtlas.Core.Recording.Windows/UiAtlas.Core.Recording.Windows.csproj" />
     <ProjectReference Include="../UiAtlas.Core.Build/UiAtlas.Core.Build.csproj" />
@@ -17,9 +20,6 @@
     <ProjectReference Include="../UiAtlas.Core.Reader/UiAtlas.Core.Reader.csproj" />
     <ProjectReference Include="../UiAtlas.Core.Desktop/UiAtlas.Core.Desktop.csproj"
                       ReferenceOutputAssembly="false" Private="false" />
-    <ProjectReference Include="../UiAtlas.Core.Migration.Firebird/UiAtlas.Core.Migration.Firebird.csproj"
-                      ReferenceOutputAssembly="false"
-                      AdditionalProperties="Platform=x86" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\recorder-reference.png">
@@ -44,6 +44,18 @@
       Targets="Publish"
       Properties="Configuration=$(Configuration);PublishDir=$(PublishDir);PublishDesktopExplorer=false" />
   </Target>
+  <ItemGroup>
+    <ProjectReference Include="../../vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.ProviderProbe/UIMaps.Recorder.ProviderProbe.csproj" ReferenceOutputAssembly="false" Private="false" />
+  </ItemGroup>
+  <Target Name="StageNativeRecorder" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true'">
+    <MSBuild Projects="$(MSBuildThisFileDirectory)../../vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.ProviderProbe/UIMaps.Recorder.ProviderProbe.csproj" Targets="GetNativeRecorderDeploymentFiles" Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="_NativeRecorderFiles" />
+    </MSBuild>
+    <Copy SourceFiles="@(_NativeRecorderFiles)" DestinationFiles="@(_NativeRecorderFiles->'$(OutDir)native-recorder/%(NativeRecorderRelativePath)')" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="PublishNativeRecorder" AfterTargets="Publish">
+    <MSBuild Projects="$(MSBuildThisFileDirectory)../../vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.ProviderProbe/UIMaps.Recorder.ProviderProbe.csproj" Targets="Publish" Properties="Configuration=$(Configuration);PublishDir=$(PublishDir)native-recorder/;UseAppHost=false" />
+  </Target>
   <Target Name="StageDesktopExplorer" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true'">
     <!-- Ask the dependency for its actual output, including isolated build roots. -->
     <MSBuild Projects="$(MSBuildThisFileDirectory)..\UiAtlas.Core.Desktop\UiAtlas.Core.Desktop.csproj"
@@ -59,12 +71,10 @@
       <FileWrites Include="@(_DesktopExplorerDeploymentFiles->'$(TargetDir)viewer\%(ExplorerRelativePath)')" />
     </ItemGroup>
   </Target>
-  <Target Name="CopyFirebirdMigrationAdapter" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true'">
+  <Target Name="GetAtlasDeploymentFiles" DependsOnTargets="Build" Returns="@(_AtlasDeploymentFiles)">
     <ItemGroup>
-      <FirebirdMigrationAdapterFiles Include="$(MSBuildProjectDirectory)\..\UiAtlas.Core.Migration.Firebird\bin\$(Configuration)\net10.0-windows\**\*" />
+      <_AtlasDeploymentFiles Include="$(TargetDir)**/*" Exclude="$(TargetDir)**/*.pdb" />
+      <_AtlasDeploymentFiles Update="@(_AtlasDeploymentFiles)" AtlasRelativePath="%(RecursiveDir)%(Filename)%(Extension)" />
     </ItemGroup>
-    <Copy SourceFiles="@(FirebirdMigrationAdapterFiles)"
-          DestinationFiles="@(FirebirdMigrationAdapterFiles->'$(OutDir)migration-firebird\%(RecursiveDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true" />
   </Target>
 </Project>

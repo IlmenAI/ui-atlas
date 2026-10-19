@@ -7,6 +7,45 @@ namespace UiAtlas.Core.Tests;
 
 public sealed class BundleSecurityTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DenseFramesUseArchiveSizeLimitAndStillReceiveStrictJsonValidation(bool duplicateProperty)
+    {
+        using var temp = new TempDirectory();
+        var original = SyntheticBundleFactory.Create(temp.Path);
+        var output = Path.Combine(temp.Path, "dense.mlrec");
+        using var bundle = RecordingBundle.Open(original);
+        using var writer = new RecordingBundleWriter(Path.Combine(temp.Path, "dense-staging"));
+        foreach (var entry in bundle.Entries.Where(name => name is not ("manifest.json" or "hashes.sha256")))
+        {
+            var bytes = bundle.ReadBytes(entry);
+            if (entry == "raw/observations/frame-000001.json")
+            {
+                // JSON whitespace is legal and exercises the byte boundary without
+                // manufacturing thousands of controls. Randomize it so archive
+                // compression-ratio protection remains enabled in this test.
+                var padding = new byte[8 * 1024 * 1024];
+                var random = new Random(17);
+                byte[] whitespace = [32, 9, 10, 13];
+                for (var i = 0; i < padding.Length; i++) padding[i] = whitespace[random.Next(whitespace.Length)];
+                if (duplicateProperty)
+                {
+                    var json = Encoding.UTF8.GetString(bytes);
+                    bytes = Encoding.UTF8.GetBytes(json.Insert(json.LastIndexOf('}'), ",\"sequence\":1"));
+                }
+                bytes = padding.Concat(bytes).ToArray();
+            }
+            writer.WriteBytes(entry, bytes);
+        }
+        writer.WriteJson("manifest.json", bundle.ReadJson<RecordingManifest>("manifest.json") with { Files = writer.DescribeEntries() });
+        writer.Complete(output);
+        var report = RecordingBundleValidator.Validate(output);
+        Assert.Equal(!duplicateProperty, report.IsValid);
+        if (duplicateProperty) Assert.Contains(report.Issues, issue => issue.Code == "json.strict" &&
+            issue.Path == "raw/observations/frame-000001.json" && issue.Message.Contains("Duplicate object property", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void AbandonedStagingCleanupRequiresRecorderOwnershipMarker()
     {

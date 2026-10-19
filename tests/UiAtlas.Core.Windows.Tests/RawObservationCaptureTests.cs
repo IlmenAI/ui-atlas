@@ -32,7 +32,7 @@ public sealed class RawObservationCaptureTests
         var output = Path.Combine(Path.GetTempPath(), "raw-observation-test-" + Guid.NewGuid().ToString("N") + ".mlrec");
         try
         {
-            await using var session = new ManualRecordingSession(WindowCatalog.Resolve(host.Hwnd), output);
+            await using var session = new ManualRecordingSession(WindowCatalog.Resolve(host.Hwnd), output, useNativeRecorder: false);
             session.FullRawObservations = outcome == "full";
             session.Start(explicitConsent: true);
             using var cancellation = new CancellationTokenSource();

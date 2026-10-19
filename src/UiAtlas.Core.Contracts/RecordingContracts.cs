@@ -9,6 +9,9 @@ public static class RecordingContractLimits
     public const int MaxControlsPerFrame = 100_000;
     public const int MaxScopedWindows = 32;
     public const int MaxBundleEntries = 100_000;
+    // Must admit every supported native capture (UIMaps.Protocol.V1.CaptureSizeLimits).
+    public const int MaxEvidenceEntryBytes = 512 * 1024 * 1024;
+    public const long MaxRecordingBytes = 4L * 1024 * 1024 * 1024;
     public const int MaxProviderObservations = 2_000;
     public const int MaxProviderControls = 4_096;
     public const long MaxProviderBytes = 32 * 1024 * 1024;
@@ -248,7 +251,8 @@ public sealed record FrameObservation(
     IReadOnlyList<RawDataStreamObservation>? RawStreams = null,
     string? RecordKind = null,
     RawObservationAcquisition? Acquisition = null,
-    IReadOnlyList<WindowImageObservation>? WindowImages = null);
+    IReadOnlyList<WindowImageObservation>? WindowImages = null,
+    string? NativeEpisodeEntry = null);
 
 /// <summary>An independently acquired HWND image. Missing entries never imply inherited pixels.</summary>
 public sealed record WindowImageObservation(long Hwnd, RectI Bounds, string? Entry,

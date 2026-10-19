@@ -146,7 +146,7 @@ public sealed class UiMappingReadModelTests
         Assert.False(UiMapPresentation.ShouldCropSceneToSurface(UiMapProjectionMode.Trace));
         Assert.Equal(new(true, 1.0, false, false, false, 0.0), UiMapPresentation.PolicyFor(UiMapProjectionMode.Window));
         Assert.Equal(new(false, 0.0, true, true, false, 0.96), UiMapPresentation.PolicyFor(UiMapProjectionMode.Controls));
-        Assert.Equal(new(true, 0.68, false, true, false, 0.0), UiMapPresentation.PolicyFor(UiMapProjectionMode.Overlay));
+        Assert.Equal(new(true, 1.0, true, true, false, 0.0), UiMapPresentation.PolicyFor(UiMapProjectionMode.Overlay));
         Assert.Equal(new(false, 0.0, false, true, true, 0.94), UiMapPresentation.PolicyFor(UiMapProjectionMode.Structure));
         Assert.Equal(new(true, 0.68, false, true, false, 0.20), UiMapPresentation.PolicyFor(UiMapProjectionMode.StructureOverlay));
         Assert.Equal(new(true, 1.0, false, false, false, 0.0), UiMapPresentation.PolicyFor(UiMapProjectionMode.Trace));
@@ -173,7 +173,7 @@ public sealed class UiMappingReadModelTests
         Assert.True(UiMapPresentation.ShouldUseControlCrop(save, surface));
         Assert.Equal(20, UiMapPresentation.ControlRenderPriority(save, surface));
         Assert.True(UiMapPresentation.PolicyFor(UiMapProjectionMode.Controls).ShowsControlCrops);
-        Assert.False(UiMapPresentation.PolicyFor(UiMapProjectionMode.Overlay).ShowsControlCrops);
+        Assert.True(UiMapPresentation.PolicyFor(UiMapProjectionMode.Overlay).ShowsControlCrops);
     }
 
     [Fact]

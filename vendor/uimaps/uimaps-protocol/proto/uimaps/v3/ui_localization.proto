@@ -1,0 +1,176 @@
+syntax = "proto3";
+
+package uimaps.v3;
+option csharp_namespace = "UIMaps.Protocol.V3";
+
+import "uimaps/v1/perception.proto";
+import "uimaps/v2_1/grid_analysis.proto";
+import "uimaps/v3/ui_map.proto";
+
+enum ApplicabilityStatus {
+  APPLICABILITY_STATUS_UNSPECIFIED = 0;
+  APPLICABILITY_APPLICABLE = 1;
+  APPLICABILITY_NOT_APPLICABLE = 2;
+  APPLICABILITY_UNKNOWN = 3;
+}
+
+enum EntityResolutionStatus {
+  ENTITY_RESOLUTION_STATUS_UNSPECIFIED = 0;
+  ENTITY_RESOLVED = 1;
+  ENTITY_AMBIGUOUS = 2;
+  ENTITY_OBSERVED_ABSENT = 3;
+  ENTITY_UNRESOLVED = 4;
+  ENTITY_OUT_OF_SCOPE = 5;
+  ENTITY_NOT_APPLICABLE = 6;
+  ENTITY_INVALIDATED = 7;
+}
+
+enum EvidenceTruthValue {
+  EVIDENCE_TRUTH_VALUE_UNSPECIFIED = 0;
+  EVIDENCE_TRUE = 1;
+  EVIDENCE_FALSE = 2;
+  EVIDENCE_UNKNOWN = 3;
+  EVIDENCE_NOT_APPLICABLE = 4;
+}
+
+enum GridIdentityDecision {
+  GRID_IDENTITY_DECISION_UNSPECIFIED = 0;
+  GRID_SAME_TABLE = 1;
+  GRID_DIFFERENT = 2;
+  GRID_AMBIGUOUS = 3;
+  GRID_INSUFFICIENT_EVIDENCE = 4;
+  GRID_NOT_APPLICABLE = 5;
+}
+
+message LocalizationCandidate {
+  string current_world_object_ref = 1;
+  double score = 2;
+  repeated string hard_gate_results = 3;
+  repeated string feature_contributions = 4;
+  repeated string conflicts = 5;
+  repeated string source_families = 6;
+  double winner_margin = 7;
+}
+
+message ObservableFactSet {
+  EvidenceTruthValue observed = 1;
+  EvidenceTruthValue grounded = 2;
+  EvidenceTruthValue visible = 3;
+  EvidenceTruthValue enabled = 4;
+  EvidenceTruthValue affordance_supported = 5;
+  EvidenceTruthValue unobstructed = 6;
+  EvidenceTruthValue authorized = 7;
+}
+
+message EntityResolution {
+  string map_entity_ref = 1;
+  MapEntityKind entity_kind = 2;
+  ApplicabilityStatus applicability = 3;
+  EntityResolutionStatus status = 4;
+  string current_world_object_ref = 5;
+  repeated LocalizationCandidate candidates = 6;
+  ObservableFactSet facts = 7;
+  string coverage_basis = 8;
+  string explanation = 9;
+  repeated string limitations = 10;
+  GridIdentityDecision grid_identity = 11;
+}
+
+message ObservablePredicate {
+  string predicate_ref = 1;
+  string map_entity_ref = 2;
+  string predicate_kind = 3;
+  string expected_value = 4;
+}
+
+message PredicateEvaluation {
+  string predicate_ref = 1;
+  string map_entity_ref = 2;
+  EvidenceTruthValue truth_value = 3;
+  repeated string supporting_resolution_refs = 4;
+  string explanation = 5;
+  string freshness_deadline = 6;
+}
+
+message GroundingProof {
+  string grounding_proof_ref = 1;
+  string localization_result_ref = 2;
+  string map_revision_ref = 3;
+  string map_payload_hash = 4;
+  string world_state_ref = 5;
+  string world_state_hash = 6;
+  string perception_epoch = 7;
+  string policy_ref = 8;
+  string policy_hash = 9;
+  repeated string provider_versions = 10;
+  repeated string closure_entity_refs = 11;
+  string created_at = 12;
+  string expires_at = 13;
+  bool not_authorization = 14;
+  string proof_hash = 15;
+}
+
+message LiveHostedGridCandidate {
+  string host_world_object_ref = 1;
+  uimaps.v2_1.DataGridCandidate candidate = 2;
+  string grid_analysis_ref = 3;
+}
+
+message GraphLocalizationRequest {
+  string request_id = 1;
+  UiMapRevision revision = 2;
+  uimaps.v1.WorldStateSnapshot world_state = 3;
+  repeated uimaps.v2_1.DataGridCandidate live_grid_candidates = 4;
+  int64 maximum_observation_age_ms = 5;
+  string localization_policy_ref = 6;
+  int32 deadline_ms = 7;
+  bool include_candidates = 8;
+  repeated string target_entity_refs = 9;
+  repeated ObservablePredicate predicates = 10;
+  repeated LiveHostedGridCandidate live_hosted_grid_candidates = 11;
+}
+
+message GraphLocalizationResult {
+  string localization_result_ref = 1;
+  string request_id = 2;
+  string map_revision_ref = 3;
+  string world_state_ref = 4;
+  repeated EntityResolution resolutions = 5;
+  repeated PredicateEvaluation predicate_evaluations = 6;
+  repeated string dependency_closure_refs = 7;
+  bool complete = 8;
+  bool all_applicable_entities_grounded = 9;
+  bool partial = 10;
+  repeated string warnings = 11;
+  GroundingProof proof = 12;
+  string completed_at = 13;
+  bool not_authorization = 14;
+}
+
+message LocalizedBinding {
+  string map_entity_ref = 1;
+  string current_world_object_ref = 2;
+  EntityResolutionStatus status = 3;
+  repeated string dependency_closure_refs = 4;
+  string freshness_deadline = 5;
+  repeated string invalidation_keys = 6;
+  string grounding_proof_ref = 7;
+  bool not_authorization = 8;
+}
+
+message LocalizationCapabilitiesRequest {
+  string correlation_id = 1;
+}
+
+message LocalizationCapabilitiesResponse {
+  string service_version = 1;
+  repeated string features = 2;
+}
+
+message LocalizeGraphRequest {
+  GraphLocalizationRequest request = 1;
+}
+
+message LocalizeGraphResponse {
+  GraphLocalizationResult result = 1;
+}

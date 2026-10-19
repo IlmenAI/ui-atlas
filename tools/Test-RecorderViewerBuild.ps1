@@ -12,11 +12,16 @@ $recorder = Join-Path $buildRoot "bin/UiAtlas.Core.Cli/$Configuration/net10.0-wi
 $desktop = Join-Path $buildRoot "bin/UiAtlas.Core.Desktop/$Configuration/net10.0-windows10.0.19041.0"
 
 function Build-Recorder([string]$Target) {
-  & dotnet @buildCommand $project -restore "-t:$Target" -nologo -v:quiet "-p:Configuration=$Configuration" "-p:UiAtlasIsolatedBuildRoot=$buildRoot" '-p:StopRunningUiAtlasProcesses=false'
+  & dotnet @buildCommand $project -restore "-t:$Target" -nologo -v:quiet "-p:Configuration=$Configuration" "-p:UiAtlasIsolatedBuildRoot=$buildRoot" '-p:StopRunningUiAtlasProcesses=false' '-p:UiAtlasBuildNumber=0'
   if ($LASTEXITCODE) { throw "Recorder-only $Target failed." }
 }
 
 function Assert-Viewer {
+  foreach ($required in @('UIMaps.Recorder.ProviderProbe.dll','UIMaps.Recorder.ProviderProbe.deps.json','UIMaps.Recorder.ProviderProbe.runtimeconfig.json','UIMaps.Recorder.Windows.dll','UIMaps.Protocol.dll')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $recorder "native-recorder/$required"))) { throw "Native recorder dependency missing: $required" }
+  }
+  $runtime = Get-Content -LiteralPath (Join-Path $recorder 'native-recorder/UIMaps.Recorder.ProviderProbe.runtimeconfig.json') -Raw | ConvertFrom-Json
+  if (-not ($runtime.runtimeOptions.frameworks | Where-Object name -eq 'Microsoft.WindowsDesktop.App')) { throw 'Native recorder requires Windows Desktop runtime.' }
   foreach ($required in @('UiAtlas.Core.Desktop.dll', 'UiAtlas.Core.Desktop.runtimeconfig.json', 'UiAtlas.Core.Desktop.deps.json', 'Assets/explorer-icon-export.png')) {
     if (-not (Test-Path -LiteralPath (Join-Path $recorder "viewer/$required"))) { throw "Viewer dependency missing: $required" }
   }
@@ -27,10 +32,10 @@ function Assert-Viewer {
       throw "Viewer dependency differs: $relative"
     }
   }
-  foreach ($component in @('Contracts', 'Build', 'Storage', 'Reader')) {
-    $file = "UiAtlas.Core.$component.dll"
+  foreach ($file in @('UiAtlas.Core.Contracts.dll', 'UiAtlas.Core.Build.dll', 'UiAtlas.Core.Storage.dll', 'UiAtlas.Core.Reader.dll',
+      'UiAtlas.Core.Mapping.dll', 'UiAtlas.Core.Mapping.Atlas.dll', 'UIMaps.Protocol.dll', 'UIMaps.Perception.Core.dll', 'UIMaps.Map.Core.dll')) {
     if ((Get-FileHash -LiteralPath (Join-Path $recorder $file)).Hash -ne (Get-FileHash -LiteralPath (Join-Path $recorder "viewer/$file")).Hash) {
-      throw "Recorder/viewer mismatch: $component"
+      throw "Recorder/viewer mismatch: $file"
     }
   }
 }
@@ -43,5 +48,5 @@ Build-Recorder Build
 Assert-Viewer
 Build-Recorder Rebuild
 Assert-Viewer
-Write-Output 'Passed: recorder-only Build, repeated Build repair, and Rebuild stage a complete matching viewer.'
+Write-Output 'Passed: recorder-only Build, repeated Build repair, and Rebuild stage a complete matching viewer and native recorder.'
 Write-Output "Isolated outputs: $scratch"

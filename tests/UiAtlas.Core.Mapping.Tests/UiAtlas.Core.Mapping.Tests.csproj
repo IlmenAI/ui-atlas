@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/UiAtlas.Core.Mapping/UiAtlas.Core.Mapping.csproj" />
+    <ProjectReference Include="../../src/UiAtlas.Core.Cli/UiAtlas.Core.Cli.csproj" />
+    <ProjectReference Include="../../src/UiAtlas.Core.Desktop/UiAtlas.Core.Desktop.csproj" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+  </ItemGroup>
+  <Target Name="StageNativeTestRecorder" AfterTargets="Build">
+    <MSBuild Projects="$(MSBuildThisFileDirectory)../../vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.ProviderProbe/UIMaps.Recorder.ProviderProbe.csproj" Targets="GetNativeRecorderDeploymentFiles" Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="_NativeTestRecorderFiles" />
+    </MSBuild>
+    <Copy SourceFiles="@(_NativeTestRecorderFiles)" DestinationFiles="@(_NativeTestRecorderFiles->'$(OutDir)native-recorder/%(NativeRecorderRelativePath)')" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

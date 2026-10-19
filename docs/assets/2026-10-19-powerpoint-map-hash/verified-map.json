@@ -1,0 +1,18 @@
+{
+  "Valid": true,
+  "Nodes": 167842,
+  "Edges": 182151,
+  "Frames": 50,
+  "Bundles": 1,
+  "CanonicalJsonBytes": 1088295800,
+  "DatabaseBytes": 1076011008,
+  "SemanticHash": "1d846760290d621b7e32b42935aed38eb75d3247e40d80a05306000cecb11370",
+  "BundleSha256": "1c65b97485036d332fc4477a4ab8c615eaeb310a87982bf27fcda6c045dec500",
+  "Layers": {
+    "shared": 1,
+    "raw-data-streams": 145911,
+    "semantic-world": 8260,
+    "raw-world": 13670
+  },
+  "ElapsedSeconds": 25.6597965
+}

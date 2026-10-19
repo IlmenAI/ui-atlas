@@ -1,0 +1,98 @@
+[
+  {
+    "Name": "ui-atlas.dll",
+    "Equal": false,
+    "AtlasLength": 989696,
+    "MapLockLength": 990208,
+    "AtlasWrittenUtc": "2026-10-19T12:53:37.2263767Z",
+    "MapLockWrittenUtc": "2026-10-19T12:56:13.2566928Z"
+  },
+  {
+    "Name": "UiAtlas.Core.Recording.Windows.dll",
+    "Equal": false,
+    "AtlasLength": 1335296,
+    "MapLockLength": 1335296,
+    "AtlasWrittenUtc": "2026-10-19T11:12:26.5031896Z",
+    "MapLockWrittenUtc": "2026-10-19T11:13:15.238333Z"
+  },
+  {
+    "Name": "UiAtlas.Core.Recording.dll",
+    "Equal": false,
+    "AtlasLength": 95744,
+    "MapLockLength": 95744,
+    "AtlasWrittenUtc": "2026-10-18T14:58:59.9919446Z",
+    "MapLockWrittenUtc": "2026-10-19T10:49:18.8348344Z"
+  },
+  {
+    "Name": "UiAtlas.Core.Build.dll",
+    "Equal": false,
+    "AtlasLength": 204288,
+    "MapLockLength": 204288,
+    "AtlasWrittenUtc": "2026-10-19T09:38:31.4692867Z",
+    "MapLockWrittenUtc": "2026-10-19T10:49:19.687531Z"
+  },
+  {
+    "Name": "UIMaps.Recorder.Windows.dll",
+    "Equal": false,
+    "AtlasLength": 209408,
+    "MapLockLength": 209408,
+    "AtlasWrittenUtc": "2026-10-15T10:02:51.7119254Z",
+    "MapLockWrittenUtc": "2026-10-19T10:49:20.0083557Z"
+  },
+  {
+    "Name": "UIMaps.Protocol.dll",
+    "Equal": false,
+    "AtlasLength": 1681920,
+    "MapLockLength": 1681920,
+    "AtlasWrittenUtc": "2026-10-15T10:02:50.1630739Z",
+    "MapLockWrittenUtc": "2026-10-19T10:49:19.1352062Z"
+  },
+  {
+    "Name": "UiAtlas.Core.Mapping.Atlas.dll",
+    "Equal": false,
+    "AtlasLength": 117760,
+    "MapLockLength": 117760,
+    "AtlasWrittenUtc": "2026-10-19T12:53:29.3597427Z",
+    "MapLockWrittenUtc": "2026-10-19T12:50:12.9055684Z"
+  },
+  {
+    "Name": "native-recorder\\UIMaps.Recorder.ProviderProbe.dll",
+    "Equal": false,
+    "AtlasLength": 20480,
+    "MapLockLength": 20480,
+    "AtlasWrittenUtc": "2026-10-15T10:02:52.0591775Z",
+    "MapLockWrittenUtc": "2026-10-19T10:49:22.8319761Z"
+  },
+  {
+    "Name": "native-recorder\\UIMaps.Recorder.Windows.dll",
+    "Equal": false,
+    "AtlasLength": 209408,
+    "MapLockLength": 209408,
+    "AtlasWrittenUtc": "2026-10-15T10:02:51.7119254Z",
+    "MapLockWrittenUtc": "2026-10-19T10:49:20.0083557Z"
+  },
+  {
+    "Name": "native-recorder\\UIMaps.Protocol.dll",
+    "Equal": false,
+    "AtlasLength": 1681920,
+    "MapLockLength": 1681920,
+    "AtlasWrittenUtc": "2026-10-15T10:02:50.1630739Z",
+    "MapLockWrittenUtc": "2026-10-19T10:49:19.1352062Z"
+  },
+  {
+    "Name": "ui-atlas.runtimeconfig.json",
+    "Equal": true,
+    "AtlasLength": 447,
+    "MapLockLength": 447,
+    "AtlasWrittenUtc": "2026-10-19T12:47:08.6659Z",
+    "MapLockWrittenUtc": "2026-10-19T12:24:32.0934463Z"
+  },
+  {
+    "Name": "native-recorder\\UIMaps.Recorder.ProviderProbe.runtimeconfig.json",
+    "Equal": true,
+    "AtlasLength": 447,
+    "MapLockLength": 447,
+    "AtlasWrittenUtc": "2026-10-19T11:12:27.2954884Z",
+    "MapLockWrittenUtc": "2026-10-19T10:49:22.9012594Z"
+  }
+]

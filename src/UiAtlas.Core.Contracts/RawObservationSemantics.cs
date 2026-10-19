@@ -7,8 +7,8 @@ public static class RawObservationSemantics
 
     public static string Kind(string source) => source switch
     {
-        "pixels" => "pixels",
-        "win32" => "native-windows",
+        "pixels" or "screenshot" => "pixels",
+        "win32" or "native-window-topology" => "native-windows",
         "ocr" or "visual.geometry" => "image-derived",
         _ when source.StartsWith("vision.", StringComparison.Ordinal) => "image-derived",
         "capture" => "diagnostic",

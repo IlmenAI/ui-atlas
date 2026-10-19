@@ -1,0 +1,228 @@
+syntax = "proto3";
+
+package uimaps.v1;
+option csharp_namespace = "UIMaps.Protocol.V1";
+
+import "uimaps/v1/common.proto";
+import "uimaps/v1/capture_policy.proto";
+import "uimaps/v1/coverage.proto";
+import "uimaps/v1/capture_session.proto";
+
+message DisplayDescriptor {
+  string display_id = 1;
+  RectPx bounds_px = 2;
+  int32 width_px = 3;
+  int32 height_px = 4;
+  double dpi_x = 5;
+  double dpi_y = 6;
+  double scale_factor_x = 7;
+  double scale_factor_y = 8;
+  bool is_primary = 9;
+  repeated StringProperty device_evidence = 10;
+  Health health = 11;
+}
+message ProtectedOrMissingRegion {
+  RectPx bounds_px = 1;
+  string reason = 2;
+}
+
+message ScreenshotPacket {
+  DisplayDescriptor display = 1;
+  string image_encoding = 2;
+  int32 width_px = 3;
+  int32 height_px = 4;
+  int32 stride = 5;
+  string pixel_format = 6;
+  bytes image_blob = 7;
+  repeated ProtectedOrMissingRegion protected_or_missing_regions = 8;
+  Health health = 9;
+}
+
+message WindowObservationRecord {
+  string window_evidence_id = 1;
+  int64 process_id = 2;
+  string process_name = 3;
+  string executable_path = 4;
+  string window_handle_evidence = 5;
+  string title = 6;
+  string class_name = 7;
+  RectPx bounds_px = 8;
+  RectPx intersection_with_display_px = 9;
+  int32 z_order = 10;
+  bool is_visible = 11;
+  bool is_minimized = 12;
+  bool is_cloaked_or_unavailable = 13;
+  Health health = 14;
+  string capture_window_id = 15;
+  string process_start_time_evidence = 16;
+  string process_instance_evidence = 17;
+  string root_owner_handle_evidence = 18;
+  repeated string owner_chain_evidence = 19;
+  bool is_foreground = 20;
+  bool is_active = 21;
+  bool is_tool_window = 22;
+  bool is_owned_window = 23;
+  string selection_eligibility = 24;
+  string capture_relevance = 25;
+  repeated string child_window_evidence = 26;
+  string application_user_model_id = 27;
+  string package_family_name = 28;
+  // Optional: absent in older episodes, never interpret absence as observed zero.
+  optional int64 window_style = 29;
+  optional int64 window_ex_style = 30;
+  optional uint32 dpi = 31;
+  optional bool is_enabled = 32;
+}
+
+message WindowTopologyPacket {
+  repeated WindowObservationRecord windows = 1;
+  bool window_limited = 2;
+  int32 windows_observed = 3;
+  int32 windows_included = 4;
+  Health health = 5;
+}
+
+message AccessibilityNodeRecord {
+  string accessibility_evidence_id = 1;
+  string parent_evidence_id = 2;
+  string window_evidence_id = 3;
+  repeated int32 runtime_id_evidence = 4;
+  string automation_id = 5;
+  string control_type = 6;
+  string localized_control_type = 7;
+  string name = 8;
+  string class_name = 9;
+  RectPx bounds_px = 10;
+  bool is_enabled = 11;
+  bool is_offscreen = 12;
+  bool is_password = 13;
+  string value_evidence = 14;
+  int32 child_count_observed = 15;
+  int32 child_count_included = 16;
+  Health health = 17;
+  repeated string supported_patterns = 18;
+  PropertyCoverage property_coverage = 19;
+  string provider_id = 20;
+  string native_window_handle_evidence = 21;
+  string native_control_id_evidence = 22;
+}
+
+message AccessibilityPacket {
+  repeated AccessibilityNodeRecord nodes = 1;
+  bool node_limited = 2;
+  bool depth_limited = 3;
+  bool time_limited = 4;
+  bool window_limited = 5;
+  int32 nodes_observed = 6;
+  int32 nodes_included = 7;
+  Health health = 8;
+  repeated TraversalFrontier traversal_frontier = 9;
+  repeated ProviderAttemptOutcome provider_attempts = 10;
+  // Immutable worker responses captured before supplementation, deduplication or
+  // parent canonicalization. The main nodes remain a derived perception input.
+  repeated RawProviderResponse raw_provider_responses = 11;
+}
+
+message RawProviderResponse {
+  ProviderAttemptOutcome attempt = 1;
+  string window_evidence_id = 2;
+  AccessibilityPacket packet = 3;
+}
+
+enum SensorStreamKind {
+  SENSOR_STREAM_KIND_UNSPECIFIED = 0;
+  SCREENSHOT = 1;
+  WINDOW_TOPOLOGY = 2;
+  ACCESSIBILITY = 3;
+}
+
+message SensorPacket {
+  ProtocolVersion protocol_version = 1;
+  string packet_id = 2;
+  string episode_id = 3;
+  string stream_id = 4;
+  SensorStreamKind stream_kind = 5;
+  uint64 sequence_number = 6;
+  CaptureInterval capture_interval = 7;
+  Health health = 8;
+  oneof payload {
+    ScreenshotPacket screenshot = 20;
+    WindowTopologyPacket window_topology = 21;
+    AccessibilityPacket accessibility = 22;
+  }
+}
+
+message SensorManifestEntry {
+  string packet_id = 1;
+  SensorStreamKind stream_kind = 2;
+  int64 serialized_size = 3;
+  string sha256 = 4;
+  Health health = 5;
+}
+
+message SensorManifest {
+  repeated SensorManifestEntry entries = 1;
+  int32 packet_count = 2;
+}
+
+message IntegrityMetadata {
+  string algorithm = 1;
+  string manifest_sha256 = 2;
+}
+
+message CapturePolicy {
+  int32 overall_capture_deadline_ms = 1;
+  int32 screen_capture_deadline_ms = 2;
+  int32 window_topology_deadline_ms = 3;
+  int32 uia_per_window_deadline_ms = 4;
+  int32 uia_aggregate_deadline_ms = 5;
+  int32 max_uia_nodes = 6;
+  int32 max_uia_depth = 7;
+  int32 max_windows = 8;
+  int32 max_concurrent_uia_workers = 9;
+  int64 max_bundle_size = 10;
+}
+
+message SensorEpisodeBundle {
+  string format_version = 1;
+  string episode_id = 2;
+  string producer = 3;
+  string producer_version = 4;
+  ClockMetadata clock_metadata = 5;
+  DisplayDescriptor display_descriptor = 6;
+  SensorManifest sensor_manifest = 7;
+  repeated SensorPacket sensor_packets = 8;
+  Health health = 9;
+  string started_at_utc = 10;
+  string ended_at_utc = 11;
+  IntegrityMetadata integrity_metadata = 12;
+  CapturePolicy effective_policy = 13;
+  CapturePolicyRequest requested_policy = 14;
+  EffectiveCapturePolicy effective_capture_policy = 15;
+  CoverageReport coverage_report = 16;
+  repeated CaptureSegmentDescriptor segment_descriptors = 17;
+  string session_terminal_state = 18;
+  repeated WindowPixelEvidence window_images = 19;
+  ObservationConsistency observation_consistency = 20;
+}
+
+message WindowPixelEvidence {
+  string window_handle_evidence = 1;
+  RectPx bounds_px = 2;
+  bytes png = 3;
+  string started_at_utc = 4;
+  string ended_at_utc = 5;
+  string method = 6;
+  string status = 7;
+}
+
+message ObservationConsistency {
+  string status = 1;
+  string reason = 2;
+  string checked_at_utc = 3;
+  bool input_observed = 4;
+  bool topology_matched = 5;
+  bool pixels_matched = 6;
+  ScreenshotPacket verification_screenshot = 7;
+  repeated WindowObservationRecord verification_windows = 8;
+}

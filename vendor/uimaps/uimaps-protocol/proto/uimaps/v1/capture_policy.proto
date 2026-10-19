@@ -1,0 +1,170 @@
+syntax = "proto3";
+
+package uimaps.v1;
+option csharp_namespace = "UIMaps.Protocol.V1";
+
+import "uimaps/v1/common.proto";
+
+enum CaptureSemantics {
+  CAPTURE_SEMANTICS_UNSPECIFIED = 0;
+  CAPTURE_SEMANTICS_SNAPSHOT = 1;
+  CAPTURE_SEMANTICS_SURVEY = 2;
+}
+
+message ProfileRef { string profile_id = 1; string profile_version = 2; }
+
+message CaptureScope {
+  string selected_display_id = 1;
+  string interactive_session_evidence = 2;
+  bool observable_state_only = 3;
+  bool passive_read_only = 4;
+  bool allow_elevation = 5;
+  bool allow_input_injection = 6;
+  bool allow_navigation = 7;
+  bool allow_scrolling = 8;
+  bool allow_expansion = 9;
+  bool allow_tab_switching = 10;
+  repeated string target_window_handle_evidence = 11;
+  string target_process_instance_evidence = 12;
+  int32 minimum_uia_depth = 13;
+}
+
+message CaptureProfileDescriptor {
+  string profile_id = 1;
+  string profile_version = 2;
+  string display_name = 3;
+  string description = 4;
+  CaptureSemantics capture_semantics = 5;
+  int64 intended_duration_min_ms = 6;
+  int64 intended_duration_max_ms = 7;
+  bool supports_progressive_results = 8;
+  string provider_summary = 9;
+  string retry_fallback_summary = 10;
+  bool is_default_candidate = 11;
+  string deprecation_state = 12;
+  CaptureLimits default_limits = 13;
+  bool exhaustive_coverage = 14;
+}
+
+message CaptureProfileCatalog {
+  string catalog_version = 1;
+  string generated_at = 2;
+  repeated CaptureProfileDescriptor profiles = 3;
+  ProfileRef default_profile_ref = 4;
+  string recorder_version = 5;
+}
+
+message CapturePolicyRequest {
+  string requested_profile_id = 1;
+  string requested_profile_version = 2;
+  string requested_catalog_version = 3;
+  CaptureScope requested_scope = 4;
+  repeated StringProperty advanced_overrides = 5;
+  CaptureLimits custom_limits = 6;
+  bool use_custom_limits = 7;
+  bool visual_control_detection_enabled = 8;
+  bool ocr_on_visual_controls_enabled = 9;
+}
+
+// The complete set of user-configurable capture limits. A zero coverage ceiling
+// means unlimited only when exhaustive_coverage is true. Operational deadlines
+// remain positive so an unresponsive provider cannot hang the capture without
+// an accounted result. Fixed and derived Recorder, worker-isolation, IPC, grid,
+// retention, and archive limits are not overrides; Diagnostics must disclose
+// those separately in Settings.
+message CaptureLimits {
+  int64 overall_capture_deadline_ms = 1;
+  int64 screen_capture_deadline_ms = 2;
+  int64 window_topology_deadline_ms = 3;
+  int64 uia_per_window_deadline_ms = 4;
+  int32 max_windows = 5;
+  int32 max_nodes_per_window = 6;
+  int32 max_nodes_per_episode = 7;
+  int32 max_depth = 8;
+  int32 max_concurrent_uia_workers = 9;
+  int32 max_attempts = 10;
+  int64 max_bytes_per_episode = 11;
+}
+
+message ProviderBudget {
+  string provider_id = 1;
+  int64 hard_duration_ms = 2;
+  int32 max_attempts = 3;
+  int32 max_concurrent_global_contribution = 4;
+  int64 max_bytes = 5;
+  int32 max_nodes = 6;
+  int32 max_depth = 7;
+}
+
+message RetryPolicy {
+  int32 max_attempts = 1;
+  repeated int64 backoff_schedule_ms = 2;
+  repeated string retryable_failure_classes = 3;
+  bool require_fresh_worker = 4;
+  int64 stop_retry_at_remaining_budget_ms = 5;
+}
+
+message FallbackPolicy {
+  repeated string ordered_providers = 1;
+  repeated string invoke_when = 2;
+  int32 max_fallback_attempts = 3;
+  bool preserve_primary_failure = 4;
+}
+
+message SchedulingPolicy {
+  string strategy_id = 1;
+  int32 global_concurrency = 2;
+  int32 per_process_concurrency = 3;
+  int32 foreground_priority = 4;
+  int32 visible_priority = 5;
+  int32 display_intersection_priority = 6;
+  int32 unfinished_frontier_priority = 7;
+  int32 recovery_priority = 8;
+}
+
+message SynchronizationPolicy {
+  string frame_anchor_source = 1;
+  int64 target_tolerance_ms = 2;
+  int64 hard_attachment_tolerance_ms = 3;
+  string stale_evidence_policy = 4;
+}
+
+message CheckpointPolicy {
+  bool enabled = 1;
+  int64 interval_ms = 2;
+  bool after_each_pass = 3;
+}
+
+message EffectivePolicyAdjustment { string code = 1; string safe_description = 2; }
+
+// Authoritative resolved policy recorded with an episode. Values such as
+// max_bytes_per_segment, scheduling_policy.per_process_concurrency,
+// synchronization_policy, retry_policy, fallback_policy, and checkpoint_policy
+// are fixed or derived guardrails and are intentionally not CaptureLimits fields.
+message EffectiveCapturePolicy {
+  ProfileRef requested_profile_ref = 1;
+  ProfileRef resolved_profile_ref = 2;
+  string catalog_version = 3;
+  string resolver_version = 4;
+  CaptureSemantics capture_semantics = 5;
+  CaptureScope capture_scope = 6;
+  int64 hard_wall_clock_budget_ms = 7;
+  repeated ProviderBudget provider_budgets = 8;
+  RetryPolicy retry_policy = 9;
+  FallbackPolicy fallback_policy = 10;
+  int32 max_windows = 11;
+  int32 max_nodes_per_window = 12;
+  int32 max_nodes_per_episode = 13;
+  int32 max_depth = 14;
+  int64 max_bytes_per_segment = 15;
+  int64 max_bytes_per_episode = 16;
+  SchedulingPolicy scheduling_policy = 17;
+  SynchronizationPolicy synchronization_policy = 18;
+  string coverage_target = 19;
+  CheckpointPolicy checkpoint_policy = 20;
+  repeated EffectivePolicyAdjustment adjustments = 21;
+  string resolved_at = 22;
+  bool exhaustive_coverage = 23;
+  bool visual_control_detection_enabled = 24;
+  bool ocr_on_visual_controls_enabled = 25;
+}

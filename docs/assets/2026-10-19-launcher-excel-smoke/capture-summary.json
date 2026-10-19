@@ -1,0 +1,496 @@
+[
+  {
+    "id": "20261019-130737-excel-e84d903d",
+    "manifest": {
+      "startedUtc": "2026-10-19T17:08:03.4999623+04:00",
+      "endedUtc": "2026-10-19T17:11:48.1069081+04:00",
+      "outcome": "partial",
+      "frameCount": 5
+    },
+    "frames": [
+      {
+        "entry": "raw/observations/frame-000001.json",
+        "sequence": 1,
+        "timestampUtc": "2026-10-19T17:08:12.9807238+04:00",
+        "acquisition": "partial",
+        "providers": [
+          {
+            "source": "screenshot",
+            "status": "ok",
+            "returnedCount": 0,
+            "truncated": false,
+            "targetWindowHwnd": null
+          },
+          {
+            "source": "native-window-topology",
+            "status": "ok",
+            "returnedCount": 6,
+            "truncated": false,
+            "targetWindowHwnd": null
+          },
+          {
+            "source": "native-hwnd",
+            "status": "ok",
+            "returnedCount": 22,
+            "truncated": false,
+            "targetWindowHwnd": 200060
+          },
+          {
+            "source": "uia",
+            "status": "ok",
+            "returnedCount": 387,
+            "truncated": false,
+            "targetWindowHwnd": 200060
+          },
+          {
+            "source": "msaa",
+            "status": "timeout",
+            "returnedCount": 0,
+            "truncated": true,
+            "targetWindowHwnd": 200060
+          }
+        ]
+      },
+      {
+        "entry": "raw/observations/frame-000002.json",
+        "sequence": 2,
+        "timestampUtc": "2026-10-19T17:09:12.0258789+04:00",
+        "acquisition": "partial",
+        "providers": [
+          {
+            "source": "screenshot",
+            "status": "ok",
+            "returnedCount": 0,
+            "truncated": false,
+            "targetWindowHwnd": null
+          },
+          {
+            "source": "native-window-topology",
+            "status": "ok",
+            "returnedCount": 6,
+            "truncated": false,
+            "targetWindowHwnd": null
+          },
+          {
+            "source": "native-hwnd",
+            "status": "ok",
+            "returnedCount": 22,
+            "truncated": false,
+            "targetWindowHwnd": 200060
+          },
+          {
+            "source": "uia",
+            "status": "ok",
+            "returnedCount": 345,
+            "truncated": false,
+            "targetWindowHwnd": 200060
+          },
+          {
+            "source": "msaa",
+            "status": "timeout",
+            "returnedCount": 0,
+            "truncated": true,
+            "targetWindowHwnd": 200060
+          }
+        ]
+      },
+      {
+        "entry": "raw/observations/frame-000003.json",
+        "sequence": 3,
+        "timestampUtc": "2026-10-19T17:09:52.2049921+04:00",
+        "acquisition": "partial",
+        "providers": [
+          {
+            "source": "screenshot",
+            "status": "ok",
+            "returnedCount": 0,
+            "truncated": false,
+            "targetWindowHwnd": null
+          },
+          {
+            "source": "native-window-topology",
+            "status": "ok",
+            "returnedCount": 6,
+            "truncated": false,
+            "targetWindowHwnd": null
+          },
+          {
+            "source": "native-hwnd",
+            "status": "ok",
+            "returnedCount": 22,
+            "truncated": false,
+            "targetWindowHwnd": 200060
+          },
+          {
+            "source": "uia",
+            "status": "ok",
+            "returnedCount": 387,
+            "truncated": false,
+            "targetWindowHwnd": 200060
+          },
+          {
+            "source": "msaa",
+            "status": "timeout",
+            "returnedCount": 0,
+            "truncated": true,
+            "targetWindowHwnd": 200060
+          }
+        ]
+      },
+      {
+        "entry": "raw/observations/frame-000004.json",
+        "sequence": 4,
+        "timestampUtc": "2026-10-19T17:10:38.5394237+04:00",
+        "acquisition": "partial",
+        "providers": [
+          {
+            "source": "screenshot",
+            "status": "ok",
+            "returnedCount": 0,
+            "truncated": false,
+            "targetWindowHwnd": null
+          },
+          {
+            "source": "native-window-topology",
+            "status": "ok",
+            "returnedCount": 7,
+            "truncated": false,
+            "targetWindowHwnd": null
+          },
+          {
+            "source": "native-hwnd",
+            "status": "ok",
+            "returnedCount": 6,
+            "truncated": false,
+            "targetWindowHwnd": 28907668
+          },
+          {
+            "source": "uia",
+            "status": "timeout",
+            "returnedCount": 0,
+            "truncated": true,
+            "targetWindowHwnd": 28907668
+          },
+          {
+            "source": "msaa",
+            "status": "timeout",
+            "returnedCount": 0,
+            "truncated": true,
+            "targetWindowHwnd": 28907668
+          },
+          {
+            "source": "native-hwnd",
+            "status": "ok",
+            "returnedCount": 22,
+            "truncated": false,
+            "targetWindowHwnd": 200060
+          },
+          {
+            "source": "uia",
+            "status": "timeout",
+            "returnedCount": 0,
+            "truncated": true,
+            "targetWindowHwnd": 200060
+          },
+          {
+            "source": "msaa",
+            "status": "timeout",
+            "returnedCount": 0,
+            "truncated": true,
+            "targetWindowHwnd": 200060
+          }
+        ]
+      },
+      {
+        "entry": "raw/observations/frame-000005.json",
+        "sequence": 5,
+        "timestampUtc": "2026-10-19T17:11:10.7489171+04:00",
+        "acquisition": "partial",
+        "providers": [
+          {
+            "source": "screenshot",
+            "status": "ok",
+            "returnedCount": 0,
+            "truncated": false,
+            "targetWindowHwnd": null
+          },
+          {
+            "source": "native-window-topology",
+            "status": "ok",
+            "returnedCount": 6,
+            "truncated": false,
+            "targetWindowHwnd": null
+          },
+          {
+            "source": "native-hwnd",
+            "status": "ok",
+            "returnedCount": 22,
+            "truncated": false,
+            "targetWindowHwnd": 200060
+          },
+          {
+            "source": "uia",
+            "status": "ok",
+            "returnedCount": 387,
+            "truncated": false,
+            "targetWindowHwnd": 200060
+          },
+          {
+            "source": "msaa",
+            "status": "timeout",
+            "returnedCount": 0,
+            "truncated": true,
+            "targetWindowHwnd": 200060
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "20261019-131419-excel-afa718e8",
+    "manifest": {
+      "startedUtc": "2026-10-19T17:14:41.2773914+04:00",
+      "endedUtc": "2026-10-19T17:18:24.4919761+04:00",
+      "outcome": "partial",
+      "frameCount": 5
+    },
+    "frames": [
+      {
+        "entry": "raw/observations/frame-000001.json",
+        "sequence": 1,
+        "timestampUtc": "2026-10-19T17:14:53.2386867+04:00",
+        "acquisition": "partial",
+        "providers": [
+          {
+            "source": "screenshot",
+            "status": "ok",
+            "returnedCount": 0,
+            "truncated": false,
+            "targetWindowHwnd": null
+          },
+          {
+            "source": "native-window-topology",
+            "status": "partial",
+            "returnedCount": 1,
+            "truncated": false,
+            "targetWindowHwnd": null
+          },
+          {
+            "source": "native-hwnd",
+            "status": "ok",
+            "returnedCount": 22,
+            "truncated": false,
+            "targetWindowHwnd": 200060
+          },
+          {
+            "source": "uia",
+            "status": "ok",
+            "returnedCount": 387,
+            "truncated": false,
+            "targetWindowHwnd": 200060
+          },
+          {
+            "source": "msaa",
+            "status": "timeout",
+            "returnedCount": 0,
+            "truncated": true,
+            "targetWindowHwnd": 200060
+          }
+        ]
+      },
+      {
+        "entry": "raw/observations/frame-000002.json",
+        "sequence": 2,
+        "timestampUtc": "2026-10-19T17:15:39.116245+04:00",
+        "acquisition": "partial",
+        "providers": [
+          {
+            "source": "screenshot",
+            "status": "ok",
+            "returnedCount": 0,
+            "truncated": false,
+            "targetWindowHwnd": null
+          },
+          {
+            "source": "native-window-topology",
+            "status": "partial",
+            "returnedCount": 1,
+            "truncated": false,
+            "targetWindowHwnd": null
+          },
+          {
+            "source": "native-hwnd",
+            "status": "timeout",
+            "returnedCount": 0,
+            "truncated": true,
+            "targetWindowHwnd": 200060
+          },
+          {
+            "source": "uia",
+            "status": "timeout",
+            "returnedCount": 0,
+            "truncated": true,
+            "targetWindowHwnd": 200060
+          },
+          {
+            "source": "msaa",
+            "status": "timeout",
+            "returnedCount": 0,
+            "truncated": true,
+            "targetWindowHwnd": 200060
+          }
+        ]
+      },
+      {
+        "entry": "raw/observations/frame-000003.json",
+        "sequence": 3,
+        "timestampUtc": "2026-10-19T17:16:17.2409598+04:00",
+        "acquisition": "partial",
+        "providers": [
+          {
+            "source": "screenshot",
+            "status": "ok",
+            "returnedCount": 0,
+            "truncated": false,
+            "targetWindowHwnd": null
+          },
+          {
+            "source": "native-window-topology",
+            "status": "ok",
+            "returnedCount": 6,
+            "truncated": false,
+            "targetWindowHwnd": null
+          },
+          {
+            "source": "native-hwnd",
+            "status": "ok",
+            "returnedCount": 22,
+            "truncated": false,
+            "targetWindowHwnd": 200060
+          },
+          {
+            "source": "uia",
+            "status": "timeout",
+            "returnedCount": 0,
+            "truncated": true,
+            "targetWindowHwnd": 200060
+          },
+          {
+            "source": "msaa",
+            "status": "timeout",
+            "returnedCount": 0,
+            "truncated": true,
+            "targetWindowHwnd": 200060
+          }
+        ]
+      },
+      {
+        "entry": "raw/observations/frame-000004.json",
+        "sequence": 4,
+        "timestampUtc": "2026-10-19T17:17:07.3845646+04:00",
+        "acquisition": "partial",
+        "providers": [
+          {
+            "source": "screenshot",
+            "status": "ok",
+            "returnedCount": 0,
+            "truncated": false,
+            "targetWindowHwnd": null
+          },
+          {
+            "source": "native-window-topology",
+            "status": "ok",
+            "returnedCount": 7,
+            "truncated": false,
+            "targetWindowHwnd": null
+          },
+          {
+            "source": "native-hwnd",
+            "status": "ok",
+            "returnedCount": 6,
+            "truncated": false,
+            "targetWindowHwnd": 9506310
+          },
+          {
+            "source": "uia",
+            "status": "timeout",
+            "returnedCount": 0,
+            "truncated": true,
+            "targetWindowHwnd": 9506310
+          },
+          {
+            "source": "msaa",
+            "status": "timeout",
+            "returnedCount": 0,
+            "truncated": true,
+            "targetWindowHwnd": 9506310
+          },
+          {
+            "source": "native-hwnd",
+            "status": "ok",
+            "returnedCount": 22,
+            "truncated": false,
+            "targetWindowHwnd": 200060
+          },
+          {
+            "source": "uia",
+            "status": "timeout",
+            "returnedCount": 0,
+            "truncated": true,
+            "targetWindowHwnd": 200060
+          },
+          {
+            "source": "msaa",
+            "status": "timeout",
+            "returnedCount": 0,
+            "truncated": true,
+            "targetWindowHwnd": 200060
+          }
+        ]
+      },
+      {
+        "entry": "raw/observations/frame-000005.json",
+        "sequence": 5,
+        "timestampUtc": "2026-10-19T17:17:47.0263984+04:00",
+        "acquisition": "partial",
+        "providers": [
+          {
+            "source": "screenshot",
+            "status": "ok",
+            "returnedCount": 0,
+            "truncated": false,
+            "targetWindowHwnd": null
+          },
+          {
+            "source": "native-window-topology",
+            "status": "ok",
+            "returnedCount": 6,
+            "truncated": false,
+            "targetWindowHwnd": null
+          },
+          {
+            "source": "native-hwnd",
+            "status": "ok",
+            "returnedCount": 22,
+            "truncated": false,
+            "targetWindowHwnd": 200060
+          },
+          {
+            "source": "uia",
+            "status": "ok",
+            "returnedCount": 387,
+            "truncated": false,
+            "targetWindowHwnd": 200060
+          },
+          {
+            "source": "msaa",
+            "status": "timeout",
+            "returnedCount": 0,
+            "truncated": true,
+            "targetWindowHwnd": 200060
+          }
+        ]
+      }
+    ]
+  }
+]

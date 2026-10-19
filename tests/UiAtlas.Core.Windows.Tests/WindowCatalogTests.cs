@@ -225,7 +225,7 @@ public sealed class WindowCatalogTests
         var output = Path.Combine(Path.GetTempPath(), "ui-atlas-controller-test-" + Guid.NewGuid().ToString("N") + ".mlrec");
         try
         {
-            await using var session = new ManualRecordingSession(WindowCatalog.Resolve(handles.Target), output);
+            await using var session = new ManualRecordingSession(WindowCatalog.Resolve(handles.Target), output, useNativeRecorder: false);
             session.Start(explicitConsent: true);
             Assert.True(session.RememberControllerWindow((nint)handles.Controller));
             Assert.Equal((nint)handles.Controller, session.RememberedControllerWindow);
@@ -488,7 +488,7 @@ public sealed class WindowCatalogTests
                     transitions.Add("hidden");
                     return Task.CompletedTask;
                 },
-                () => transitions.Add("visible"));
+                () => transitions.Add("visible"), useNativeRecorder: false);
             session.Start(explicitConsent: true);
             var frame = await session.CaptureAsync(
                 "capture-guard",
@@ -528,7 +528,7 @@ public sealed class WindowCatalogTests
         {
             var target = WindowCatalog.Resolve(handles.Root);
             var discarded = Path.Combine(directory, "discarded.mlrec");
-            await using (var session = new ManualRecordingSession(target, discarded))
+            await using (var session = new ManualRecordingSession(target, discarded, useNativeRecorder: false))
             {
                 session.Start(explicitConsent: true);
                 session.Cancel(retain: false);
@@ -536,7 +536,7 @@ public sealed class WindowCatalogTests
             Assert.False(File.Exists(discarded));
 
             var retained = Path.Combine(directory, "retained.mlrec");
-            await using (var session = new ManualRecordingSession(target, retained))
+            await using (var session = new ManualRecordingSession(target, retained, useNativeRecorder: false))
             {
                 session.Start(explicitConsent: true);
                 session.Cancel(retain: true);

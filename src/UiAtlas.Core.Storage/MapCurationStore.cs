@@ -89,6 +89,7 @@ public static class MapCurationStore
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(mapPath);
         ArgumentNullException.ThrowIfNull(graph);
+        if (graph.Nodes.Any(node => node.Properties.Any(property => property is { Name: "mappingEngine", Value: "UIMaps" }))) return graph;
         return File.Exists(PathForMap(mapPath))
             ? Reapply(graph, Load(mapPath, graph.Metadata.EffectiveLogicalMapId))
             : graph;

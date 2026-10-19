@@ -4,43 +4,430 @@
   "serialNumber": "urn:uuid:79a7e35c-b31e-5f58-9c0f-c9a7703987da",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-08-11T00:00:00Z",
-    "component": { "bom-ref": "pkg:generic/ui-atlas.core@1.9.0", "type": "application", "name": "ui-atlas.core", "version": "1.9.0", "licenses": [{ "license": { "id": "MIT" } }] },
-    "properties": [{ "name": "ui-atlas:scope", "value": "runtime" }]
+    "timestamp": "2026-10-14T00:00:00Z",
+    "component": {
+      "bom-ref": "pkg:generic/ui-atlas.core@2.1.0-native-preview.4",
+      "type": "application",
+      "name": "ui-atlas.core",
+      "version": "2.1.0-native-preview.4",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    "properties": [
+      {
+        "name": "ui-atlas:scope",
+        "value": "runtime and source-build dependencies"
+      }
+    ]
   },
   "components": [
-    {"bom-ref": "pkg:nuget/ModelContextProtocol.Core@2.2.0", "type": "library", "name": "ModelContextProtocol.Core", "version": "2.2.0", "purl": "pkg:nuget/ModelContextProtocol.Core@2.2.0", "licenses": [{"license": {"id": "Apache-2.0"}}]},
-    {"bom-ref": "pkg:nuget/Microsoft.Extensions.AI.Abstractions@10.8.3", "type": "library", "name": "Microsoft.Extensions.AI.Abstractions", "version": "10.8.3", "purl": "pkg:nuget/Microsoft.Extensions.AI.Abstractions@10.8.3", "licenses": [{"license": {"id": "MIT"}}]},
-    {"bom-ref": "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.10", "type": "library", "name": "Microsoft.Extensions.Logging.Abstractions", "version": "10.0.10", "purl": "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.10", "licenses": [{"license": {"id": "MIT"}}]},
-    {"bom-ref": "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.10", "type": "library", "name": "Microsoft.Extensions.DependencyInjection.Abstractions", "version": "10.0.10", "purl": "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.10", "licenses": [{"license": {"id": "MIT"}}]},
-    { "bom-ref": "pkg:nuget/FirebirdSql.Data.FirebirdClient@10.3.4", "type": "library", "name": "FirebirdSql.Data.FirebirdClient", "version": "10.3.4", "purl": "pkg:nuget/FirebirdSql.Data.FirebirdClient@10.3.4", "licenses": [{ "license": { "name": "Initial Developer's Public License 1.0" } }] },
-    { "bom-ref": "pkg:nuget/Interop.UIAutomationClient@10.19041.0", "type": "library", "name": "Interop.UIAutomationClient", "version": "10.19041.0", "purl": "pkg:nuget/Interop.UIAutomationClient@10.19041.0", "licenses": [{ "license": { "id": "MIT" } }] },
-    { "bom-ref": "pkg:nuget/Microsoft.Data.Sqlite@10.0.10", "type": "library", "name": "Microsoft.Data.Sqlite", "version": "10.0.10", "purl": "pkg:nuget/Microsoft.Data.Sqlite@10.0.10", "licenses": [{ "license": { "id": "MIT" } }] },
-    { "bom-ref": "pkg:nuget/Microsoft.Data.Sqlite.Core@10.0.10", "type": "library", "name": "Microsoft.Data.Sqlite.Core", "version": "10.0.10", "purl": "pkg:nuget/Microsoft.Data.Sqlite.Core@10.0.10", "licenses": [{ "license": { "id": "MIT" } }] },
-    { "bom-ref": "pkg:nuget/Microsoft.Windows.SDK.NET.Ref@10.0.19041.57", "type": "library", "name": "Microsoft.Windows.SDK.NET", "version": "10.0.19041.57", "purl": "pkg:nuget/Microsoft.Windows.SDK.NET.Ref@10.0.19041.57", "licenses": [{ "license": { "name": "Microsoft Windows SDK License" } }], "properties": [{ "name": "ui-atlas:runtime-artifact", "value": "Microsoft.Windows.SDK.NET.dll" }] },
-    { "bom-ref": "pkg:nuget/Microsoft.Windows.CsWinRT@2.2.0", "type": "library", "name": "WinRT.Runtime", "version": "2.2.0", "purl": "pkg:nuget/Microsoft.Windows.CsWinRT@2.2.0", "licenses": [{ "license": { "id": "MIT" } }], "properties": [{ "name": "ui-atlas:runtime-artifact", "value": "WinRT.Runtime.dll" }] },
-    { "bom-ref": "pkg:nuget/SQLitePCLRaw.bundle_e_sqlite3@3.0.5", "type": "library", "name": "SQLitePCLRaw.bundle_e_sqlite3", "version": "3.0.5", "purl": "pkg:nuget/SQLitePCLRaw.bundle_e_sqlite3@3.0.5", "licenses": [{ "license": { "id": "Apache-2.0" } }] },
-    { "bom-ref": "pkg:nuget/SQLitePCLRaw.config.e_sqlite3@3.0.5", "type": "library", "name": "SQLitePCLRaw.config.e_sqlite3", "version": "3.0.5", "purl": "pkg:nuget/SQLitePCLRaw.config.e_sqlite3@3.0.5", "licenses": [{ "license": { "id": "Apache-2.0" } }] },
-    { "bom-ref": "pkg:nuget/SQLitePCLRaw.core@3.0.5", "type": "library", "name": "SQLitePCLRaw.core", "version": "3.0.5", "purl": "pkg:nuget/SQLitePCLRaw.core@3.0.5", "licenses": [{ "license": { "id": "Apache-2.0" } }] },
-    { "bom-ref": "pkg:nuget/SQLitePCLRaw.provider.e_sqlite3@3.0.5", "type": "library", "name": "SQLitePCLRaw.provider.e_sqlite3", "version": "3.0.5", "purl": "pkg:nuget/SQLitePCLRaw.provider.e_sqlite3@3.0.5", "licenses": [{ "license": { "id": "Apache-2.0" } }] },
-    { "bom-ref": "pkg:nuget/SQLite@3.53.4", "type": "library", "name": "SQLite", "version": "3.53.4", "purl": "pkg:nuget/SQLite@3.53.4", "licenses": [{ "license": { "name": "Public Domain" } }] }
+    {
+      "bom-ref": "pkg:nuget/Google.Protobuf@3.27.1",
+      "type": "library",
+      "name": "Google.Protobuf",
+      "version": "3.27.1",
+      "purl": "pkg:nuget/Google.Protobuf@3.27.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:nuget/Interop.UIAutomationClient@10.19041.0",
+      "type": "library",
+      "name": "Interop.UIAutomationClient",
+      "version": "10.19041.0",
+      "purl": "pkg:nuget/Interop.UIAutomationClient@10.19041.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:nuget/Microsoft.Data.Sqlite@10.0.10",
+      "type": "library",
+      "name": "Microsoft.Data.Sqlite",
+      "version": "10.0.10",
+      "purl": "pkg:nuget/Microsoft.Data.Sqlite@10.0.10",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:nuget/Microsoft.Data.Sqlite.Core@10.0.10",
+      "type": "library",
+      "name": "Microsoft.Data.Sqlite.Core",
+      "version": "10.0.10",
+      "purl": "pkg:nuget/Microsoft.Data.Sqlite.Core@10.0.10",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:nuget/Microsoft.Windows.SDK.NET.Ref@10.0.19041.57",
+      "type": "library",
+      "name": "Microsoft.Windows.SDK.NET",
+      "version": "10.0.19041.57",
+      "purl": "pkg:nuget/Microsoft.Windows.SDK.NET.Ref@10.0.19041.57",
+      "licenses": [
+        {
+          "license": {
+            "name": "Microsoft Windows SDK License"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "ui-atlas:runtime-artifact",
+          "value": "Microsoft.Windows.SDK.NET.dll"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:nuget/Microsoft.Windows.CsWinRT@2.2.0",
+      "type": "library",
+      "name": "WinRT.Runtime",
+      "version": "2.2.0",
+      "purl": "pkg:nuget/Microsoft.Windows.CsWinRT@2.2.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "ui-atlas:runtime-artifact",
+          "value": "WinRT.Runtime.dll"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:nuget/SQLitePCLRaw.bundle_e_sqlite3@3.0.5",
+      "type": "library",
+      "name": "SQLitePCLRaw.bundle_e_sqlite3",
+      "version": "3.0.5",
+      "purl": "pkg:nuget/SQLitePCLRaw.bundle_e_sqlite3@3.0.5",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:nuget/SQLitePCLRaw.config.e_sqlite3@3.0.5",
+      "type": "library",
+      "name": "SQLitePCLRaw.config.e_sqlite3",
+      "version": "3.0.5",
+      "purl": "pkg:nuget/SQLitePCLRaw.config.e_sqlite3@3.0.5",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:nuget/SQLitePCLRaw.core@3.0.5",
+      "type": "library",
+      "name": "SQLitePCLRaw.core",
+      "version": "3.0.5",
+      "purl": "pkg:nuget/SQLitePCLRaw.core@3.0.5",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:nuget/SQLitePCLRaw.provider.e_sqlite3@3.0.5",
+      "type": "library",
+      "name": "SQLitePCLRaw.provider.e_sqlite3",
+      "version": "3.0.5",
+      "purl": "pkg:nuget/SQLitePCLRaw.provider.e_sqlite3@3.0.5",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:nuget/SQLite@3.53.4",
+      "type": "library",
+      "name": "SQLite",
+      "version": "3.53.4",
+      "purl": "pkg:nuget/SQLite@3.53.4",
+      "licenses": [
+        {
+          "license": {
+            "name": "Public Domain"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:generic/uimaps-protocol@source-f197c2790f82",
+      "type": "library",
+      "name": "UIMaps.protocol source",
+      "version": "source-f197c2790f82",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "ui-atlas:source-manifest",
+          "value": "provenance/uimaps-foundation.json"
+        },
+        {
+          "name": "ui-atlas:source-revisions",
+          "value": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e,98724b2fc6b98d741879306f47523bde168fe5f3"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:generic/uimaps-perception@source-f197c2790f82",
+      "type": "library",
+      "name": "UIMaps.perception source",
+      "version": "source-f197c2790f82",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "ui-atlas:source-manifest",
+          "value": "provenance/uimaps-foundation.json"
+        },
+        {
+          "name": "ui-atlas:source-revisions",
+          "value": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:generic/uimaps-map@source-f197c2790f82",
+      "type": "library",
+      "name": "UIMaps.map source",
+      "version": "source-f197c2790f82",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "ui-atlas:source-manifest",
+          "value": "provenance/uimaps-foundation.json"
+        },
+        {
+          "name": "ui-atlas:source-revisions",
+          "value": "fc005f5fc1787da409f9667c10ef109e25e8d2c8,d9c7c6d721efb70d09d516dbf9828f06f59c6a0c"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:nuget/System.Drawing.Common@9.0.8",
+      "type": "library",
+      "name": "System.Drawing.Common",
+      "version": "9.0.8",
+      "purl": "pkg:nuget/System.Drawing.Common@9.0.8",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "ui-atlas:deployment",
+          "value": "NuGet dependency for source builds; framework-dependent publish uses Microsoft.WindowsDesktop.App 10.0"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:nuget/Microsoft.Win32.SystemEvents@9.0.8",
+      "type": "library",
+      "name": "Microsoft.Win32.SystemEvents",
+      "version": "9.0.8",
+      "purl": "pkg:nuget/Microsoft.Win32.SystemEvents@9.0.8",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "ui-atlas:deployment",
+          "value": "NuGet dependency for source builds; framework-dependent publish uses Microsoft.WindowsDesktop.App 10.0"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:generic/uimaps-recorder@source-f197c2790f82",
+      "type": "library",
+      "name": "UIMaps.recorder source",
+      "version": "source-f197c2790f82",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "value": "provenance/uimaps-foundation.json",
+          "name": "ui-atlas:source-manifest"
+        },
+        {
+          "value": "7e0c5d6622414595937a749b66b902c79293a4ad",
+          "name": "ui-atlas:source-revisions"
+        }
+      ]
+    }
   ],
   "dependencies": [
-    {"ref": "pkg:nuget/ModelContextProtocol.Core@2.2.0", "dependsOn": ["pkg:nuget/Microsoft.Extensions.AI.Abstractions@10.8.3", "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.10"]},
-    {"ref": "pkg:nuget/Microsoft.Extensions.AI.Abstractions@10.8.3", "dependsOn": []},
-    {"ref": "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.10", "dependsOn": ["pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.10"]},
-    {"ref": "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.10", "dependsOn": []},
-    {"ref": "pkg:generic/ui-atlas.core@1.9.0", "dependsOn": ["pkg:nuget/FirebirdSql.Data.FirebirdClient@10.3.4", "pkg:nuget/Interop.UIAutomationClient@10.19041.0", "pkg:nuget/Microsoft.Data.Sqlite@10.0.10", "pkg:nuget/Microsoft.Windows.SDK.NET.Ref@10.0.19041.57", "pkg:nuget/Microsoft.Windows.CsWinRT@2.2.0", "pkg:nuget/SQLitePCLRaw.bundle_e_sqlite3@3.0.5", "pkg:nuget/ModelContextProtocol.Core@2.2.0"]},
-    { "ref": "pkg:nuget/FirebirdSql.Data.FirebirdClient@10.3.4", "dependsOn": [] },
-    { "ref": "pkg:nuget/Interop.UIAutomationClient@10.19041.0", "dependsOn": [] },
-    { "ref": "pkg:nuget/Microsoft.Data.Sqlite@10.0.10", "dependsOn": ["pkg:nuget/Microsoft.Data.Sqlite.Core@10.0.10", "pkg:nuget/SQLitePCLRaw.bundle_e_sqlite3@3.0.5", "pkg:nuget/SQLitePCLRaw.core@3.0.5"] },
-    { "ref": "pkg:nuget/Microsoft.Data.Sqlite.Core@10.0.10", "dependsOn": ["pkg:nuget/SQLitePCLRaw.core@3.0.5"] },
-    { "ref": "pkg:nuget/Microsoft.Windows.SDK.NET.Ref@10.0.19041.57", "dependsOn": ["pkg:nuget/Microsoft.Windows.CsWinRT@2.2.0"] },
-    { "ref": "pkg:nuget/Microsoft.Windows.CsWinRT@2.2.0", "dependsOn": [] },
-    { "ref": "pkg:nuget/SQLitePCLRaw.bundle_e_sqlite3@3.0.5", "dependsOn": ["pkg:nuget/SQLite@3.53.4", "pkg:nuget/SQLitePCLRaw.config.e_sqlite3@3.0.5"] },
-    { "ref": "pkg:nuget/SQLitePCLRaw.config.e_sqlite3@3.0.5", "dependsOn": ["pkg:nuget/SQLitePCLRaw.provider.e_sqlite3@3.0.5"] },
-    { "ref": "pkg:nuget/SQLitePCLRaw.provider.e_sqlite3@3.0.5", "dependsOn": ["pkg:nuget/SQLitePCLRaw.core@3.0.5"] },
-    { "ref": "pkg:nuget/SQLitePCLRaw.core@3.0.5", "dependsOn": [] },
-    { "ref": "pkg:nuget/SQLite@3.53.4", "dependsOn": [] }
+    {
+      "ref": "pkg:nuget/Google.Protobuf@3.27.1",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:generic/ui-atlas.core@2.1.0-native-preview.4",
+      "dependsOn": [
+        "pkg:nuget/Google.Protobuf@3.27.1",
+        "pkg:nuget/Interop.UIAutomationClient@10.19041.0",
+        "pkg:nuget/Microsoft.Data.Sqlite@10.0.10",
+        "pkg:nuget/Microsoft.Windows.SDK.NET.Ref@10.0.19041.57",
+        "pkg:nuget/Microsoft.Windows.CsWinRT@2.2.0",
+        "pkg:nuget/SQLitePCLRaw.bundle_e_sqlite3@3.0.5",
+        "pkg:generic/uimaps-protocol@source-f197c2790f82",
+        "pkg:generic/uimaps-perception@source-f197c2790f82",
+        "pkg:generic/uimaps-map@source-f197c2790f82",
+        "pkg:generic/uimaps-recorder@source-f197c2790f82"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/Interop.UIAutomationClient@10.19041.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:nuget/Microsoft.Data.Sqlite@10.0.10",
+      "dependsOn": [
+        "pkg:nuget/Microsoft.Data.Sqlite.Core@10.0.10",
+        "pkg:nuget/SQLitePCLRaw.bundle_e_sqlite3@3.0.5",
+        "pkg:nuget/SQLitePCLRaw.core@3.0.5"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/Microsoft.Data.Sqlite.Core@10.0.10",
+      "dependsOn": [
+        "pkg:nuget/SQLitePCLRaw.core@3.0.5"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/Microsoft.Windows.SDK.NET.Ref@10.0.19041.57",
+      "dependsOn": [
+        "pkg:nuget/Microsoft.Windows.CsWinRT@2.2.0"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/Microsoft.Windows.CsWinRT@2.2.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:nuget/SQLitePCLRaw.bundle_e_sqlite3@3.0.5",
+      "dependsOn": [
+        "pkg:nuget/SQLite@3.53.4",
+        "pkg:nuget/SQLitePCLRaw.config.e_sqlite3@3.0.5"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/SQLitePCLRaw.config.e_sqlite3@3.0.5",
+      "dependsOn": [
+        "pkg:nuget/SQLitePCLRaw.provider.e_sqlite3@3.0.5"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/SQLitePCLRaw.provider.e_sqlite3@3.0.5",
+      "dependsOn": [
+        "pkg:nuget/SQLitePCLRaw.core@3.0.5"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/SQLitePCLRaw.core@3.0.5",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:nuget/SQLite@3.53.4",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:generic/uimaps-protocol@source-f197c2790f82",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:generic/uimaps-perception@source-f197c2790f82",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:generic/uimaps-map@source-f197c2790f82",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:nuget/System.Drawing.Common@9.0.8",
+      "dependsOn": [
+        "pkg:nuget/Microsoft.Win32.SystemEvents@9.0.8"
+      ]
+    },
+    {
+      "ref": "pkg:nuget/Microsoft.Win32.SystemEvents@9.0.8",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:generic/uimaps-recorder@source-f197c2790f82",
+      "dependsOn": [
+        "pkg:nuget/System.Drawing.Common@9.0.8",
+        "pkg:generic/uimaps-protocol@source-f197c2790f82"
+      ]
+    }
   ]
 }

@@ -93,7 +93,7 @@ public sealed class AdaptiveCaptureCoordinatorTests
         var release = new TaskCompletionSource<FrameObservation?>(TaskCreationOptions.RunContinuationsAsynchronously);
         var output = Path.Combine(Path.GetTempPath(), "ui-atlas-root-deadline-test-" + Guid.NewGuid().ToString("N") + ".mlrec");
 
-        await using var session = new ManualRecordingSession(target, output);
+        await using var session = new ManualRecordingSession(target, output, useNativeRecorder: false);
         await using var coordinator = new AdaptiveCaptureCoordinator(
             session, target, null, null, null,
             async _ => await release.Task);
@@ -139,7 +139,7 @@ public sealed class AdaptiveCaptureCoordinatorTests
         var attempts = 0;
         var output = Path.Combine(Path.GetTempPath(), "ui-atlas-root-request-test-" + Guid.NewGuid().ToString("N") + ".mlrec");
 
-        await using var session = new ManualRecordingSession(target, output);
+        await using var session = new ManualRecordingSession(target, output, useNativeRecorder: false);
         await using var coordinator = new AdaptiveCaptureCoordinator(
             session, target, null, null, null,
             async token =>
@@ -182,7 +182,7 @@ public sealed class AdaptiveCaptureCoordinatorTests
         var attempts = 0;
         var output = Path.Combine(Path.GetTempPath(), "ui-atlas-root-retry-test-" + Guid.NewGuid().ToString("N") + ".mlrec");
 
-        await using var session = new ManualRecordingSession(target, output);
+        await using var session = new ManualRecordingSession(target, output, useNativeRecorder: false);
         await using var coordinator = new AdaptiveCaptureCoordinator(
             session, target, null, null, null,
             _ => Task.FromResult<FrameObservation?>(Interlocked.Increment(ref attempts) == 1
@@ -238,7 +238,7 @@ public sealed class AdaptiveCaptureCoordinatorTests
                     Interlocked.Increment(ref beforeCaptureCalls);
                     return Task.CompletedTask;
                 },
-                () => Interlocked.Increment(ref afterCaptureCalls));
+                () => Interlocked.Increment(ref afterCaptureCalls), useNativeRecorder: false);
             session.Start(explicitConsent: true);
 
             var frame = await session.CaptureAsync(
@@ -682,8 +682,10 @@ public sealed class AdaptiveCaptureCoordinatorTests
         }
     }
 
-    [Fact]
-    public async Task ManualAndAutomaticPathsPersistOwnedPopupsBeforeConfirming()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ManualAndAutomaticPathsPersistOwnedPopupsBeforeConfirming(bool includeDialogTabs)
     {
         if (!OperatingSystem.IsWindows()) return;
         var ready = new TaskCompletionSource<(System.Windows.Window Window, long Hwnd)>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -712,12 +714,14 @@ public sealed class AdaptiveCaptureCoordinatorTests
         try
         {
             var target = WindowCatalog.Resolve(rootHwnd);
-            await using var session = new ManualRecordingSession(target, output);
+            await using var session = new ManualRecordingSession(target, output, useNativeRecorder: false);
             session.Start(explicitConsent: true);
             var baseline = await session.CaptureAsync("baseline", CancellationToken.None,
                 new FrameCaptureOptions(IncludeAutomation: false, CapturePhase: "baseline"));
             var popupAttempts = new Dictionary<long, int>();
             var dialogAttempts = new Dictionary<long, int>();
+            System.Windows.Window? closingDialog = null;
+            long closingHwnd = 0;
             await using var coordinator = new AdaptiveCaptureCoordinator(
                 session,
                 target,
@@ -753,6 +757,14 @@ public sealed class AdaptiveCaptureCoordinatorTests
                 },
                 (dialogHwnd, _) =>
                 {
+                    if (closingDialog is not null && closingHwnd == dialogHwnd)
+                    {
+                        closingDialog.Dispatcher.Invoke(closingDialog.Close);
+                        // Use the real collector's scope validation after HWND
+                        // destruction, rather than manufacturing an exception.
+                        session.CollectWindowAutomationAsync(dialogHwnd,
+                            TimeSpan.FromSeconds(1), 64, CancellationToken.None).GetAwaiter().GetResult();
+                    }
                     var dialogTarget = WindowCatalog.Resolve(dialogHwnd);
                     var bounds = dialogTarget.Bounds;
                     dialogAttempts[dialogHwnd] = dialogAttempts.GetValueOrDefault(dialogHwnd) + 1;
@@ -772,8 +784,20 @@ public sealed class AdaptiveCaptureCoordinatorTests
                             new RectI(bounds.X + 30, bounds.Y + 100, 90, 28),
                             true, false, "WPF", dialogHwnd, ["Invoke"])
                     ];
+                    if (includeDialogTabs && dialogTarget.Title == "Manual dialog")
+                        items = items.Concat(new[]
+                        {
+                            new AutomationObservation($"{dialogHwnd:x}.tab1", $"{dialogHwnd:x}.root", "tab1", "Font",
+                                "ControlType.TabItem", "MSAA.Role37", new RectI(bounds.X + 20, bounds.Y + 30, 50, 20),
+                                true, false, "Win32", dialogHwnd, ["SelectionItem"], IsSelected: true),
+                            new AutomationObservation($"{dialogHwnd:x}.tab2", $"{dialogHwnd:x}.root", "tab2", "Advanced",
+                                "ControlType.TabItem", "MSAA.Role37", new RectI(bounds.X + 80, bounds.Y + 30, 70, 20),
+                                true, false, "Win32", dialogHwnd, ["SelectionItem"])
+                        }).ToArray();
                     return Task.FromResult<(IReadOnlyList<AutomationObservation>, bool, string)>((items, false, "ok"));
-                });
+                },
+                rootCaptureAttemptOverride: async token => await session.CaptureAsync(
+                    "test-root-after-close", token, new FrameCaptureOptions(IncludeAutomation: false)));
             coordinator.Start(baseline);
 
             var manualCheckpoint = coordinator.CreateClickCheckpoint();
@@ -821,6 +845,7 @@ public sealed class AdaptiveCaptureCoordinatorTests
                 dialogCheckpoint, TimeSpan.FromSeconds(1), CancellationToken.None);
             Assert.Equal(AdaptiveDialogCaptureOutcome.Captured, dialogResult.Outcome);
             Assert.NotNull(dialogResult.Frame);
+            Assert.Equal(2, dialogAttempts[dialogResult.Hwnd]);
             Assert.Equal(dialogResult.Hwnd, dialogResult.Frame.Window.Hwnd);
             Assert.Equal(dialogResult.Frame.Window.Bounds, dialogResult.Frame.ScreenshotBounds);
             Assert.All(dialogResult.Frame.Automation, control => Assert.Equal(dialogResult.Hwnd, control.WindowHwnd));
@@ -855,6 +880,22 @@ public sealed class AdaptiveCaptureCoordinatorTests
             Assert.NotEmpty(nativeOnlyResult.Frame.FrameEntry);
             Assert.Equal(1, dialogAttempts[nativeOnlyResult.Hwnd]);
             await nativeOnlyWindow.Dispatcher.InvokeAsync(nativeOnlyWindow.Close);
+
+            // Deterministically destroy the owned HWND after resolving the click
+            // scope, while its accessibility read is in flight (Close/Cancel race).
+            closingDialog = await ShowDialogAsync(root, "Close during capture");
+            closingHwnd = await closingDialog.Dispatcher.InvokeAsync(() =>
+                new System.Windows.Interop.WindowInteropHelper(closingDialog).Handle.ToInt64());
+            var closingBounds = WindowCatalog.Resolve(closingHwnd).Bounds;
+            var closeOutcome = await coordinator.CaptureClickAsync(
+                new RectI(closingBounds.X + 30, closingBounds.Y + 70, 1, 1),
+                coordinator.CreateClickCheckpoint(), CancellationToken.None, closingHwnd);
+            Assert.Equal(AdaptiveClickCaptureOutcome.RootCaptured, closeOutcome);
+            Assert.False(NativeMethods.IsWindow((nint)closingHwnd));
+            Assert.Equal(rootHwnd, coordinator.LatestFullFrame.Window.Hwnd);
+            // A further frame must still be accepted by the same active session.
+            await session.CaptureAsync("still-recording", CancellationToken.None,
+                new FrameCaptureOptions(IncludeAutomation: false));
 
             await coordinator.DrainAsync(TimeSpan.FromSeconds(3), CancellationToken.None);
             session.Complete();
@@ -899,6 +940,8 @@ public sealed class AdaptiveCaptureCoordinatorTests
             Assert.True(nativeOnlyFrame.AutomationTimedOut);
             Assert.NotEmpty(nativeOnlyFrame.FrameEntry);
             Assert.Contains("peer-root-controls-missed", bundle.ReadText("raw/capture-health.jsonl"));
+            Assert.Contains("clicked-window-closed", bundle.ReadText("raw/capture-health.jsonl"));
+            Assert.DoesNotContain("auto-dialog-tab:", bundle.ReadText("raw/interactions.jsonl"));
         }
         finally
         {

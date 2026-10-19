@@ -19,7 +19,8 @@ internal static class Program
             : [];
         var graphPath = JoinPathTokens(graphTokens);
         var evidencePath = JoinPathTokens(evidenceTokens);
-        var window = new ExplorerWindow(graphPath, evidencePath);
+        Window window = graphPath is not null && System.IO.Directory.Exists(graphPath)
+            ? new MapReviewWindow(graphPath) : new ExplorerWindow(graphPath, evidencePath);
         app.Run(window);
     }
 

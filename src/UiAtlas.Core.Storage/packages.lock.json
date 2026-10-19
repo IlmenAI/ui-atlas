@@ -57,6 +57,9 @@
           "SQLitePCLRaw.core": "3.0.5"
         }
       },
+      "uiatlas.catalog.contracts": {
+        "type": "Project"
+      },
       "uiatlas.core.build": {
         "type": "Project",
         "dependencies": {

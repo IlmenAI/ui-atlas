@@ -51,11 +51,15 @@ public sealed class DesktopExplorerLauncherTests
     [InlineData("Storage", false)]
     [InlineData("Reader", false)]
     [InlineData("Contracts", true)]
+    [InlineData("Mapping.Atlas", false)]
+    [InlineData("UIMaps.Protocol", false)]
+    [InlineData("UIMaps.Perception.Core", false)]
+    [InlineData("UIMaps.Map.Core", true)]
     public void RejectsMismatchedOrMissingGraphAssembliesBeforeStartingViewer(string component, bool missing)
     {
         using var temp = new TempDirectory();
         var viewer = CreateLayout(temp.Path, staged: true, appHost: true);
-        var assembly = Path.Combine(viewer, $"UiAtlas.Core.{component}.dll");
+        var assembly = Path.Combine(viewer, component.StartsWith("UIMaps.", StringComparison.Ordinal) ? component + ".dll" : $"UiAtlas.Core.{component}.dll");
         if (missing) File.Delete(assembly);
         else File.WriteAllText(assembly, "older build");
 
@@ -80,9 +84,9 @@ public sealed class DesktopExplorerLauncherTests
         Directory.CreateDirectory(viewer);
         File.WriteAllText(Path.Combine(viewer, "UiAtlas.Core.Desktop.dll"), "viewer");
         if (appHost) File.WriteAllText(Path.Combine(viewer, "UiAtlas.Core.Desktop.exe"), "host");
-        foreach (var component in new[] { "Contracts", "Build", "Storage", "Reader" })
+        foreach (var component in new[] { "Contracts", "Build", "Storage", "Reader", "Mapping", "Mapping.Atlas", "UIMaps.Protocol", "UIMaps.Perception.Core", "UIMaps.Map.Core" })
         {
-            var name = $"UiAtlas.Core.{component}.dll";
+            var name = component.StartsWith("UIMaps.", StringComparison.Ordinal) ? component + ".dll" : $"UiAtlas.Core.{component}.dll";
             File.WriteAllText(Path.Combine(root, name), component);
             File.WriteAllText(Path.Combine(viewer, name), component);
         }

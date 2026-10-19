@@ -1,0 +1,290 @@
+[
+  {
+    "name": "reported-UIA-Controls",
+    "bounds": {
+      "X": 2921,
+      "Y": 381,
+      "Width": 418,
+      "Height": 414,
+      "IsValid": true
+    },
+    "rectangles": 17,
+    "crops": 0,
+    "ok": []
+  },
+  {
+    "name": "reported-UIA-Overlay",
+    "bounds": {
+      "X": 2921,
+      "Y": 381,
+      "Width": 418,
+      "Height": 414,
+      "IsValid": true
+    },
+    "rectangles": 17,
+    "crops": 0,
+    "ok": []
+  },
+  {
+    "name": "reported-UIA-Structure",
+    "bounds": {
+      "X": 2921,
+      "Y": 381,
+      "Width": 418,
+      "Height": 414,
+      "IsValid": true
+    },
+    "rectangles": 17,
+    "crops": 0,
+    "ok": []
+  },
+  {
+    "name": "reported-UIA-StructureOverlay",
+    "bounds": {
+      "X": 2921,
+      "Y": 381,
+      "Width": 418,
+      "Height": 414,
+      "IsValid": true
+    },
+    "rectangles": 17,
+    "crops": 0,
+    "ok": []
+  },
+  {
+    "name": "reported-MSAA-Controls",
+    "bounds": {
+      "X": 2921,
+      "Y": 381,
+      "Width": 418,
+      "Height": 414,
+      "IsValid": true
+    },
+    "rectangles": 28,
+    "crops": 0,
+    "ok": []
+  },
+  {
+    "name": "reported-MSAA-Overlay",
+    "bounds": {
+      "X": 2921,
+      "Y": 381,
+      "Width": 418,
+      "Height": 414,
+      "IsValid": true
+    },
+    "rectangles": 28,
+    "crops": 0,
+    "ok": []
+  },
+  {
+    "name": "reported-MSAA-Structure",
+    "bounds": {
+      "X": 2921,
+      "Y": 381,
+      "Width": 418,
+      "Height": 414,
+      "IsValid": true
+    },
+    "rectangles": 28,
+    "crops": 0,
+    "ok": []
+  },
+  {
+    "name": "reported-MSAA-StructureOverlay",
+    "bounds": {
+      "X": 2921,
+      "Y": 381,
+      "Width": 418,
+      "Height": 414,
+      "IsValid": true
+    },
+    "rectangles": 28,
+    "crops": 0,
+    "ok": []
+  },
+  {
+    "name": "registered-UIA-Controls",
+    "bounds": {
+      "X": 2921,
+      "Y": 381,
+      "Width": 418,
+      "Height": 414,
+      "IsValid": true
+    },
+    "rectangles": 26,
+    "crops": 21,
+    "ok": [
+      {
+        "x": 253,
+        "y": 379,
+        "Width": 75,
+        "Height": 27
+      }
+    ]
+  },
+  {
+    "name": "registered-UIA-Overlay",
+    "bounds": {
+      "X": 2921,
+      "Y": 381,
+      "Width": 418,
+      "Height": 414,
+      "IsValid": true
+    },
+    "rectangles": 26,
+    "crops": 21,
+    "ok": [
+      {
+        "x": 253,
+        "y": 379,
+        "Width": 75,
+        "Height": 27
+      }
+    ]
+  },
+  {
+    "name": "registered-UIA-Structure",
+    "bounds": {
+      "X": 2921,
+      "Y": 381,
+      "Width": 418,
+      "Height": 414,
+      "IsValid": true
+    },
+    "rectangles": 26,
+    "crops": 0,
+    "ok": [
+      {
+        "x": 253,
+        "y": 379,
+        "Width": 75,
+        "Height": 27
+      }
+    ]
+  },
+  {
+    "name": "registered-UIA-StructureOverlay",
+    "bounds": {
+      "X": 2921,
+      "Y": 381,
+      "Width": 418,
+      "Height": 414,
+      "IsValid": true
+    },
+    "rectangles": 26,
+    "crops": 0,
+    "ok": [
+      {
+        "x": 253,
+        "y": 379,
+        "Width": 75,
+        "Height": 27
+      }
+    ]
+  },
+  {
+    "name": "registered-MSAA-Controls",
+    "bounds": {
+      "X": 2921,
+      "Y": 381,
+      "Width": 418,
+      "Height": 414,
+      "IsValid": true
+    },
+    "rectangles": 46,
+    "crops": 39,
+    "ok": [
+      {
+        "x": 253,
+        "y": 379,
+        "Width": 75,
+        "Height": 27
+      },
+      {
+        "x": 253,
+        "y": 379,
+        "Width": 75,
+        "Height": 27
+      }
+    ]
+  },
+  {
+    "name": "registered-MSAA-Overlay",
+    "bounds": {
+      "X": 2921,
+      "Y": 381,
+      "Width": 418,
+      "Height": 414,
+      "IsValid": true
+    },
+    "rectangles": 46,
+    "crops": 39,
+    "ok": [
+      {
+        "x": 253,
+        "y": 379,
+        "Width": 75,
+        "Height": 27
+      },
+      {
+        "x": 253,
+        "y": 379,
+        "Width": 75,
+        "Height": 27
+      }
+    ]
+  },
+  {
+    "name": "registered-MSAA-Structure",
+    "bounds": {
+      "X": 2921,
+      "Y": 381,
+      "Width": 418,
+      "Height": 414,
+      "IsValid": true
+    },
+    "rectangles": 46,
+    "crops": 0,
+    "ok": [
+      {
+        "x": 253,
+        "y": 379,
+        "Width": 75,
+        "Height": 27
+      },
+      {
+        "x": 253,
+        "y": 379,
+        "Width": 75,
+        "Height": 27
+      }
+    ]
+  },
+  {
+    "name": "registered-MSAA-StructureOverlay",
+    "bounds": {
+      "X": 2921,
+      "Y": 381,
+      "Width": 418,
+      "Height": 414,
+      "IsValid": true
+    },
+    "rectangles": 46,
+    "crops": 0,
+    "ok": [
+      {
+        "x": 253,
+        "y": 379,
+        "Width": 75,
+        "Height": 27
+      },
+      {
+        "x": 253,
+        "y": 379,
+        "Width": 75,
+        "Height": 27
+      }
+    ]
+  }
+]

@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package uimaps.v2_1;
+option csharp_namespace = "UIMaps.Protocol.V2_1";
+
+import "uimaps/v1/common.proto";
+
+message GridGroundingRequest {
+  string request_id = 1;
+  string map_revision_ref = 2;
+  uint64 world_state_version = 3;
+  string data_grid_ref = 4;
+  repeated string requested_column_refs = 5;
+  int64 maximum_observation_age_ms = 6;
+  string grounding_policy_ref = 7;
+  bool include_candidates = 8;
+  int32 deadline_ms = 9;
+}
+message GroundedColumnBinding {
+  string grid_column_ref = 1;
+  string live_column_candidate_ref = 2;
+  double confidence = 3;
+}
+
+message GridGroundingCandidate {
+  string live_grid_candidate_ref = 1;
+  repeated string hard_gate_results = 2;
+  repeated string feature_contributions = 3;
+  repeated string conflicts = 4;
+  repeated string source_families = 5;
+  double score = 6;
+  double confidence = 7;
+  string freshness = 8;
+  string occlusion = 9;
+  uimaps.v1.Lineage lineage = 10;
+}
+
+enum GridGroundingStatus {
+  GRID_GROUNDING_STATUS_UNSPECIFIED = 0;
+  GROUNDED = 1;
+  NOT_OBSERVED = 2;
+  AMBIGUOUS = 3;
+  STALE_OBSERVATION = 4;
+  WRONG_APPLICATION = 5;
+  WRONG_SURFACE = 6;
+  UNEXPECTED_VARIANT = 7;
+  OCCLUDED = 8;
+  MAP_DRIFTED = 9;
+  INSUFFICIENT_EVIDENCE = 10;
+  PROVIDER_UNAVAILABLE = 11;
+  CANCELLED = 12;
+  DEADLINE_EXCEEDED = 13;
+  INVALID_REQUEST = 14;
+}
+
+message GridGroundingProof {
+  string proof_ref = 1;
+  string request_hash = 2;
+  string map_revision_ref = 3;
+  string map_payload_hash = 4;
+  uint64 world_state_version = 5;
+  string world_state_hash = 6;
+  string perception_epoch = 7;
+  string application_instance_ref = 8;
+  string data_grid_ref = 9;
+  string selected_grid_candidate_ref = 10;
+  repeated GroundedColumnBinding grounded_column_bindings = 11;
+  string candidate_set_hash = 12;
+  string grounding_policy_ref = 13;
+  string localization_version = 14;
+  repeated string provider_versions = 15;
+  string created_at = 16;
+  string expires_at = 17;
+  GridGroundingStatus result_status = 18;
+  string explanation_hash = 19;
+  bool not_authorization = 20;
+}
+
+message GridGroundingResult {
+  string request_id = 1;
+  GridGroundingStatus status = 2;
+  string map_revision_ref = 3;
+  uint64 world_state_version = 4;
+  string application_instance_ref = 5;
+  string selected_grid_candidate_ref = 6;
+  repeated GroundedColumnBinding grounded_column_bindings = 7;
+  repeated GridGroundingCandidate candidates = 8;
+  string ambiguity = 9;
+  uimaps.v1.Health health = 10;
+  GridGroundingProof proof = 11;
+  string completed_at = 12;
+}

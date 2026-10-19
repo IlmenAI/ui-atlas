@@ -1,0 +1,66 @@
+[
+  {
+    "File": "ui-atlas.dll",
+    "AtlasMethods": 3224,
+    "MapLockMethods": 3224,
+    "DifferentMethods": "System.Text.RegularExpressions.Generated.<RegexGenerator_g>FF0080C1224241E513B1AF05346ED02224B89AD930B3E24C6F785E11F0FFACEB4__FdbNamePattern_0::.ctor; System.Text.RegularExpressions.Generated.<RegexGenerator_g>FF0080C1224241E513B1AF05346ED02224B89AD930B3E24C6F785E11F0FFACEB4__FdbNamePattern_0::.cctor; System.Text.RegularExpressions.Generated.<RegexGenerator_g>FF0080C1224241E513B1AF05346ED02224B89AD930B3E24C6F785E11F0FFACEB4__Utilities::.cctor",
+    "SameResources": true,
+    "SameAssemblyRefs": true
+  },
+  {
+    "File": "UiAtlas.Core.Recording.Windows.dll",
+    "AtlasMethods": 5417,
+    "MapLockMethods": 5417,
+    "DifferentMethods": "",
+    "SameResources": true,
+    "SameAssemblyRefs": true
+  },
+  {
+    "File": "UiAtlas.Core.Recording.dll",
+    "AtlasMethods": 349,
+    "MapLockMethods": 349,
+    "DifferentMethods": "",
+    "SameResources": true,
+    "SameAssemblyRefs": true
+  },
+  {
+    "File": "UiAtlas.Core.Build.dll",
+    "AtlasMethods": 860,
+    "MapLockMethods": 860,
+    "DifferentMethods": "",
+    "SameResources": true,
+    "SameAssemblyRefs": true
+  },
+  {
+    "File": "UiAtlas.Core.Mapping.Atlas.dll",
+    "AtlasMethods": 421,
+    "MapLockMethods": 421,
+    "DifferentMethods": "",
+    "SameResources": true,
+    "SameAssemblyRefs": true
+  },
+  {
+    "File": "UIMaps.Recorder.Windows.dll",
+    "AtlasMethods": 854,
+    "MapLockMethods": 854,
+    "DifferentMethods": "",
+    "SameResources": true,
+    "SameAssemblyRefs": true
+  },
+  {
+    "File": "UIMaps.Protocol.dll",
+    "AtlasMethods": 9618,
+    "MapLockMethods": 9618,
+    "DifferentMethods": "",
+    "SameResources": true,
+    "SameAssemblyRefs": true
+  },
+  {
+    "File": "UIMaps.Recorder.ProviderProbe.dll",
+    "AtlasMethods": 25,
+    "MapLockMethods": 25,
+    "DifferentMethods": "",
+    "SameResources": true,
+    "SameAssemblyRefs": true
+  }
+]

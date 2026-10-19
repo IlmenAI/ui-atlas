@@ -8,6 +8,9 @@ namespace UiAtlas.Core.Storage;
 
 public static class SqliteGraphStore
 {
+    // Backend-owned projection: keep legacy curation files as upgrade evidence,
+    // but do not apply them to the independent UI Maps identity space.
+    public static void SaveProjection(UiKnowledgeGraph graph, string path) => SaveCore(graph, path);
     public sealed record GraphSummary(
         GraphMetadata Metadata,
         int NodeCount,
@@ -112,6 +115,20 @@ public static class SqliteGraphStore
             CountControlsForLayer(connection, "semantic-world"));
     }
 
+    // A library row needs the timestamp, not a scan of every node's JSON properties.
+    public static GraphMetadata ReadCatalogMetadata(string path)
+    {
+        var fullPath = Path.GetFullPath(path);
+        using var input = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        if (input.Length > 512L * 1024 * 1024) throw new InvalidDataException("Graph database exceeds size limit.");
+        if (File.Exists(fullPath + "-wal") || File.Exists(fullPath + "-shm")) throw new InvalidDataException("Graph database sidecars are not accepted.");
+        using var connection = new SqliteConnection(new SqliteConnectionStringBuilder
+            { DataSource = fullPath, Mode = SqliteOpenMode.ReadOnly, Pooling = false }.ToString());
+        connection.Open();
+        HardenAndValidateCatalogSummary(connection);
+        return ReadMetadata(connection);
+    }
+
     private static IReadOnlyList<GraphNode> ReadLayerNodesCore(string path, string layer)
     {
         var fullPath = Path.GetFullPath(path);
@@ -148,7 +165,7 @@ public static class SqliteGraphStore
         var nodes = new List<GraphNode>();
         while (reader.Read())
         {
-            if (nodes.Count >= 100_000)
+            if (nodes.Count >= GraphContractLimits.MaxNodes)
                 throw new InvalidDataException("Graph row count exceeds limit.");
             var json = reader.GetString(0);
             if (json.Length > 4 * 1024 * 1024)
@@ -244,7 +261,8 @@ public static class SqliteGraphStore
         var values = new List<T>();
         while (reader.Read())
         {
-            if (values.Count >= 100_000) throw new InvalidDataException("Graph row count exceeds limit.");
+            if (values.Count >= (typeof(T) == typeof(GraphNode) ? GraphContractLimits.MaxNodes : GraphContractLimits.MaxEdges))
+                throw new InvalidDataException("Graph row count exceeds limit.");
             var json = reader.GetString(0);
             if (json.Length > 4 * 1024 * 1024) throw new InvalidDataException("Graph row exceeds size limit.");
             StrictJsonValidator.Validate(System.Text.Encoding.UTF8.GetBytes(json));

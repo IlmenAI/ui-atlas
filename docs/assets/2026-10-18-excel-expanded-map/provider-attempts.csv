@@ -1,0 +1,211 @@
+frame,visited,acquisition,stability,hwnd,window,window_class,source,status,records
+1,Home baseline,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+1,Home baseline,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,ok,525
+1,Home baseline,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+2,Cell context Filter - first attempt,interrupted,changed,0x2010ce,,Net UI Tool Window,native-hwnd,ok,1
+2,Cell context Filter - first attempt,interrupted,changed,0x2010ce,,Net UI Tool Window,uia,ok,1
+2,Cell context Filter - first attempt,interrupted,changed,0x2010ce,,Net UI Tool Window,msaa,ok,100
+2,Cell context Filter - first attempt,interrupted,changed,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+2,Cell context Filter - first attempt,interrupted,changed,0x1d1222,Book1 - Excel,XLMAIN,uia,ok,574
+2,Cell context Filter - first attempt,interrupted,changed,0x1d1222,Book1 - Excel,XLMAIN,msaa,ok,2461
+2,Cell context Filter - first attempt,interrupted,changed,0xb11f4,,Net UI Tool Window,native-hwnd,ok,1
+2,Cell context Filter - first attempt,interrupted,changed,0xb11f4,,Net UI Tool Window,uia,ok,49
+2,Cell context Filter - first attempt,interrupted,changed,0xb11f4,,Net UI Tool Window,msaa,ok,382
+3,Cell context Filter - retry,partial,stable,0x2010ce,,Net UI Tool Window,native-hwnd,ok,1
+3,Cell context Filter - retry,partial,stable,0x2010ce,,Net UI Tool Window,uia,ok,1
+3,Cell context Filter - retry,partial,stable,0x2010ce,,Net UI Tool Window,msaa,ok,100
+3,Cell context Filter - retry,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+3,Cell context Filter - retry,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,ok,574
+3,Cell context Filter - retry,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+3,Cell context Filter - retry,partial,stable,0xb11f4,,Net UI Tool Window,native-hwnd,ok,1
+3,Cell context Filter - retry,partial,stable,0xb11f4,,Net UI Tool Window,uia,ok,49
+3,Cell context Filter - retry,partial,stable,0xb11f4,,Net UI Tool Window,msaa,ok,382
+4,Cell context Sort,ok,stable,0x181198,,Net UI Tool Window,native-hwnd,ok,1
+4,Cell context Sort,ok,stable,0x181198,,Net UI Tool Window,uia,ok,1
+4,Cell context Sort,ok,stable,0x181198,,Net UI Tool Window,msaa,ok,94
+4,Cell context Sort,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+4,Cell context Sort,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,ok,573
+4,Cell context Sort,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,ok,2461
+4,Cell context Sort,ok,stable,0xb11f4,,Net UI Tool Window,native-hwnd,ok,1
+4,Cell context Sort,ok,stable,0xb11f4,,Net UI Tool Window,uia,ok,48
+4,Cell context Sort,ok,stable,0xb11f4,,Net UI Tool Window,msaa,ok,376
+5,Format Cells Font,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,native-hwnd,ok,6
+5,Format Cells Font,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,uia,timeout,0
+5,Format Cells Font,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,msaa,timeout,0
+5,Format Cells Font,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+5,Format Cells Font,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,timeout,0
+5,Format Cells Font,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+6,Format Cells moved,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,native-hwnd,ok,6
+6,Format Cells moved,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,uia,timeout,0
+6,Format Cells moved,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,msaa,timeout,0
+6,Format Cells moved,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+6,Format Cells moved,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,timeout,0
+6,Format Cells moved,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+7,Format Cells Number,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,native-hwnd,ok,1
+7,Format Cells Number,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,uia,timeout,0
+7,Format Cells Number,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,msaa,ok,3568
+7,Format Cells Number,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+7,Format Cells Number,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,timeout,0
+7,Format Cells Number,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+8,Format Cells Alignment,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,native-hwnd,ok,2
+8,Format Cells Alignment,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,uia,timeout,0
+8,Format Cells Alignment,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,msaa,ok,3568
+8,Format Cells Alignment,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+8,Format Cells Alignment,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,timeout,0
+8,Format Cells Alignment,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+9,Alignment Horizontal dropdown,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,native-hwnd,ok,2
+9,Alignment Horizontal dropdown,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,uia,timeout,0
+9,Alignment Horizontal dropdown,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,msaa,ok,3568
+9,Alignment Horizontal dropdown,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+9,Alignment Horizontal dropdown,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,timeout,0
+9,Alignment Horizontal dropdown,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+10,Format Cells Border,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,native-hwnd,ok,0
+10,Format Cells Border,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,uia,timeout,0
+10,Format Cells Border,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,msaa,ok,3568
+10,Format Cells Border,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+10,Format Cells Border,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,timeout,0
+10,Format Cells Border,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+11,Format Cells Fill,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,native-hwnd,ok,2
+11,Format Cells Fill,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,uia,timeout,0
+11,Format Cells Fill,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,msaa,timeout,0
+11,Format Cells Fill,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+11,Format Cells Fill,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,timeout,0
+11,Format Cells Fill,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+12,Colors Standard,partial,stable,0x441224,Colors,bosa_sdm_XL9,native-hwnd,ok,0
+12,Colors Standard,partial,stable,0x441224,Colors,bosa_sdm_XL9,uia,ok,18
+12,Colors Standard,partial,stable,0x441224,Colors,bosa_sdm_XL9,msaa,ok,212
+12,Colors Standard,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+12,Colors Standard,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,timeout,0
+12,Colors Standard,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+12,Colors Standard,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,native-hwnd,ok,2
+12,Colors Standard,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,uia,timeout,0
+12,Colors Standard,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,msaa,ok,3758
+13,Colors Custom,partial,stable,0x441224,Colors,bosa_sdm_XL9,native-hwnd,ok,4
+13,Colors Custom,partial,stable,0x441224,Colors,bosa_sdm_XL9,uia,ok,33
+13,Colors Custom,partial,stable,0x441224,Colors,bosa_sdm_XL9,msaa,ok,212
+13,Colors Custom,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+13,Colors Custom,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,timeout,0
+13,Colors Custom,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+13,Colors Custom,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,native-hwnd,ok,2
+13,Colors Custom,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,uia,timeout,0
+13,Colors Custom,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,msaa,ok,3758
+14,Format Cells Protection,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,native-hwnd,ok,0
+14,Format Cells Protection,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,uia,timeout,0
+14,Format Cells Protection,partial,stable,0x1a1198,Format Cells,bosa_sdm_XL9,msaa,ok,3568
+14,Format Cells Protection,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+14,Format Cells Protection,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,timeout,0
+14,Format Cells Protection,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+15,Sheet context menu,ok,stable,0x1c1198,,Net UI Tool Window,native-hwnd,ok,1
+15,Sheet context menu,ok,stable,0x1c1198,,Net UI Tool Window,uia,ok,19
+15,Sheet context menu,ok,stable,0x1c1198,,Net UI Tool Window,msaa,ok,132
+15,Sheet context menu,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+15,Sheet context menu,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,ok,544
+15,Sheet context menu,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,ok,2461
+16,Sheet Tab Color palette,partial,stable,0x2900c16,,Net UI Tool Window,native-hwnd,ok,1
+16,Sheet Tab Color palette,partial,stable,0x2900c16,,Net UI Tool Window,uia,ok,1
+16,Sheet Tab Color palette,partial,stable,0x2900c16,,Net UI Tool Window,msaa,ok,280
+16,Sheet Tab Color palette,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+16,Sheet Tab Color palette,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,ok,626
+16,Sheet Tab Color palette,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+16,Sheet Tab Color palette,partial,stable,0x1c1198,,Net UI Tool Window,native-hwnd,ok,1
+16,Sheet Tab Color palette,partial,stable,0x1c1198,,Net UI Tool Window,uia,ok,101
+16,Sheet Tab Color palette,partial,stable,0x1c1198,,Net UI Tool Window,msaa,ok,344
+17,Move or Copy - first attempt,interrupted,changed,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+17,Move or Copy - first attempt,interrupted,changed,0x1d1222,Book1 - Excel,XLMAIN,uia,ok,525
+17,Move or Copy - first attempt,interrupted,changed,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+18,Move or Copy - retry,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+18,Move or Copy - retry,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,ok,525
+18,Move or Copy - retry,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+19,Move or Copy workbook picker - first attempt,interrupted,changed,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+19,Move or Copy workbook picker - first attempt,interrupted,changed,0x1d1222,Book1 - Excel,XLMAIN,uia,ok,525
+19,Move or Copy workbook picker - first attempt,interrupted,changed,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+20,Move or Copy workbook picker - retry,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+20,Move or Copy workbook picker - retry,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,timeout,0
+20,Move or Copy workbook picker - retry,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,ok,2461
+21,Cancel Move or Copy,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+21,Cancel Move or Copy,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,timeout,0
+21,Cancel Move or Copy,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+22,Font dropdown,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,24
+22,Font dropdown,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,timeout,0
+22,Font dropdown,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+22,Font dropdown,partial,stable,0x9e2127a,,Net UI Tool Window,native-hwnd,ok,1
+22,Font dropdown,partial,stable,0x9e2127a,,Net UI Tool Window,uia,ok,1
+22,Font dropdown,partial,stable,0x9e2127a,,Net UI Tool Window,msaa,timeout,0
+23,Font size dropdown,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,24
+23,Font size dropdown,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,timeout,0
+23,Font size dropdown,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+23,Font size dropdown,partial,stable,0x9e3127a,,Net UI Tool Window,native-hwnd,ok,1
+23,Font size dropdown,partial,stable,0x9e3127a,,Net UI Tool Window,uia,ok,1
+23,Font size dropdown,partial,stable,0x9e3127a,,Net UI Tool Window,msaa,ok,148
+24,Conditional Formatting,ok,stable,0x9e4127a,,Net UI Tool Window,native-hwnd,ok,1
+24,Conditional Formatting,ok,stable,0x9e4127a,,Net UI Tool Window,uia,ok,1
+24,Conditional Formatting,ok,stable,0x9e4127a,,Net UI Tool Window,msaa,ok,110
+24,Conditional Formatting,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+24,Conditional Formatting,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,ok,540
+24,Conditional Formatting,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,ok,2503
+25,Highlight Cells Rules,ok,stable,0x2a10fcc,,Net UI Tool Window,native-hwnd,ok,1
+25,Highlight Cells Rules,ok,stable,0x2a10fcc,,Net UI Tool Window,uia,ok,1
+25,Highlight Cells Rules,ok,stable,0x2a10fcc,,Net UI Tool Window,msaa,ok,104
+25,Highlight Cells Rules,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+25,Highlight Cells Rules,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,ok,554
+25,Highlight Cells Rules,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,ok,2539
+25,Highlight Cells Rules,ok,stable,0x9e4127a,,Net UI Tool Window,native-hwnd,ok,1
+25,Highlight Cells Rules,ok,stable,0x9e4127a,,Net UI Tool Window,uia,ok,2
+25,Highlight Cells Rules,ok,stable,0x9e4127a,,Net UI Tool Window,msaa,ok,146
+26,Greater Than - first attempt,interrupted,changed,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+26,Greater Than - first attempt,interrupted,changed,0x1d1222,Book1 - Excel,XLMAIN,uia,ok,528
+26,Greater Than - first attempt,interrupted,changed,0x1d1222,Book1 - Excel,XLMAIN,msaa,ok,2461
+27,Greater Than - retry with Editing tooltip,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+27,Greater Than - retry with Editing tooltip,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,ok,528
+27,Greater Than - retry with Editing tooltip,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,ok,2461
+27,Greater Than - retry with Editing tooltip,ok,stable,0x9e6127a,,Net UI Tool Window,native-hwnd,ok,1
+27,Greater Than - retry with Editing tooltip,ok,stable,0x9e6127a,,Net UI Tool Window,uia,ok,4
+27,Greater Than - retry with Editing tooltip,ok,stable,0x9e6127a,,Net UI Tool Window,msaa,ok,82
+28,Cancel Greater Than,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+28,Cancel Greater Than,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,timeout,0
+28,Cancel Greater Than,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+29,Format as Table gallery,partial,stable,0xc511e2,,Net UI Tool Window,native-hwnd,ok,1
+29,Format as Table gallery,partial,stable,0xc511e2,,Net UI Tool Window,uia,ok,1
+29,Format as Table gallery,partial,stable,0xc511e2,,Net UI Tool Window,msaa,ok,286
+29,Format as Table gallery,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+29,Format as Table gallery,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,ok,601
+29,Format as Table gallery,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+30,Insert ribbon,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+30,Insert ribbon,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,timeout,0
+30,Insert ribbon,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+31,Column chart gallery,ok,stable,0x15d126c,,Net UI Tool Window,native-hwnd,ok,1
+31,Column chart gallery,ok,stable,0x15d126c,,Net UI Tool Window,uia,ok,1
+31,Column chart gallery,ok,stable,0x15d126c,,Net UI Tool Window,msaa,ok,182
+31,Column chart gallery,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+31,Column chart gallery,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,ok,503
+31,Column chart gallery,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,ok,2493
+32,Data ribbon,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+32,Data ribbon,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,ok,494
+32,Data ribbon,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+33,What-If Analysis menu,ok,stable,0x16110fa,,Net UI Tool Window,native-hwnd,ok,1
+33,What-If Analysis menu,ok,stable,0x16110fa,,Net UI Tool Window,uia,ok,1
+33,What-If Analysis menu,ok,stable,0x16110fa,,Net UI Tool Window,msaa,ok,88
+33,What-If Analysis menu,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+33,What-If Analysis menu,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,ok,502
+33,What-If Analysis menu,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,ok,2421
+34,Goal Seek,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+34,Goal Seek,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,ok,493
+34,Goal Seek,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+35,Cancel Goal Seek - first attempt,interrupted,changed,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+35,Cancel Goal Seek - first attempt,interrupted,changed,0x1d1222,Book1 - Excel,XLMAIN,uia,ok,501
+35,Cancel Goal Seek - first attempt,interrupted,changed,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+36,Get Data tooltip - retry,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+36,Get Data tooltip - retry,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,timeout,0
+36,Get Data tooltip - retry,partial,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,timeout,0
+36,Get Data tooltip - retry,partial,stable,0x38a1230,,Net UI Tool Window,native-hwnd,ok,1
+36,Get Data tooltip - retry,partial,stable,0x38a1230,,Net UI Tool Window,uia,ok,7
+36,Get Data tooltip - retry,partial,stable,0x38a1230,,Net UI Tool Window,msaa,ok,82
+37,View ribbon,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+37,View ribbon,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,ok,480
+37,View ribbon,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,ok,2323
+38,Freeze Panes menu,ok,stable,0x5230c16,,Net UI Tool Window,native-hwnd,ok,1
+38,Freeze Panes menu,ok,stable,0x5230c16,,Net UI Tool Window,uia,ok,1
+38,Freeze Panes menu,ok,stable,0x5230c16,,Net UI Tool Window,msaa,ok,122
+38,Freeze Panes menu,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,native-hwnd,ok,22
+38,Freeze Panes menu,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,uia,ok,487
+38,Freeze Panes menu,ok,stable,0x1d1222,Book1 - Excel,XLMAIN,msaa,ok,2377

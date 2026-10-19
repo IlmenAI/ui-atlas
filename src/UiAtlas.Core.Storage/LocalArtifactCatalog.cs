@@ -44,8 +44,7 @@ public sealed class LocalArtifactCatalog
 
     public LocalArtifactCatalog(string? root = null)
     {
-        Root = Path.GetFullPath(root ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "UiAtlas", "Core"));
+        Root = UiAtlas.Catalog.AtlasCatalogLocation.Resolve(root);
         RecordingsDirectory = Path.Combine(Root, "recordings");
         MapsDirectory = Path.Combine(Root, "maps");
         ExportsDirectory = Path.Combine(Root, "exports");
@@ -163,8 +162,9 @@ public sealed class LocalArtifactCatalog
             duplicateMapPath = MapPath(duplicateId);
             duplicateSessionPath = MapSessionPath(duplicateId);
         }
-        while (File.Exists(duplicateMapPath) || File.Exists(duplicateSessionPath));
+        while (File.Exists(duplicateMapPath) || File.Exists(duplicateSessionPath) || Directory.Exists(MapBackendCompanion.PathFor(duplicateMapPath)));
 
+        var companionCopied = false;
         try
         {
             var duplicateGraph = graph with
@@ -177,6 +177,8 @@ public sealed class LocalArtifactCatalog
                 }
             };
             SqliteGraphStore.Save(duplicateGraph, duplicateMapPath);
+            MapBackendCompanion.Copy(sourceMapPath, duplicateMapPath, duplicateId);
+            companionCopied = true;
 
             if (sourceSession is not null)
             {
@@ -200,6 +202,7 @@ public sealed class LocalArtifactCatalog
         }
         catch
         {
+            if (companionCopied) MapBackendCompanion.Delete(duplicateMapPath, MapsDirectory);
             DeleteFileIfPresent(duplicateMapPath, MapsDirectory);
             DeleteFileIfPresent(duplicateSessionPath, MapsDirectory);
             DeleteFileIfPresent(MapCurationStore.PathForMap(duplicateMapPath), MapsDirectory);
@@ -229,11 +232,17 @@ public sealed class LocalArtifactCatalog
         return values.OrderByDescending(value => value.StartedUtc).ThenBy(value => value.Id, StringComparer.Ordinal).ToArray();
     }
 
+    public IReadOnlyList<string> ListMapPaths()
+    {
+        EnsureCatalogDirectoriesSafe();
+        return EnumerateArtifacts(MapsDirectory, "*.db");
+    }
+
     public IReadOnlyList<LocalMapInfo> ListMaps()
     {
         EnsureCatalogDirectoriesSafe();
         var values = new List<LocalMapInfo>();
-        foreach (var path in EnumerateArtifacts(MapsDirectory, "*.db"))
+        foreach (var path in ListMapPaths())
         {
             var id = Path.GetFileNameWithoutExtension(path);
             try
@@ -256,6 +265,8 @@ public sealed class LocalArtifactCatalog
     {
         var mapPath = MapPath(id);
         var destination = Archive(mapPath, "maps");
+        try { MapBackendCompanion.Move(mapPath, destination); }
+        catch { File.Move(destination, mapPath); throw; }
         ArchiveCompanionIfPresent(MapSessionPath(id), "maps", Path.GetFileNameWithoutExtension(destination), ".session.json");
         ArchiveCompanionIfPresent(MapCurationPath(id), "maps", Path.GetFileNameWithoutExtension(destination), ".curation.json");
         return destination;
@@ -280,6 +291,7 @@ public sealed class LocalArtifactCatalog
         var exportPath = DefaultExportPath(id);
 
         var managedArtifactsExist = File.Exists(mapPath) ||
+            Directory.Exists(MapBackendCompanion.PathFor(mapPath)) ||
             File.Exists(mapPath + "-wal") ||
             File.Exists(mapPath + "-shm") ||
             File.Exists(sessionPath) ||
@@ -292,6 +304,7 @@ public sealed class LocalArtifactCatalog
         WriteMapDeletionMarker(id);
 
         var deletedAny = false;
+        deletedAny |= MapBackendCompanion.Delete(mapPath, MapsDirectory);
         deletedAny |= DeleteFileIfPresent(mapPath, MapsDirectory);
         deletedAny |= DeleteFileIfPresent(mapPath + "-wal", MapsDirectory);
         deletedAny |= DeleteFileIfPresent(mapPath + "-shm", MapsDirectory);

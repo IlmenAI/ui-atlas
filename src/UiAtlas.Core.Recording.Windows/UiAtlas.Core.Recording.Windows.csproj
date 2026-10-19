@@ -9,5 +9,8 @@
     <PackageReference Include="Interop.UIAutomationClient" />
     <ProjectReference Include="../UiAtlas.Core.Contracts/UiAtlas.Core.Contracts.csproj" />
     <ProjectReference Include="../UiAtlas.Core.Recording/UiAtlas.Core.Recording.csproj" />
+    <ProjectReference Include="../UiAtlas.Core.Build/UiAtlas.Core.Build.csproj" />
+    <ProjectReference Include="../../vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/UIMaps.Recorder.Windows.csproj" />
+    <ProjectReference Include="../../vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/UIMaps.Perception.Core.csproj" />
   </ItemGroup>
 </Project>

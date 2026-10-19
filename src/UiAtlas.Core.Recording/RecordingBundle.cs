@@ -52,7 +52,7 @@ public sealed class RecordingBundle : IDisposable
         return reader.ReadToEnd();
     }
 
-    public byte[] ReadBytes(string name, int maxBytes = 64 * 1024 * 1024)
+    public byte[] ReadBytes(string name, int maxBytes = RecordingContractLimits.MaxEvidenceEntryBytes)
     {
         var entry = GetEntry(name);
         if (entry.Length > maxBytes) throw new InvalidDataException("Entry exceeds read limit.");
@@ -63,6 +63,7 @@ public sealed class RecordingBundle : IDisposable
     }
 
     public Stream OpenEntry(string name) => GetEntry(name).Open();
+    internal long EntryLength(string name) => GetEntry(name).Length;
 
     private ZipArchiveEntry GetEntry(string name) =>
         _entries.TryGetValue(name, out var entry) ? entry : throw new InvalidDataException($"Missing entry: {name}");
@@ -127,9 +128,9 @@ public static class RecordingBundleValidator
                     if (!bundle.Entries.Contains(declared.Path)) issues.Add(new("bundle.file-table", "error", declared.Path, "Declared file is missing."));
                     else
                     {
-                        var bytes = bundle.ReadBytes(declared.Path);
-                        var actual = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
-                        if (bytes.LongLength != declared.Length || !string.Equals(actual, declared.Sha256, StringComparison.Ordinal))
+                        using var content = bundle.OpenEntry(declared.Path);
+                        var actual = Convert.ToHexString(SHA256.HashData(content)).ToLowerInvariant();
+                        if (bundle.EntryLength(declared.Path) != declared.Length || !string.Equals(actual, declared.Sha256, StringComparison.Ordinal))
                             issues.Add(new("bundle.file-table", "error", declared.Path, "Declared length or hash does not match."));
                     }
                     if (declared.Immutable != declared.Path.StartsWith("raw/", StringComparison.Ordinal))
@@ -479,7 +480,9 @@ public static class RecordingBundleValidator
     {
         foreach (var entry in bundle.Entries.Where(x => x.EndsWith(".json", StringComparison.Ordinal)))
         {
-            try { StrictJsonValidator.Validate(bundle.ReadBytes(entry, 8 * 1024 * 1024)); }
+            // The archive has already passed BundleSecurity's bounded entry-size
+            // check. Dense native frames legitimately exceed the old 8 MiB cap.
+            try { StrictJsonValidator.Validate(bundle.ReadBytes(entry)); }
             catch (Exception ex) when (ex is JsonException or InvalidDataException)
             { issues.Add(new("json.strict", "error", entry, ex.Message)); }
         }

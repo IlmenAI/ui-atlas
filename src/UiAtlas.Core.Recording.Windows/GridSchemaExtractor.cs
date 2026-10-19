@@ -10,7 +10,7 @@ public sealed class GridSchemaExtractor
 {
     private readonly TableCellOcrReader _reader;
     private readonly IGridSchemaHeaderReader? _headerReader;
-    public GridSchemaExtractor() : this(new TableCellOcrReader()) { }
+    public GridSchemaExtractor() : this(new TableCellOcrReader()) { _headerReader = new UiMapsGridHeaderReader(); }
     internal GridSchemaExtractor(TableCellOcrReader reader) => _reader = reader;
     public GridSchemaExtractor(IGridSchemaHeaderReader headerReader) : this() => _headerReader = headerReader;
 
@@ -59,7 +59,9 @@ public sealed class GridSchemaExtractor
         if (_headerReader is not null)
         {
             var images = edges.Zip(edges.Skip(1)).Select(pair => new GridHeaderImage($"physical-x-{xOrigin + pair.First}",
-                HeaderPng(frame, new(pair.First, header.Y, pair.Second - pair.First, header.Height)))).ToArray();
+                HeaderPng(frame, _headerReader is UiMapsGridHeaderReader
+                    ? TableViewportDescriber.Inset(new(pair.First, header.Y, pair.Second - pair.First, header.Height))
+                    : new(pair.First, header.Y, pair.Second - pair.First, header.Height)))).ToArray();
             cloudReadings = await _headerReader.ReadAsync(images, cancellationToken).ConfigureAwait(false);
             if (cloudReadings.Count != images.Length || !cloudReadings.Select(r => r.ColumnKey).SequenceEqual(images.Select(i => i.ColumnKey)))
                 throw new AzureHeaderException("The header reader returned mismatched columns. No schema was accepted.");
@@ -76,7 +78,7 @@ public sealed class GridSchemaExtractor
             var value = cloudReadings is null
                 ? await _reader.ReadAsync(frame, key, cellSource, false, cancellationToken).ConfigureAwait(false)
                 : new GridCellValue(key, cloudReadings[i].Status, cloudReadings[i].Text,
-                    cloudReadings[i].Status == GridCellReadStatus.Unreadable ? "azure-header-unreadable" : null, [cellSource]);
+                    cloudReadings[i].Status == GridCellReadStatus.Unreadable ? _headerReader is UiMapsGridHeaderReader ? "uimaps-header-unreadable" : "azure-header-unreadable" : null, [cellSource]);
             if (clipped) reasons.Add($"column-edge-unverified:{key}");
             columns.Add(new(key, i, value.Text ?? "", xOrigin + bounds.X, xOrigin + bounds.X + bounds.Width));
             readings.Add(new(key, bounds, value.Status, value.Text, value.Reason));

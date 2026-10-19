@@ -1,0 +1,155 @@
+<Window x:Class="UIMaps.Application.MicroHudWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:UIMaps.Application.Views"
+        Title="MapLock Micro HUD"
+        WindowStyle="None" ResizeMode="NoResize" SizeToContent="WidthAndHeight"
+        ShowInTaskbar="False" Topmost="True" AllowsTransparency="True" Background="Transparent"
+        PreviewKeyDown="MicroHudWindow_PreviewKeyDown">
+    <Window.Resources>
+        <Style x:Key="HudCommandButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="44" />
+            <Setter Property="MinWidth" Value="148" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="Padding" Value="16,0" />
+            <Setter Property="Foreground" Value="#1B1F27" />
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#D8DDE7" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chrome" Padding="18,0"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#F5F7FA" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#C7CEDB" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#EDEFF3" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#8B94A5" />
+                                <Setter TargetName="Chrome" Property="Background" Value="#F5F7FA" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#E0E4EB" />
+                                <Setter Property="Cursor" Value="Arrow" />
+                            </Trigger>
+                            <DataTrigger Binding="{Binding Id}" Value="hud.record-map">
+                                <Setter Property="MinWidth" Value="140" />
+                                <Setter Property="Foreground" Value="White" />
+                                <Setter TargetName="Chrome" Property="Background" Value="#4C3BDC" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#4C3BDC" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Id}" Value="hud.record-work-session">
+                                <Setter Property="MinWidth" Value="164" />
+                            </DataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding Id}" Value="hud.record-map" />
+                                    <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter TargetName="Chrome" Property="Background" Value="#5B4BE2" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#5B4BE2" />
+                            </MultiDataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding Id}" Value="hud.record-map" />
+                                    <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsPressed}" Value="True" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter TargetName="Chrome" Property="Background" Value="#3D2EC4" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#3D2EC4" />
+                            </MultiDataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="HudCloseButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Foreground" Value="#5F6B7A" />
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="BorderBrush" Value="#D8DDE7" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="#1B1F27" />
+                                <Setter TargetName="Chrome" Property="Background" Value="#F5F7FA" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#C7CEDB" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#EDEFF3" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <Grid Background="Transparent">
+        <Border Margin="9"
+                Background="#FFFFFFFF"
+                BorderBrush="#C9D2DC"
+                BorderThickness="1"
+                CornerRadius="16"
+                Padding="7">
+            <Border.Effect>
+                <DropShadowEffect Color="#273044" BlurRadius="16" ShadowDepth="3" Opacity="0.18" />
+            </Border.Effect>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Height="44" Background="#171922" CornerRadius="10" Margin="0,0,8,0" Padding="9,4">
+                    <views:BrandLogo Width="120" Height="34" />
+                </Border>
+                <ItemsControl x:Name="CommandsItemsControl">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource HudCommandButtonStyle}"
+                                    IsEnabled="{Binding IsAvailable}"
+                                    Tag="{Binding Id}"
+                                    Click="CommandButton_Click"
+                                    AutomationProperties.Name="{Binding Label}">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Glyph}" FontFamily="Segoe Fluent Icons" FontSize="15" Margin="0,0,9,0" VerticalAlignment="Center" />
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextWrapping="NoWrap" />
+                                        <!--<TextBlock Text="{Binding Status}" FontSize="11" Foreground="#8B94A5" TextWrapping="NoWrap" />-->
+                                    </StackPanel>
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button Style="{StaticResource HudCloseButtonStyle}"
+                        Click="CloseButton_Click"
+                        ToolTip="Close and return to the app"
+                        AutomationProperties.Name="Close Micro HUD">
+                    <TextBlock Text="&#xE711;" FontFamily="Segoe Fluent Icons" FontSize="15" />
+                </Button>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

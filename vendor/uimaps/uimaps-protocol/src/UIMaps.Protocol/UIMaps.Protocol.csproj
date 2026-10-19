@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>UIMaps.Protocol</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="all" />
+    <Protobuf Include="../../proto/uimaps/v1/common.proto" ProtoRoot="../../proto" GrpcServices="None" />
+    <Protobuf Include="../../proto/uimaps/v1/sensor.proto" ProtoRoot="../../proto" GrpcServices="None" />
+    <Protobuf Include="../../proto/uimaps/v1/perception.proto" ProtoRoot="../../proto" GrpcServices="None" />
+    <Protobuf Include="../../proto/uimaps/v1/capture_policy.proto" ProtoRoot="../../proto" GrpcServices="None" />
+    <Protobuf Include="../../proto/uimaps/v1/coverage.proto" ProtoRoot="../../proto" GrpcServices="None" />
+    <Protobuf Include="../../proto/uimaps/v1/capture_session.proto" ProtoRoot="../../proto" GrpcServices="None" />
+    <Protobuf Include="../../proto/uimaps/v1/survey.proto" ProtoRoot="../../proto" GrpcServices="None" />
+    <Protobuf Include="../../proto/uimaps/v1/services.proto" ProtoRoot="../../proto" GrpcServices="None" />
+    <Protobuf Include="../../proto/uimaps/v2_1/grid_region.proto" ProtoRoot="../../proto" GrpcServices="None" />
+    <Protobuf Include="../../proto/uimaps/v2_1/grid_analysis.proto" ProtoRoot="../../proto" GrpcServices="None" />
+    <Protobuf Include="../../proto/uimaps/v2_1/grid_map.proto" ProtoRoot="../../proto" GrpcServices="None" />
+    <Protobuf Include="../../proto/uimaps/v2_1/grid_grounding.proto" ProtoRoot="../../proto" GrpcServices="None" />
+    <Protobuf Include="../../proto/uimaps/v2_1/grid_delta.proto" ProtoRoot="../../proto" GrpcServices="None" />
+    <Protobuf Include="../../proto/uimaps/v2_1/grid_inspector.proto" ProtoRoot="../../proto" GrpcServices="None" />
+    <Protobuf Include="../../proto/uimaps/v2_1/grid_service.proto" ProtoRoot="../../proto" GrpcServices="None" />
+    <Protobuf Include="../../proto/uimaps/v2_2/grid_workspace.proto" ProtoRoot="../../proto" GrpcServices="None" />
+    <Protobuf Include="../../proto/uimaps/v3/ui_map.proto" ProtoRoot="../../proto" GrpcServices="None" />
+    <Protobuf Include="../../proto/uimaps/v3/ui_localization.proto" ProtoRoot="../../proto" GrpcServices="None" />
+    <Protobuf Include="../../proto/uimaps/v3/live_grid_service.proto" ProtoRoot="../../proto" GrpcServices="None" />
+  </ItemGroup>
+</Project>

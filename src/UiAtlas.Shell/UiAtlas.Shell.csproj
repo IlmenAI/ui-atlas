@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF><UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>UiAtlas.Shell</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup><Using Remove="System.Windows.Forms" /></ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../UiAtlas.Catalog.Contracts/UiAtlas.Catalog.Contracts.csproj" />
+    <ProjectReference Include="../../vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/UIMaps.Recorder.Windows.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="UIMaps.Application" />
+    <InternalsVisibleTo Include="UIMaps.Application.Tests" />
+    <InternalsVisibleTo Include="UiAtlas" />
+    <InternalsVisibleTo Include="UiAtlas.Shell.Tests" />
+  </ItemGroup>
+</Project>

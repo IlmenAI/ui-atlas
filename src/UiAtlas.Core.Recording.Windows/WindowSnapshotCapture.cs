@@ -87,6 +87,14 @@ public static class WindowSnapshotCapture
             (target.ExStyle & NativeMethods.WsExTopmost) != 0);
     }
 
+    public static RectI VisibleFrameBounds(WindowTarget target)
+    {
+        if (NativeMethods.DwmGetWindowRectAttribute((nint)target.Hwnd, 9, out var bounds,
+                Marshal.SizeOf<NativeMethods.Rect>()) == 0 && bounds.Right > bounds.Left && bounds.Bottom > bounds.Top)
+            return new(bounds.Left, bounds.Top, bounds.Right - bounds.Left, bounds.Bottom - bounds.Top);
+        return target.Bounds;
+    }
+
     public static async Task<CaptureResult> CapturePngAsync(WindowTarget target, CancellationToken cancellationToken)
     {
         var discovered = WindowCatalog.ListScopedWindows(target);

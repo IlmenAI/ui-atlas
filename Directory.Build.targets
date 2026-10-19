@@ -1,4 +1,22 @@
 <Project>
+  <!-- VS's fast up-to-date check can skip MSBuild and the output cleanup hook.
+       Use MSBuild's incremental checks for executable projects, including F5. -->
+  <PropertyGroup Condition="'$(OS)' == 'Windows_NT' and ('$(OutputType)' == 'Exe' or '$(OutputType)' == 'WinExe') and '$(IsTestProject)' != 'true'">
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
+  </PropertyGroup>
+  <Target Name="GenerateRecorderBuildNumber" BeforeTargets="CoreCompile"
+          Condition="'$(OS)' == 'Windows_NT' and '$(MSBuildProjectName)' == 'UiAtlas.Core.Cli' and '$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <UiAtlasBuildCounterPath Condition="'$(UiAtlasBuildCounterPath)' == ''">$(MSBuildThisFileDirectory).build\recorder-build-number.txt</UiAtlasBuildCounterPath>
+      <RecorderBuildInfoPath>$([System.IO.Path]::Combine('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)RecorderBuildInfo.g.cs'))</RecorderBuildInfoPath>
+      <RecorderBuildNumberArgument Condition="'$(UiAtlasBuildNumber)' != ''">-BuildNumber &quot;$(UiAtlasBuildNumber)&quot;</RecorderBuildNumberArgument>
+    </PropertyGroup>
+    <Exec Command="&quot;$(SystemRoot)\System32\WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)tools\Write-RecorderBuildNumber.ps1&quot; -CounterPath &quot;$(UiAtlasBuildCounterPath)&quot; -OutputPath &quot;$(RecorderBuildInfoPath)&quot; $(RecorderBuildNumberArgument)" />
+    <ItemGroup>
+      <Compile Include="$(RecorderBuildInfoPath)" />
+      <FileWrites Include="$(RecorderBuildInfoPath)" />
+    </ItemGroup>
+  </Target>
   <!-- Rebuild deletes files in CoreClean before reaching PrepareForBuild. -->
   <Target Name="StopRunningUiAtlasBuildOutput"
           BeforeTargets="BeforeClean;CoreClean;PrepareForBuild"

@@ -1,0 +1,8 @@
+syntax = "proto3";
+package uimaps.v2_1;
+option csharp_namespace = "UIMaps.Protocol.V2_1";
+import "uimaps/v1/common.proto";
+import "uimaps/v2_1/grid_analysis.proto";
+
+message AnalyzeGridRequest { GridAnalysisSubmission submission = 1; string correlation_id = 2; }
+message AnalyzeGridResponse { GridAnalysisResult result = 1; uimaps.v1.Error error = 2; }

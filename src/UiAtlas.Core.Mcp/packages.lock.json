@@ -64,6 +64,9 @@
           "SQLitePCLRaw.core": "3.0.5"
         }
       },
+      "uiatlas.catalog.contracts": {
+        "type": "Project"
+      },
       "uiatlas.core.build": {
         "type": "Project",
         "dependencies": {
@@ -92,6 +95,9 @@
         "type": "Project",
         "dependencies": {
           "Interop.UIAutomationClient": "[10.19041.0, )",
+          "UIMaps.Perception.Core": "[1.0.0, )",
+          "UIMaps.Recorder.Windows": "[1.0.0, )",
+          "UiAtlas.Core.Build": "[1.0.0, )",
           "UiAtlas.Core.Contracts": "[1.0.0, )",
           "UiAtlas.Core.Recording": "[1.0.0, )"
         }
@@ -101,10 +107,35 @@
         "dependencies": {
           "Microsoft.Data.Sqlite": "[10.0.10, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.5, )",
+          "UiAtlas.Catalog.Contracts": "[1.0.0, )",
           "UiAtlas.Core.Build": "[1.0.0, )",
           "UiAtlas.Core.Contracts": "[1.0.0, )",
           "UiAtlas.Core.Recording": "[1.0.0, )"
         }
+      },
+      "uimaps.perception.core": {
+        "type": "Project",
+        "dependencies": {
+          "UIMaps.Protocol": "[1.0.0, )"
+        }
+      },
+      "uimaps.protocol": {
+        "type": "Project",
+        "dependencies": {
+          "Google.Protobuf": "[3.27.1, )"
+        }
+      },
+      "uimaps.recorder.windows": {
+        "type": "Project",
+        "dependencies": {
+          "UIMaps.Protocol": "[1.0.0, )"
+        }
+      },
+      "Google.Protobuf": {
+        "type": "CentralTransitive",
+        "requested": "[3.27.1, )",
+        "resolved": "3.27.1",
+        "contentHash": "7IVz9TzhYCZ8qY0rPhXUnyJSXYdshUqmmxmTI763XmDDSJJFnyfKH43FFcMJu/CZgBcE98xlFztrKwhzcRkiPg=="
       },
       "Interop.UIAutomationClient": {
         "type": "CentralTransitive",

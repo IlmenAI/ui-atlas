@@ -1,0 +1,96 @@
+[
+  {
+    "state": "before",
+    "highlights": 31,
+    "changed": 0,
+    "buttons": [
+      {
+        "Name": "OK",
+        "Bounds": {
+          "X": 682,
+          "Y": 1026,
+          "Width": 151,
+          "Height": 54,
+          "IsValid": true
+        }
+      },
+      {
+        "Name": "Cancel",
+        "Bounds": {
+          "X": 850,
+          "Y": 1026,
+          "Width": 151,
+          "Height": 54,
+          "IsValid": true
+        }
+      },
+      {
+        "Name": "OK",
+        "Bounds": {
+          "X": 682,
+          "Y": 1026,
+          "Width": 151,
+          "Height": 54,
+          "IsValid": true
+        }
+      },
+      {
+        "Name": "Cancel",
+        "Bounds": {
+          "X": 850,
+          "Y": 1026,
+          "Width": 151,
+          "Height": 54,
+          "IsValid": true
+        }
+      }
+    ]
+  },
+  {
+    "state": "after",
+    "highlights": 44,
+    "changed": 2308,
+    "buttons": [
+      {
+        "Name": "OK",
+        "Bounds": {
+          "X": 598,
+          "Y": 904,
+          "Width": 132,
+          "Height": 47,
+          "IsValid": true
+        }
+      },
+      {
+        "Name": "Cancel",
+        "Bounds": {
+          "X": 745,
+          "Y": 904,
+          "Width": 132,
+          "Height": 47,
+          "IsValid": true
+        }
+      },
+      {
+        "Name": "OK",
+        "Bounds": {
+          "X": 598,
+          "Y": 904,
+          "Width": 132,
+          "Height": 47,
+          "IsValid": true
+        }
+      },
+      {
+        "Name": "Cancel",
+        "Bounds": {
+          "X": 745,
+          "Y": 904,
+          "Width": 132,
+          "Height": 47,
+          "IsValid": true
+        }
+      }
+    ]
+  }
+]

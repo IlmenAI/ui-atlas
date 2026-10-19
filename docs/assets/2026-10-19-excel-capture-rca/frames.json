@@ -1,0 +1,92 @@
+[
+  {
+    "Run": "20261019-130737-excel-e84d903d",
+    "Sequence": 1,
+    "Controls": 409,
+    "Status": "partial",
+    "Stable": "stable",
+    "UIA": "200060:ok:387",
+    "MSAA": "200060:timeout:0"
+  },
+  {
+    "Run": "20261019-130737-excel-e84d903d",
+    "Sequence": 2,
+    "Controls": 367,
+    "Status": "partial",
+    "Stable": "stable",
+    "UIA": "200060:ok:345",
+    "MSAA": "200060:timeout:0"
+  },
+  {
+    "Run": "20261019-130737-excel-e84d903d",
+    "Sequence": 3,
+    "Controls": 409,
+    "Status": "partial",
+    "Stable": "stable",
+    "UIA": "200060:ok:387",
+    "MSAA": "200060:timeout:0"
+  },
+  {
+    "Run": "20261019-130737-excel-e84d903d",
+    "Sequence": 4,
+    "Controls": 28,
+    "Status": "partial",
+    "Stable": "stable",
+    "UIA": "28907668:timeout:0; 200060:timeout:0",
+    "MSAA": "28907668:timeout:0; 200060:timeout:0"
+  },
+  {
+    "Run": "20261019-130737-excel-e84d903d",
+    "Sequence": 5,
+    "Controls": 409,
+    "Status": "partial",
+    "Stable": "stable",
+    "UIA": "200060:ok:387",
+    "MSAA": "200060:timeout:0"
+  },
+  {
+    "Run": "20261019-131419-excel-afa718e8",
+    "Sequence": 1,
+    "Controls": 409,
+    "Status": "partial",
+    "Stable": "stable",
+    "UIA": "200060:ok:387",
+    "MSAA": "200060:timeout:0"
+  },
+  {
+    "Run": "20261019-131419-excel-afa718e8",
+    "Sequence": 2,
+    "Controls": 0,
+    "Status": "partial",
+    "Stable": "stable",
+    "UIA": "200060:timeout:0",
+    "MSAA": "200060:timeout:0"
+  },
+  {
+    "Run": "20261019-131419-excel-afa718e8",
+    "Sequence": 3,
+    "Controls": 22,
+    "Status": "partial",
+    "Stable": "stable",
+    "UIA": "200060:timeout:0",
+    "MSAA": "200060:timeout:0"
+  },
+  {
+    "Run": "20261019-131419-excel-afa718e8",
+    "Sequence": 4,
+    "Controls": 28,
+    "Status": "partial",
+    "Stable": "stable",
+    "UIA": "9506310:timeout:0; 200060:timeout:0",
+    "MSAA": "9506310:timeout:0; 200060:timeout:0"
+  },
+  {
+    "Run": "20261019-131419-excel-afa718e8",
+    "Sequence": 5,
+    "Controls": 409,
+    "Status": "partial",
+    "Stable": "stable",
+    "UIA": "200060:ok:387",
+    "MSAA": "200060:timeout:0"
+  }
+]

@@ -1,0 +1,22 @@
+<UserControl x:Class="UIMaps.Application.Views.BrandLogo"
+             x:Name="Root"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Width="188" Height="48">
+    <Viewbox Stretch="Uniform">
+        <Canvas Width="188" Height="48">
+            <Path Data="M22,14 L64,14 L56,34 L14,34 Z">
+                <Path.Fill>
+                    <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                        <GradientStop Color="#41D7FF" Offset="0" />
+                        <GradientStop Color="#7067FF" Offset="0.62" />
+                        <GradientStop Color="#B238F2" Offset="1" />
+                    </LinearGradientBrush>
+                </Path.Fill>
+            </Path>
+            <Path Data="M64,14 L76,14 L68,34 L56,34 Z" Fill="#26303D" />
+            <TextBlock Canvas.Left="76" Canvas.Top="11" Text="{Binding Wordmark, ElementName=Root}" Foreground="{Binding WordmarkBrush, ElementName=Root}"
+                       FontFamily="Arial" FontWeight="Black" FontSize="20" />
+        </Canvas>
+    </Viewbox>
+</UserControl>

@@ -119,7 +119,7 @@ internal sealed class MapperLegendWindow : Window
             stack.Children.Add(header);
             foreach (var (kind, symbol, label, color) in new[]
             {
-                (MapperHighlightKind.Uia, "━", "UIA", "#0A84FF"),
+                (MapperHighlightKind.Uia, "━", "UIA / MSAA", "#0A84FF"),
                 (MapperHighlightKind.ComputerVision, "⌜", "Computer vision", "#8B5CF6"),
                 (MapperHighlightKind.NativeGrid, "▦", "Native grid", "#008F83"),
                 (MapperHighlightKind.GridCandidate, "┄", "Grid candidate", "#C98208")

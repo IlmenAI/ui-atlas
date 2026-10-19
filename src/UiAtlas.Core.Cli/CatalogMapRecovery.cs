@@ -54,8 +54,17 @@ internal static class CatalogMapRecovery
 
                     if (needsMap)
                     {
-                        var graph = new RecordingGraphBuilder().Build([recordingPath], recording.Id);
-                        SqliteGraphStore.Save(graph, mapPath);
+                        var frames = bundle.Entries.Where(entry => entry.StartsWith("raw/observations/frame-", StringComparison.Ordinal) && entry.EndsWith(".json", StringComparison.Ordinal))
+                            .Select(bundle.ReadJson<FrameObservation>).ToArray();
+                        if (frames.Length > 0 && frames.All(frame => !string.IsNullOrEmpty(frame.FrameEntry)))
+                            UiAtlas.Core.Mapping.Atlas.AtlasMapWorkspace.BuildAsync([recordingPath], mapPath, recording.Id).GetAwaiter().GetResult();
+                        else
+                        {
+                            // Older screenshot-free artifacts cannot become a UI Maps episode.
+                            // Preserve their existing compatibility reader rather than invent pixels.
+                            var graph = new RecordingGraphBuilder().Build([recordingPath], recording.Id);
+                            SqliteGraphStore.Save(graph, mapPath);
+                        }
                     }
 
                     if (needsSessionManifest)
@@ -70,7 +79,7 @@ internal static class CatalogMapRecovery
 
                     recovered++;
                 }
-                catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or InvalidOperationException or ArgumentException)
+                catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or InvalidOperationException or ArgumentException or UIMaps.Map.Core.UiMapException or UIMaps.Perception.Core.PerceptionException)
                 {
                     // Leave orphaned completed bundles intact; the next refresh can try again.
                 }

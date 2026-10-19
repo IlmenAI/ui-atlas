@@ -13,6 +13,7 @@ using UiAtlas.Core.Reader;
 using UiAtlas.Core.Recording;
 using UiAtlas.Core.Recording.Windows;
 using UiAtlas.Core.Storage;
+using UiAtlas.Core.Mapping.Atlas;
 using Microsoft.Win32;
 
 namespace UiAtlas.Core.Cli;
@@ -31,13 +32,27 @@ internal sealed record SvgPathAsset(
     System.Windows.Media.PenLineJoin StrokeLineJoin);
 
 internal sealed record RecordingLaunchOptions(
-    bool EnableHoverAndFocusDiscovery = true,
-    bool CaptureCustomerData = false);
+    bool EnableHoverAndFocusDiscovery = true);
 
 [SupportedOSPlatform("windows")]
 internal static class Program
 {
+    internal static string IncompleteObservationStatus(FrameObservation frame)
+    {
+        var failed = (frame.RawStreams ?? []).Where(stream => stream.Status is "timeout" or "failed" or "cancelled")
+            .Select(stream => $"{stream.Source.ToUpperInvariant()} {stream.Status}").Distinct().ToArray();
+        var detail = failed.Length > 0 ? string.Join(", ", failed) + ". " :
+            frame.Acquisition?.StabilityStatus == "changed" ? "The screen changed during capture. " : "";
+        return "Observation saved with incomplete evidence. " + detail + "Ready for the next single click.";
+    }
+
     private const string PanelCloseCommand = "CLOSE";
+    private static string RecorderBuildNumber => typeof(Program).Assembly
+        .GetCustomAttributes(typeof(System.Reflection.AssemblyMetadataAttribute), false)
+        .OfType<System.Reflection.AssemblyMetadataAttribute>()
+        .FirstOrDefault(attribute => attribute.Key == "UiAtlasBuildNumber")?.Value ?? "unversioned";
+    private static string RecorderDisplayVersion =>
+        FormatVersions.Tool[..FormatVersions.Tool.LastIndexOf('.')] + "." + RecorderBuildNumber;
     private const string AutoPassQuotaStopMessage = "Auto labels reached the capture limit. Saving a partial map...";
     private const string AutoPassQuotaSavedMessage = "Auto labels reached the capture limit. Partial map saved. Resume to continue.";
     private const int AutoCaptureMaxAttempts = 2;
@@ -106,7 +121,7 @@ internal static class Program
         // recorder remains clickable on its UI thread, but its commands can no
         // longer reach the workflow. Never let console selection freeze recording.
         ConsoleInputMode.DisableQuickEdit();
-        if (args.Length == 0) return await InteractiveShell().ConfigureAwait(false);
+        if (args.Length == 0) return Help();
         return await Execute(args).ConfigureAwait(false);
     }
 
@@ -116,6 +131,10 @@ internal static class Program
         {
             return args[0].ToLowerInvariant() switch
             {
+                "app" => DesktopShellCommand.Open(args[1..]),
+                "catalog" => args.Length == 1 ? await AtlasCatalogCommand.RunAsync() : Fail("catalog takes a versioned JSON request on stdin."),
+                "shell" => args.Length == 1 ? await InteractiveShell().ConfigureAwait(false) : Fail("shell accepts no arguments."),
+                "settings" => args.Length == 1 ? await DesktopShellCommand.SettingsAsync() : Fail("settings accepts no arguments."),
                 "list" => List(args[1..]),
                 "recording" => await RecordingCommand(args[1..]),
                 "map" => await MapCommand(args[1..]).ConfigureAwait(false),
@@ -135,7 +154,7 @@ internal static class Program
                 _ => Fail("Unknown command. Run 'ui-atlas help'.")
             };
         }
-        catch (Exception ex) when (ex is IOException or InvalidDataException or InvalidOperationException or ArgumentException or UnauthorizedAccessException or NotSupportedException or TimeoutException or System.ComponentModel.Win32Exception)
+        catch (Exception ex) when (ex is IOException or InvalidDataException or InvalidOperationException or ArgumentException or UnauthorizedAccessException or NotSupportedException or TimeoutException or OverflowException or System.ComponentModel.Win32Exception or UIMaps.Map.Core.UiMapException or UIMaps.Perception.Core.PerceptionException)
         {
             Console.Error.WriteLine($"error: {BundleSecurity.SafeDiagnostic(ex.Message, 500)}");
             return 2;
@@ -144,7 +163,7 @@ internal static class Program
 
     private static async Task<int> InteractiveShell()
     {
-        Console.WriteLine($"UiAtlas Core {FormatVersions.Tool}");
+        Console.WriteLine($"UI Atlas Core {RecorderDisplayVersion}");
         Console.WriteLine("Type HELP for a list of commands, type R and press Enter to start recording, or EXIT to leave.");
         while (true)
         {
@@ -185,6 +204,9 @@ internal static class Program
         }
         PrintHelpHeader();
         Console.WriteLine("""
+            APP         - Open the desktop. APP [--workspace maps|diagnostics].
+            SHELL       - Start the interactive command-line shell.
+            SETTINGS    - Edit recording profiles and map-build limits.
             LIST        - Display windows, recordings, or maps.
             RECORDING   - Start, validate, or delete a recording.
             MAP         - Build, validate, inspect, check quality, open, export, or delete a map.
@@ -226,6 +248,17 @@ internal static class Program
         PrintHelpHeader();
         Console.WriteLine("""
             BUILD       - Build or rebuild a map. MAP BUILD <recording-id>.
+            IMPORT-EPISODE - Import retained UI Maps evidence into a reviewable draft. MAP IMPORT-EPISODE for usage.
+            CONVERT-RECORDING - Preserve a legacy bundle and build a new map. MAP CONVERT-RECORDING <bundle.mlrec> --out <new-map.db>.
+            DRAFTS      - Show authoritative UI Maps drafts and etags. MAP DRAFTS <map-path>.
+            REVIEW      - Accept, reject, rename, or reparent using an explicit draft etag and reviewer.
+            VALIDATE-DRAFTS - Check publication readiness. MAP VALIDATE-DRAFTS <map-path>.
+            PUBLISH     - Publish reviewed immutable revisions. MAP PUBLISH <map-path> --reviewer <name>.
+            EXPORT-REVISION - Export graph knowledge. MAP EXPORT-REVISION <map-path> <revision-ref> --out <new-file.uimap>.
+            IMPORT-REVISION - Import a hash-valid revision. MAP IMPORT-REVISION <map-path> <file.uimap>.
+            COMPARE-REVISIONS - Compare two revisions. MAP COMPARE-REVISIONS <map-path> <old-ref> <new-ref>.
+            EXPORT-WORKSPACE - Archive map authority and source evidence. Requires --allow-sensitive-evidence.
+            IMPORT-WORKSPACE - Restore an archived workspace to a new directory. Requires --allow-sensitive-evidence.
             VALIDATE    - Validate a catalog map. MAP VALIDATE <map-id>.
             INSPECT     - Inspect one layer. MAP INSPECT <map-id> WORLD <streams|raw|semantic|shared>.
             QUALITY     - Explain capture coverage. MAP QUALITY <map-id> [--strict].
@@ -352,6 +385,8 @@ internal static class Program
             {
                 1 => await StartCatalogRecordingWithSelector().ConfigureAwait(false),
                 2 => await StartCatalogRecording(WindowCatalog.Resolve(ParseHwnd(args[1]))).ConfigureAwait(false),
+                6 when args[2] == "--expected-process-id" && args[4] == "--expected-process-start"
+                    => await StartCatalogRecording(DesktopShellCommand.CheckedTarget(ParseHwnd(args[1]), args[3], args[5])).ConfigureAwait(false),
                 _ => Fail("recording start accepts zero or one window HWND.")
             };
         }
@@ -543,6 +578,10 @@ internal static class Program
     private static async Task<int> MapCommand(string[] args)
     {
         if (args.Length == 0 || args.Length == 1 && IsCommand(args[0], "help")) return HelpMap();
+        if (IsCommand(args[0], "import-episode"))
+            return await UiMapsImportCommand.RunAsync(args[1..], Console.Out, Console.Error).ConfigureAwait(false);
+        if (UiMapsWorkspaceCommand.Handles(args[0]))
+            return await UiMapsWorkspaceCommand.RunAsync(args, Console.Out).ConfigureAwait(false);
         var catalog = Catalog();
         if (IsCommand(args[0], "build"))
         {
@@ -566,22 +605,21 @@ internal static class Program
                 if (!recordingReport.IsValid) return PrintValidation(recordingReport);
             }
             catalog.EnsureSafe();
-            var inputs = await Task.WhenAll(recordingPaths.Select(path =>
-                LoadEnrichedRecordingGraphInputAsync(path, CancellationToken.None))).ConfigureAwait(false);
-            var graph = new RecordingGraphBuilder().Build(inputs, args[1]);
+            var graph = await AtlasMapWorkspace.BuildAsync(recordingPaths, catalog.MapPath(args[1]), args[1]).ConfigureAwait(false);
             catalog.EnsureSafe();
-            SqliteGraphStore.Save(graph, catalog.MapPath(args[1]));
-            if (existingSession is null)
+            AtlasMapWorkspace.SaveProjection(graph, catalog.MapPath(args[1]));
+            foreach (var sourcePath in recordingPaths)
             {
-                using var bundle = RecordingBundle.Open(recordingPath);
+                using var bundle = RecordingBundle.Open(sourcePath);
                 var recordingManifest = bundle.ReadJson<RecordingManifest>("manifest.json");
                 var sessionManifest = LogicalMapSessionStore.AddRecording(
-                    LogicalMapSessionStore.Create(
+                    existingSession ?? LogicalMapSessionStore.Create(
                         args[1], recordingManifest.Target?.ProcessName ?? string.Empty, recordingManifest.StartedUtc),
                     recordingManifest.SessionId,
-                    recordingPath,
+                    sourcePath,
                     recordingManifest.EndedUtc);
                 LogicalMapSessionStore.Save(sessionPath, sessionManifest);
+                existingSession = sessionManifest;
             }
             Console.WriteLine($"Built map {args[1]}: {graph.Nodes.Count} nodes, {graph.Edges.Count} edges. Semantic hash: {graph.Metadata.SemanticHash}");
             return 0;
@@ -597,7 +635,7 @@ internal static class Program
             if (args.Length is < 2 or > 3 || args.Length == 3 && args[2] != "--strict")
                 return Fail("map quality requires one map ID and optional --strict.");
             catalog.EnsureSafe();
-            var graph = new UiGraphReader().Load(catalog.MapPath(args[1]));
+            var graph = LoadCurrentGraph(catalog.MapPath(args[1]));
             var sessionPath = catalog.MapSessionPath(args[1]);
             var savedDataGrids = File.Exists(sessionPath) ? LogicalMapSessionStore.Load(sessionPath).DataGrids : null;
             var report = MapQualityInspector.Inspect(graph, catalog.MatchingRecordingPaths(args[1]), savedDataGrids);
@@ -694,7 +732,7 @@ internal static class Program
         var catalog = Catalog();
         var id = args[0];
         catalog.EnsureSafe();
-        var graph = SqliteGraphStore.Load(catalog.MapPath(id));
+        var graph = LoadCurrentGraph(catalog.MapPath(id));
         var full = args.Contains("--full", StringComparer.Ordinal);
         var output = OptionalOption(args, "--out") ?? catalog.DefaultExportPath(id);
         if (File.Exists(output) && !args.Contains("--overwrite", StringComparer.Ordinal))
@@ -776,7 +814,7 @@ internal static class Program
         }
         if (!acknowledged) return Fail("UiAtlas export cancelled.");
         catalog.EnsureSafe();
-        var graph = SqliteGraphStore.Load(catalog.MapPath(id));
+        var graph = LoadCurrentGraph(catalog.MapPath(id));
         catalog.EnsureSafe();
         var hash = format switch
         {
@@ -812,7 +850,7 @@ internal static class Program
 
     private static int ValidateJsonExport(string path)
     {
-        try { return PrintValidation(GraphValidator.Validate(new UiGraphReader().Load(ResolveJsonFile(path)))); }
+        try { return PrintValidation(GraphValidator.Validate(LoadCurrentGraph(ResolveJsonFile(path)))); }
         catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException)
         {
             Console.WriteLine($"error: export.invalid at file: {BundleSecurity.SafeDiagnostic(ex.Message, 500)}");
@@ -903,10 +941,22 @@ internal static class Program
         var hwnd = ParseHwnd(RequiredOption(args, "--hwnd"));
         var output = RequiredOption(args, "--out");
         var target = WindowCatalog.Resolve(hwnd);
+        var resultPath = OptionalOption(args, "--result");
+        var requestId = OptionalOption(args, "--request-id");
+        if (resultPath is not null || requestId is not null)
+        {
+            if (resultPath is null || requestId is null || !Guid.TryParseExact(requestId, "N", out _)
+                || target.ProcessId != int.Parse(RequiredOption(args, "--expected-process-id"), CultureInfo.InvariantCulture)
+                || target.ProcessStartedUtc != DateTimeOffset.Parse(RequiredOption(args, "--expected-process-start"), CultureInfo.InvariantCulture))
+                throw new ArgumentException("The recording handoff target or request identity is invalid.");
+            if (File.Exists(resultPath) || File.Exists(output) || File.Exists(Path.ChangeExtension(output, ".db")))
+                throw new IOException("A recording handoff requires new output and receipt paths.");
+        }
         var workspace = RecorderWorkspace.CreateStandaloneWorkspace(output, target.ProcessName);
         using var panel = new RecordingControlPanel(Path.GetFileNameWithoutExtension(output), target.ProcessName, target, allowTargetSelection: false);
         panel.Start();
-        return await RunRecorderWorkflow(target, workspace, panel).ConfigureAwait(false);
+        return await RunRecorderWorkflow(target, workspace, panel,
+            completedHandoff: resultPath is null ? null : map => AtlasRecordingHandoff.Complete(requestId!, resultPath, target, map)).ConfigureAwait(false);
     }
 
     private static async Task<int> RunRecorderWorkflow(
@@ -917,7 +967,8 @@ internal static class Program
         SessionLaunchMode? initialMode = null,
         bool restoreExistingHighlights = false,
         Func<WindowTarget, RecorderWorkspace>? createNewWorkspace = null,
-        bool showResumeChooserInitially = false)
+        bool showResumeChooserInitially = false,
+        Action<string>? completedHandoff = null)
     {
         SessionLaunchMode? nextMode = initialMode;
         var restoreHighlightsWithNextSession = restoreExistingHighlights;
@@ -1087,36 +1138,12 @@ internal static class Program
                     beforeStart?.Invoke();
                     panel.SetStatus("Merging this recording into the current map. Large maps can take a minute; keep UiAtlas open.");
                     Console.WriteLine("Merging the new recording bundle into the current map...");
-                    var enrichedInputs = await Task.WhenAll(mergedRecordingPaths.Select(path =>
-                        LoadEnrichedRecordingGraphInputAsync(path, CancellationToken.None))).ConfigureAwait(false);
-                    var graph = SpeculativeGraphProjector.Apply(
-                        new RecordingGraphBuilder().Build(enrichedInputs, workspace.LogicalMapId),
-                        workspace.SpeculativePlanning);
-                    if (launchOptions.CaptureCustomerData)
-                    {
-                        panel.SetStatus("Creating the separate customer-data package...");
-                        Console.WriteLine("Customer-data capture was explicitly enabled. Creating a read-only source snapshot and a separate package...");
-                        var customerData = await CustomerDataCaptureCoordinator.TryCaptureAsync(
-                            target, graph, workspace.MapPath, sessionTarget.SessionId).ConfigureAwait(false);
-                        if (!customerData.Succeeded && File.Exists(workspace.MapPath))
-                            graph = CustomerDataCaptureCoordinator.PreserveMetadata(
-                                graph, SqliteGraphStore.Load(workspace.MapPath));
-                        else
-                            graph = CustomerDataCaptureCoordinator.AttachMetadata(graph, customerData);
-                        if (customerData.Succeeded)
-                            Console.WriteLine($"Customer package: {customerData.PackageDirectory} ({customerData.RecordCount} records, SHA-256 {customerData.DataSha256})");
-                        else
-                            Console.Error.WriteLine($"warning: customer-data.{customerData.Status}: {customerData.Diagnostic}");
-                    }
-                    else if (File.Exists(workspace.MapPath))
-                    {
-                        graph = CustomerDataCaptureCoordinator.PreserveMetadata(
-                            graph, SqliteGraphStore.Load(workspace.MapPath));
-                    }
+                    var graph = await AtlasMapWorkspace.BuildAsync(mergedRecordingPaths, workspace.MapPath,
+                        workspace.LogicalMapId, gridReviews: workspace.DataGrids).ConfigureAwait(false);
                     beforeStart?.Invoke();
                     panel.SetStatus("Saving the updated map. Almost done—keep UiAtlas open.");
                     Console.WriteLine("Saving the updated map...");
-                    SqliteGraphStore.Save(graph, workspace.MapPath);
+                    AtlasMapWorkspace.SaveProjection(graph, workspace.MapPath);
                     var qualityReport = MapQualityInspector.Inspect(graph, mergedRecordingPaths, workspace.DataGrids);
                     try
                     {
@@ -1130,6 +1157,7 @@ internal static class Program
                         Console.Error.WriteLine($"error: session-manifest.failed at {BundleSecurity.SafeDiagnostic(Path.GetFullPath(workspace.SessionManifestPath))}: {BundleSecurity.SafeDiagnostic(ex.Message, 500)}");
                         Console.WriteLine($"Map ID: {workspace.LogicalMapId} ({graph.Nodes.Count} nodes, {graph.Edges.Count} edges)");
                         Console.WriteLine("The map was saved, but the session history could not be updated. Resume may be unavailable until this is fixed.");
+                        if (completedHandoff is not null) return 2;
                         if (panelClosed)
                             return 0;
                         continue;
@@ -1162,7 +1190,14 @@ internal static class Program
                         panel.SetStatus(qualityReport.UserSummary());
                     }
                     MapQualityInspector.Print(qualityReport);
+                    foreach (var grid in AtlasMapWorkspace.Open(workspace.MapPath).Index.GridReviews ?? [])
+                        Console.WriteLine($"Grid {grid.Name}: {grid.Status}. {grid.Detail}");
                     Console.WriteLine($"Map ID: {workspace.LogicalMapId} ({graph.Nodes.Count} nodes, {graph.Edges.Count} edges)");
+                    if (completedHandoff is not null)
+                    {
+                        completedHandoff(workspace.MapPath);
+                        return 0;
+                    }
                     Console.WriteLine("The recording panel now has Open map, Resume, and Export controls.");
                 }
                 catch (Exception ex) when (IsRecorderWorkflowRecoverable(ex))
@@ -1177,6 +1212,7 @@ internal static class Program
                         : "Finish map failed. The recording bundle was retained.");
                     Console.Error.WriteLine($"error: finish-map.failed at {BundleSecurity.SafeDiagnostic(Path.GetFullPath(sessionTarget.RecordingPath))}: {BundleSecurity.SafeDiagnostic(ex.Message, 500)}");
                     Console.WriteLine($"Retained recording bundle: {Path.GetFullPath(sessionTarget.RecordingPath)}");
+                    if (completedHandoff is not null) return 2;
                     Console.WriteLine("Map build failed. The toolbar stayed open so you can try again.");
                 }
                 if (panelClosed)
@@ -1186,6 +1222,7 @@ internal static class Program
 
             if (outcome == RecordingPhaseOutcome.Failed)
             {
+                if (completedHandoff is not null) return 2;
                 workspace.DiscardQuickMapSnapshot(sessionTarget.SessionId);
                 if (HasBuiltMap(workspace))
                     panel.MarkMapReady(workspace.MapPath, null, workspace.DefaultExportPath);
@@ -1197,6 +1234,7 @@ internal static class Program
             }
 
             workspace.DiscardQuickMapSnapshot(sessionTarget.SessionId);
+            if (completedHandoff is not null) return 3;
             if (!HasBuiltMap(workspace))
             {
                 panel.ShowPreStartState();
@@ -1339,7 +1377,7 @@ internal static class Program
         panel.PauseRequested += PauseInputCapture;
         panel.CancelRequested += CancelFromPanel;
         panel.AutoPassStopRequested += StopAutoPassFromPanel;
-        overlay.SaveReviewedDataGrid = workspace.SaveDataGrid;
+        overlay.SaveReviewedDataGrid = (name, context, review) => workspace.SaveDataGrid(name, context with { SourceBundleId = sessionId }, review);
         overlay.ResumeAfterGridInspector = () =>
         {
             if (!cancellation.IsCancellationRequested && Volatile.Read(ref pauseRequested) != 0)
@@ -1644,6 +1682,7 @@ internal static class Program
                         ? $"Initial scan saved {initialScan.VisibleControlCount} visible controls ({initialScan.ConfirmedControlCount} confirmed, {initialScan.CoverageGapCount} coverage gaps). Manual capture is active."
                         : "The initial scan found no controls. Manual capture is still active.");
                 ShowNextManualReview(autoMapping, baseline, panel, overlay);
+                Console.WriteLine($"Recording ready. Engine: {(session.UsesNativeRecorder ? "UIMaps native" : "legacy")}. Initial frame: {baseline.Sequence}.");
             }
 
             var requestedClicks = 1;
@@ -1668,7 +1707,7 @@ internal static class Program
                 {
                     panel.SetStatus(requestedClicks == 1 && session.FullRawObservations &&
                         adaptive?.LatestFullFrame.Acquisition?.Status is "partial" or "interrupted"
-                        ? "Observation saved with incomplete evidence. Ready for the next single click."
+                        ? IncompleteObservationStatus(adaptive!.LatestFullFrame)
                         : requestedClicks == 1
                         ? "Ready for the next single click."
                         : "Double-click capture is armed.");
@@ -1693,6 +1732,7 @@ internal static class Program
                             {
                                 linked.Token.ThrowIfCancellationRequested();
                                 if (adaptive is not null) await adaptive.DrainAsync(TimeSpan.FromSeconds(2), linked.Token).ConfigureAwait(false);
+                                overlay.GridEvidenceFrame = await session.CaptureAsync("grid-host-context", linked.Token).ConfigureAwait(false);
                                 var result = await session.RunGridExplorationAsync(() => exploration.Action(linked.Token), linked.Token).ConfigureAwait(false);
                                 exploration.Completion.TrySetResult(result);
                             }
@@ -1975,7 +2015,7 @@ internal static class Program
                         AdaptiveClickCaptureOutcome.PopupCaptured => "Click and popup recorded. Ready for the next single click.",
                         AdaptiveClickCaptureOutcome.DialogCaptured => "Click and dialog controls recorded. The dialog remains open for manual clicks.",
                         AdaptiveClickCaptureOutcome.RootCaptured => adaptive?.LatestFullFrame.Acquisition?.Status is "partial" or "interrupted"
-                            ? "Observation saved with incomplete evidence. Ready for the next single click."
+                            ? IncompleteObservationStatus(adaptive!.LatestFullFrame)
                             : "Click and screen recorded. Ready for the next single click.",
                         AdaptiveClickCaptureOutcome.ControlCaptured => "Click target saved, but no changed screen was confirmed. Ready for the next click.",
                         AdaptiveClickCaptureOutcome.PopupFailed => "The click was recorded, but the popup was not captured. Keep it open and click again.",
@@ -2439,7 +2479,7 @@ internal static class Program
                     // modal dialog. Treat that as a dialog transaction instead of
                     // waiting for a popup and then leaving the dialog uncaptured.
                     var commandDialog = await adaptive.WaitForDialogCaptureAsync(
-                        commandDialogCheckpoint, TimeSpan.FromMilliseconds(180), cancellationToken).ConfigureAwait(false);
+                        commandDialogCheckpoint, TimeSpan.FromMilliseconds(180), cancellationToken, exploreTabs: true).ConfigureAwait(false);
                     var commandOpenedDialog = commandDialog.Outcome != AdaptiveDialogCaptureOutcome.NotObserved;
                     var commandPersisted = commandDialog.Outcome == AdaptiveDialogCaptureOutcome.Captured;
                     if (!commandOpenedDialog)
@@ -2695,7 +2735,7 @@ internal static class Program
                         TabHighlightLayerResolver.ResolveVisibleLayerKey(
                             currentFrame.Window, currentFrame.Automation, commandTab.StableKey));
                     var dialogResult = await adaptive.WaitForDialogCaptureAsync(
-                        dialogCheckpoint, TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(false);
+                        dialogCheckpoint, TimeSpan.FromSeconds(2), cancellationToken, exploreTabs: true).ConfigureAwait(false);
                     session.CompleteInteraction(
                         dialogInteraction,
                         dialogResult.Outcome == AdaptiveDialogCaptureOutcome.Captured && dialogResult.Frame is not null
@@ -4178,7 +4218,7 @@ internal static class Program
                 }
 
                 var dialog = await adaptive.WaitForDialogCaptureAsync(
-                    dialogCheckpoint, TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(false);
+                    dialogCheckpoint, TimeSpan.FromSeconds(2), cancellationToken, exploreTabs: true).ConfigureAwait(false);
                 session.CompleteInteraction(interaction,
                     dialog.Outcome == AdaptiveDialogCaptureOutcome.Captured
                         ? InteractionOutcome.Succeeded
@@ -4629,9 +4669,12 @@ internal static class Program
         var capturedTarget = frame.ScopedWindows?.FirstOrDefault(window => window.Hwnd == overlay.TargetHwnd);
         if (capturedTarget is not null && capturedTarget.Bounds.Width > 0 && capturedTarget.Bounds.Height > 0)
             return capturedTarget.Bounds;
+        if (frame.Window.Hwnd == overlay.TargetHwnd && frame.Window.Bounds.Width > 0 && frame.Window.Bounds.Height > 0)
+            return frame.Window.Bounds;
         try
         {
-            return WindowCatalog.Resolve(overlay.TargetHwnd).Bounds;
+            return RecordingHighlightOverlay.ResolveLiveRootBounds(WindowCatalog.Resolve(overlay.TargetHwnd),
+                !string.IsNullOrEmpty(frame.NativeEpisodeEntry));
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or
                                          System.ComponentModel.Win32Exception)
@@ -5144,7 +5187,7 @@ internal static class Program
 
     private static bool IsRecorderWorkflowRecoverable(Exception exception) => exception is
         IOException or InvalidDataException or InvalidOperationException or ArgumentException or
-        UnauthorizedAccessException or NotSupportedException or TimeoutException or
+        UnauthorizedAccessException or NotSupportedException or TimeoutException or OverflowException or
         System.ComponentModel.Win32Exception;
 
     private static bool IsTargetForeground(long rootOwnerHwnd, int processId)
@@ -5393,9 +5436,7 @@ internal static class Program
     {
         if (args.Length == 0) return Fail("build requires a recording bundle.");
         var output = RequiredOption(args, "--out");
-        var graph = new RecordingGraphBuilder().Build(args[0]);
-        if (Path.GetExtension(output).Equals(".json", StringComparison.OrdinalIgnoreCase)) GraphJsonStore.Save(graph, output);
-        else SqliteGraphStore.Save(graph, output);
+        var graph = AtlasMapWorkspace.BuildAsync([args[0]], output).GetAwaiter().GetResult();
         Console.WriteLine($"Built {graph.Nodes.Count} nodes and {graph.Edges.Count} edges. Semantic hash: {graph.Metadata.SemanticHash}");
         return 0;
     }
@@ -5413,7 +5454,7 @@ internal static class Program
 
     private static int ValidateGraph(string path)
     {
-        try { return PrintValidation(GraphValidator.Validate(new UiGraphReader().Load(path))); }
+        try { return PrintValidation(GraphValidator.Validate(LoadCurrentGraph(path))); }
         catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException)
         {
             Console.WriteLine($"error: graph.invalid at graph: {BundleSecurity.SafeDiagnostic(ex.Message, 500)}");
@@ -5429,11 +5470,15 @@ internal static class Program
         return report.IsValid ? 0 : 4;
     }
 
+    internal static UiKnowledgeGraph LoadCurrentGraph(string path) => AtlasMapWorkspace.Exists(path)
+        ? AtlasMapWorkspace.Open(path).Project()
+        : new UiGraphReader().Load(path);
+
     private static int Inspect(string[] args)
     {
         if (args.Length == 0) return Fail("inspect requires a graph path.");
         var reader = new UiGraphReader();
-        var graph = reader.Load(args[0]);
+        var graph = LoadCurrentGraph(args[0]);
         var query = OptionalOption(args, "--query");
         var nodes = query is null ? graph.Nodes : reader.Search(graph, query);
         var world = OptionalOption(args, "--world");
@@ -5468,7 +5513,7 @@ internal static class Program
         var full = args.Contains("--include-sensitive-evidence", StringComparer.Ordinal);
         if (full && !args.Contains("--acknowledge-sensitive-evidence", StringComparer.Ordinal))
             return Fail("Full evidence export requires --acknowledge-sensitive-evidence.");
-        var graph = new UiGraphReader().Load(args[0]);
+        var graph = LoadCurrentGraph(args[0]);
         GraphJsonStore.Save(GraphExport.ApplyProfile(graph, full), output);
         Console.WriteLine($"Exported {Path.GetFullPath(output)} using {(full ? FormatVersions.FullEvidenceProfile : FormatVersions.SafeExportProfile)}.");
         return 0;
@@ -5481,7 +5526,7 @@ internal static class Program
         var projectId = RequiredOption(args, "--project-id");
         if (!args.Contains("--acknowledge-sensitive-identities", StringComparer.Ordinal))
             return Fail("UiAtlas compatibility export requires --acknowledge-sensitive-identities.");
-        var graph = new UiGraphReader().Load(args[0]);
+        var graph = LoadCurrentGraph(args[0]);
         var hash = UiAtlasVNextCompatibilityExporter.Publish(graph, output, projectId, acknowledgeSensitiveIdentities: true);
         Console.WriteLine($"Exported {Path.GetFullPath(output)} for project {SanitizeConsole(projectId)}.");
         Console.WriteLine($"SHA-256: {hash}");
@@ -5502,7 +5547,7 @@ internal static class Program
     {
         if (args.Length != 2) return Fail("diff requires two graph paths.");
         var reader = new UiGraphReader();
-        var diff = UiGraphDiff.Compare(reader.Load(args[0]), reader.Load(args[1]));
+        var diff = UiGraphDiff.Compare(LoadCurrentGraph(args[0]), LoadCurrentGraph(args[1]));
         Console.WriteLine($"nodes +{diff.AddedNodes.Count} -{diff.RemovedNodes.Count}; edges +{diff.AddedEdges.Count} -{diff.RemovedEdges.Count}");
         return 0;
     }
@@ -5522,7 +5567,7 @@ internal static class Program
     private static readonly JsonSerializerOptions JsonLineOptions = new(JsonDefaults.Options) { WriteIndented = false };
     private static void PrintHelpHeader()
     {
-        Console.WriteLine($"UiAtlas Core version {FormatVersions.Tool}");
+        Console.WriteLine($"UI Atlas Core {RecorderDisplayVersion}");
         Console.WriteLine();
     }
     private static bool IsCommand(string value, string command) =>
@@ -6216,12 +6261,9 @@ internal sealed partial class RecordingHighlightOverlay : IDisposable
         {
             var current = WindowCatalog.Resolve(_target.Hwnd);
             if (current.ProcessId != _target.ProcessId || current.ProcessStartedUtc != _target.ProcessStartedUtc) return;
-            if (!Equals(current.Bounds, _currentRootBounds))
-            {
-                _currentRootBounds = current.Bounds;
-                RenderHighlights();
-            }
-
+            // RefreshMapperTarget owns the root position, using the capture's bounds
+            // convention. GetWindowRect includes invisible borders and must not
+            // overwrite a native capture's visible-frame origin a second time.
             RefreshVisibleLayer(current);
         }
         catch
@@ -6335,10 +6377,12 @@ internal sealed partial class RecordingHighlightOverlay : IDisposable
 
         var visibleLayerAtStart = _visibleLayerKey;
         var mapperRevisionAtStart = _mapperRevision;
+        var mapperRootAtStart = _currentRootBounds;
         _ = Task.Run(() =>
         {
             WindowTarget visibleSurface;
             WindowObservation window;
+            RectI probedSurfaceBounds;
             IReadOnlyList<AutomationObservation> automation;
             IReadOnlyList<AutomationObservation> gridHints;
             try
@@ -6348,7 +6392,9 @@ internal sealed partial class RecordingHighlightOverlay : IDisposable
                 // click pulse on the previous control while traversal keeps moving.
                 visibleSurface = ResolveVisibleSurfaceTarget(current);
                 window = WindowSnapshotCapture.Observe(visibleSurface);
+                probedSurfaceBounds = ResolveLiveRootBounds(visibleSurface, _mapperUsesVisibleFrameBounds);
                 automation = BoundedAutomationCollector.CollectExactWindow(visibleSurface.Hwnd, 512, 18);
+                automation = MapperMsaaGeometry.ProjectLive(window, automation);
                 gridHints = NativeGridHostDiscovery.Collect(visibleSurface);
             }
             catch
@@ -6371,9 +6417,14 @@ internal sealed partial class RecordingHighlightOverlay : IDisposable
                     try
                     {
                         if (_windowClosed) return;
-                        var anchorsChanged = RefreshAnchoredHighlights(current.Bounds, automation);
+                        if (_mapperEnabled && (_mapperRevision != mapperRevisionAtStart || _currentRootBounds != mapperRootAtStart))
+                        {
+                            RequestMapperRefresh(invalidateVisual: false);
+                            return;
+                        }
+                        var anchorsChanged = RefreshAnchoredHighlights(mapperRootAtStart, automation);
                         var mappedSurfaceChanged = RefreshMappedHistoricalSurface(
-                            current.Bounds,
+                            mapperRootAtStart,
                             visibleSurface.Bounds,
                             window,
                             automation,
@@ -6390,8 +6441,8 @@ internal sealed partial class RecordingHighlightOverlay : IDisposable
 
                         if (layerMayBeApplied)
                             _visibleLayerKey = visibleLayerKey;
-                        RefreshMapperFromLiveSurface(current, visibleSurface, automation, gridHints,
-                            visibleLayerKey, layerChanged, mapperRevisionAtStart);
+                        RefreshMapperFromLiveSurface(mapperRootAtStart, visibleSurface, automation, gridHints,
+                            visibleLayerKey, layerChanged, mapperRevisionAtStart, probedSurfaceBounds);
                         if (anchorsChanged || mappedSurfaceChanged || layerChanged)
                             RenderHighlights();
                     }
@@ -7277,7 +7328,6 @@ internal sealed class RecordingControlPanel : IDisposable
     private System.Windows.Controls.Border? _sessionModeShell;
     private System.Windows.Controls.Button? _quickMapModeButton;
     private System.Windows.Controls.Primitives.ToggleButton? _hoverDiscoveryToggle;
-    private System.Windows.Controls.Primitives.ToggleButton? _customerDataToggle;
     private System.Windows.Controls.Border? _idleShell;
     private System.Windows.Controls.Border? _activeShell;
     private System.Windows.Controls.Border? _compactShell;
@@ -7349,7 +7399,6 @@ internal sealed class RecordingControlPanel : IDisposable
     private volatile bool _sessionModeChooserOpen;
     private volatile bool _sessionModeChooserResumeMode;
     private volatile bool _enableHoverAndFocusDiscovery = true;
-    private volatile bool _captureCustomerData;
     private int _mapRefreshGeneration;
     private volatile bool _windowClosed;
 
@@ -7498,8 +7547,7 @@ internal sealed class RecordingControlPanel : IDisposable
     public bool CanStartRecording => GetSelectedTarget() is not null;
     public bool IsClosed => _closed.IsSet;
     public RecordingLaunchOptions SelectedLaunchOptions => new(
-        _enableHoverAndFocusDiscovery,
-        _captureCustomerData);
+        _enableHoverAndFocusDiscovery);
 
     public WindowTarget? GetSelectedTarget()
     {
@@ -7686,12 +7734,6 @@ internal sealed class RecordingControlPanel : IDisposable
             "Actively reveal hover/focus states without clicking.",
             isChecked: true,
             value => _enableHoverAndFocusDiscovery = value);
-        _customerDataToggle = BuildRecordingOptionToggle(
-            "Clients",
-            "Create a separate customer-data package for a supported application.",
-            isChecked: false,
-            value => _captureCustomerData = value);
-
         var header = new System.Windows.Controls.StackPanel
         {
             Orientation = System.Windows.Controls.Orientation.Horizontal,
@@ -7699,7 +7741,6 @@ internal sealed class RecordingControlPanel : IDisposable
             Margin = new System.Windows.Thickness(0, 0, SessionModeDismissReserve, SessionModePanelGap)
         };
         header.Children.Add(_hoverDiscoveryToggle);
-        header.Children.Add(_customerDataToggle);
 
         _quickMapModeButton = BuildTextLinkButton(
             "Rescan current screen",
@@ -7851,6 +7892,7 @@ internal sealed class RecordingControlPanel : IDisposable
             "Open the recording mode chooser. Shortcut: S or Enter.",
             IdlePrimaryCircleSize,
             Accent);
+        System.Windows.Automation.AutomationProperties.SetAutomationId(_startButton, "AtlasRecorderStart");
         var topRow = BuildTopActionRow(disabledDouble, _startButton, disabledPause);
         System.Windows.Controls.Grid.SetRow(topRow, 0);
         grid.Children.Add(topRow);
@@ -8000,6 +8042,7 @@ internal sealed class RecordingControlPanel : IDisposable
             "Finish recording and build the map. Shortcut: F.",
             ActivePrimaryCircleSize,
             Danger);
+        System.Windows.Automation.AutomationProperties.SetAutomationId(_stopButton, "AtlasRecorderFinish");
         var stopHost = new System.Windows.Controls.Grid
         {
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
@@ -9082,7 +9125,7 @@ internal sealed class RecordingControlPanel : IDisposable
     private CatalogImportResult? ImportMapToCatalog(string sourceMapPath)
     {
         var sourceFullPath = Path.GetFullPath(sourceMapPath);
-        var graph = new UiGraphReader().Load(sourceFullPath);
+        var graph = Program.LoadCurrentGraph(sourceFullPath);
         var catalog = new LocalArtifactCatalog();
         catalog.EnsureSafe();
 
@@ -12789,6 +12832,8 @@ internal sealed class RecordingControlPanel : IDisposable
             UseLayoutRounding = true,
             Template = RoundedButtonTemplate(new System.Windows.CornerRadius(SessionModeCardCornerRadius))
         };
+        System.Windows.Automation.AutomationProperties.SetAutomationId(button, "AtlasRecorderMode" + title.Replace(" ", "", StringComparison.Ordinal));
+        System.Windows.Automation.AutomationProperties.SetName(button, title);
         button.MouseEnter += (_, _) =>
         {
             button.BorderBrush = Accent;
@@ -12815,7 +12860,8 @@ internal sealed class RecordingControlPanel : IDisposable
         menuStack.Children.Add(PopupMenuButton("Settings", () =>
         {
             if (_moreMenu is not null) _moreMenu.IsOpen = false;
-            new RecorderSettingsWindow { Owner = _window }.ShowDialog();
+            new AtlasSettingsWindow(openTableReading: owner => new RecorderSettingsWindow { Owner = owner }.ShowDialog())
+                { Owner = _window }.ShowDialog();
         }));
         menuStack.Children.Add(PopupMenuButton("Close toolbar", ClosePanel));
 

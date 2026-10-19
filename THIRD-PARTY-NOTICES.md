@@ -1,14 +1,15 @@
 # Third-party notices
 
+The shared desktop in `src/UiAtlas.Shell` includes AI Successors' MapLock presentation
+code and Windows application classification code. Its original copyright and
+licensing notice is retained in `licenses/MapLock-shell-COPYRIGHT.txt`; extraction
+does not change those terms.
+
 This inventory is derived from the committed package lock files. Runtime redistribution includes the following components:
 
 | Component | Version | Author/vendor | License | Use |
 | --- | --- | --- | --- | --- |
-| ModelContextProtocol.Core | 2.2.0 | Model Context Protocol a Series of LF Projects, LLC | Apache-2.0 | local stdio MCP protocol and bounded tool dispatch |
-| Microsoft.Extensions.AI.Abstractions | 10.8.3 | Microsoft | MIT | MCP SDK function metadata dependency; no model provider configured |
-| Microsoft.Extensions.Logging.Abstractions | 10.0.10 | Microsoft | MIT | MCP SDK logging abstraction |
-| Microsoft.Extensions.DependencyInjection.Abstractions | 10.0.10 | Microsoft | MIT | MCP SDK dependency metadata |
-| FirebirdSql.Data.FirebirdClient | 10.3.4 | FirebirdSQL | Initial Developer's Public License 1.0 | isolated legacy Firebird migration source adapter |
+| Google.Protobuf | 3.27.1 | Google | BSD-3-Clause | UI Maps sensor, perception and map serialization |
 | Microsoft.Data.Sqlite | 10.0.10 | Microsoft | MIT | managed SQLite API |
 | Microsoft.Data.Sqlite.Core | 10.0.10 | Microsoft | MIT | managed SQLite implementation |
 | Microsoft.Windows.SDK.NET | 10.0.19041.57 | Microsoft | Microsoft Windows SDK license | Windows Runtime projection used only by the optional Windows OCR enrichment path |
@@ -26,4 +27,24 @@ Package metadata, lock files, and the SDK-generated runtime manifest are the ver
 
 The repository `.gitignore` is adapted from the CC0-1.0 GitHub Visual Studio template identified in `provenance/files.csv`. It is repository configuration and is not included in the runtime archive.
 
-The optional local MCP executable uses the SDK stdio transport only. Its Apache-2.0 license is included in `licenses/Apache-2.0.txt`; Microsoft Extensions licenses are in `licenses/Microsoft.Extensions-MIT.txt`.
+UI Maps Protocol, Perception Core, Map Core and the native Windows recorder/provider are source imports pinned in
+`provenance/uimaps-foundation.json`. Their upstream MIT notices are preserved in
+`vendor/uimaps/*/LICENSE.txt` and packaged under `licenses/uimaps/`. Only the
+allowlisted mapping source is imported. Atlas build adapters and the extraction
+of the local OCR contracts are identified separately in the provenance manifest.
+
+Google.Protobuf's redistribution text is in `licenses/Google.Protobuf-BSD-3-Clause.txt`.
+Grpc.Tools 2.71.0 (the gRPC Authors, Apache-2.0) is a build-only dependency used to
+generate the bindings and is not redistributed in the runtime archive.
+
+Historical source projects additionally use ModelContextProtocol.Core 2.2.0
+(Apache-2.0), Microsoft.Extensions.AI.Abstractions 10.8.3 and Logging/DependencyInjection
+Abstractions 10.0.10 (MIT), and FirebirdSql.Data.FirebirdClient 10.3.4 (IDPL-1.0).
+Their notices remain in `licenses/` for source compatibility. Their executables and
+runtime packages are excluded from the mapping-only release; the runtime SBOM
+reflects that boundary.
+
+The native Windows recorder uses System.Drawing.Common 9.0.8 and
+Microsoft.Win32.SystemEvents 9.0.8 (Microsoft, MIT). Their license and third-party
+notices are included under `licenses/`. The provider worker runs in its own
+`native-recorder/` directory with its declared runtime dependencies.

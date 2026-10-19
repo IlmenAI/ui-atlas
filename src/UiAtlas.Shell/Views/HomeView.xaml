@@ -1,0 +1,89 @@
+<UserControl x:Class="UIMaps.Application.Views.HomeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid MaxWidth="940" HorizontalAlignment="Left">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel>
+                <TextBlock x:Name="HeadingText" Text="Maps" FontSize="38" FontWeight="Light"
+                           Foreground="{StaticResource InkBrush}" />
+                <TextBlock Margin="0,13,0,0" Text="Teach MapLock how an application is organized."
+                           FontSize="16" Foreground="{StaticResource MutedInkBrush}" />
+            </StackPanel>
+
+            <Button Grid.Row="1" Margin="0,31,0,0" HorizontalAlignment="Left"
+                    Style="{StaticResource PrimaryActionButtonStyle}"
+                    Click="OpenUiMap_Click" AutomationProperties.Name="Open UI Map">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE81E;" FontFamily="Segoe Fluent Icons" FontSize="17" Margin="20,0,10,0" />
+                    <TextBlock Text="Open UI Maps" FontWeight="SemiBold" Margin="0,0,20,0" />
+                </StackPanel>
+            </Button>
+
+            <Grid Grid.Row="2" Margin="0,76,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="420" />
+                    <ColumnDefinition Width="72" />
+                    <ColumnDefinition Width="340" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <TextBlock Text="Available now" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,24" />
+                    <Grid Margin="0,0,0,18">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="&#xE890;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Grid.Column="1" Text="Observe applications and surfaces" FontSize="14.5" />
+                    </Grid>
+                    <Grid Margin="0,0,0,18">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="&#xE7C8;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Grid.Column="1" Text="Record and review UI Maps" FontSize="14.5" />
+                    </Grid>
+                    <Grid Margin="0,0,0,18">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="&#xE80A;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Grid.Column="1" Text="Inspect and interpret Data Grids" FontSize="14.5" />
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="&#xE74E;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Grid.Column="1" Text="Publish immutable map revisions" FontSize="14.5" />
+                    </Grid>
+                </StackPanel>
+
+                <Border Grid.Column="1" Width="1" Background="{StaticResource LineBrush}" HorizontalAlignment="Center" />
+
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="Coming next" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,24" />
+                    <Grid Margin="0,0,0,22">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="&#xE7C3;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{StaticResource AccentBrush}" />
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="Work Sessions" FontSize="14.5" />
+                            <TextBlock Text="Record work and reproduce it autonomously." Margin="0,4,0,0"
+                                       FontSize="12.5" Foreground="{StaticResource MutedInkBrush}" />
+                        </StackPanel>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="&#xE71B;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{StaticResource AccentBrush}" />
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="Integrations" FontSize="14.5" />
+                            <TextBlock Text="Turn reviewed workflows into stable APIs." Margin="0,4,0,0"
+                                       FontSize="12.5" Foreground="{StaticResource MutedInkBrush}" />
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Grid>
+
+            <TextBlock x:Name="StatusText" Grid.Row="3" Margin="0,44,0,0"
+                       Foreground="{StaticResource MutedInkBrush}" TextWrapping="Wrap" />
+        </Grid>
+    </ScrollViewer>
+</UserControl>

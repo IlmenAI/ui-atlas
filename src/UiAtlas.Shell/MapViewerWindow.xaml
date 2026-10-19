@@ -1,0 +1,225 @@
+<Window x:Class="UIMaps.Application.MapViewerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        xmlns:views="clr-namespace:UIMaps.Application.Views"
+        Title="UI Maps — Atlas" Width="1320" Height="820" MinWidth="900" MinHeight="650"
+        WindowStartupLocation="CenterOwner" WindowStyle="None" ResizeMode="CanResize"
+        Background="{StaticResource CanvasBrush}" FontFamily="Segoe UI Variable Text, Segoe UI"
+        TextOptions.TextFormattingMode="Display"
+        SizeChanged="Window_SizeChanged" StateChanged="Window_StateChanged">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="38" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="8" UseAeroCaptionButtons="False"/>
+    </shell:WindowChrome.WindowChrome>
+    <Window.Resources>
+        <Style x:Key="ChromeButton" TargetType="Button">
+            <Setter Property="Height" Value="30"/><Setter Property="MinWidth" Value="92"/><Setter Property="Padding" Value="13,0"/>
+            <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="{StaticResource MutedInkBrush}"/>
+            <Setter Property="BorderBrush" Value="Transparent"/><Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True"/><Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#EDF3F9"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="TitleBarButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+            <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Surface" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#E9EEF4"/></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="Surface" Property="Background" Value="#DDE5ED"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="CloseTitleBarButtonStyle" TargetType="Button" BasedOn="{StaticResource TitleBarButtonStyle}">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#C42B1C"/><Setter Property="Foreground" Value="Red"/></Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="RailButton" TargetType="Button">
+            <Setter Property="Width" Value="46"/><Setter Property="Height" Value="46"/><Setter Property="Margin" Value="7,5"/><Setter Property="FontFamily" Value="Segoe Fluent Icons"/><Setter Property="FontSize" Value="18"/><Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="{StaticResource InkBrush}"/><Setter Property="BorderBrush" Value="Transparent"/><Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="Surface" Background="{TemplateBinding Background}" CornerRadius="8"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="#E7EEF6"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="ViewerCard" TargetType="Border">
+            <Setter Property="Background" Value="White"/><Setter Property="BorderBrush" Value="{StaticResource LineBrush}"/><Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="9"/><Setter Property="Padding" Value="11"/><Setter Property="Margin" Value="5"/>
+        </Style>
+        <Style x:Key="CanvasButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="0"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="ScrollViewer">
+            <Setter Property="PanningMode" Value="Both"/>
+            <Setter Property="IsManipulationEnabled" Value="True"/>
+        </Style>
+        <HierarchicalDataTemplate x:Key="HierarchyTemplate" ItemsSource="{Binding Children}">
+            <StackPanel Margin="2"><TextBlock Text="{Binding Name}" Foreground="{StaticResource InkBrush}"/><TextBlock Text="{Binding Detail}" FontSize="10" Foreground="{StaticResource MutedInkBrush}"/></StackPanel>
+        </HierarchicalDataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="38"/><RowDefinition Height="52"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <Border Grid.Row="0" Background="#FAFBFD" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1">
+            <Grid>
+                <StackPanel Orientation="Horizontal" Margin="12,0" VerticalAlignment="Center" IsHitTestVisible="False">
+                    <Path Width="17" Height="13" Stretch="Fill" Data="M0,0 L17,0 L13,13 L0,13 Z">
+                        <Path.Fill>
+                            <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                                <GradientStop Color="#41D7FF" Offset="0"/>
+                                <GradientStop Color="#7067FF" Offset="0.65"/>
+                                <GradientStop Color="#B238F2" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Path.Fill>
+                    </Path>
+                    <TextBlock Text="UI Maps — Atlas" Margin="8,0,0,0" FontSize="12.5" VerticalAlignment="Center"/>
+                </StackPanel>
+                <Border HorizontalAlignment="Center" VerticalAlignment="Center" Background="#F5F7FA" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="8" Padding="2">
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="ObservedWorldButton" Content="Observed" Tag="Observed" Click="World_Click" Style="{StaticResource ChromeButton}" Background="#E3EFFB" Foreground="#0F6CBD" BorderBrush="#0F6CBD"/>
+                        <Button x:Name="StructuredWorldButton" Content="Structured" Tag="Structured" Click="World_Click" Style="{StaticResource ChromeButton}"/>
+                        <Button x:Name="InterpretedWorldButton" Content="Interpreted" Tag="Interpreted" Click="World_Click" Style="{StaticResource ChromeButton}"/>
+                        <Button x:Name="AtlasWorldButton" Content="Atlas" Tag="Atlas" Click="World_Click" Style="{StaticResource ChromeButton}"/>
+                    </StackPanel>
+                </Border>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Click="Minimize_Click" Style="{StaticResource TitleBarButtonStyle}" AutomationProperties.Name="Minimize"><TextBlock Text="&#xE921;" FontFamily="Segoe Fluent Icons" FontSize="10"/></Button>
+                    <Button Click="Maximize_Click" Style="{StaticResource TitleBarButtonStyle}" AutomationProperties.Name="Maximize or restore"><TextBlock x:Name="MaximizeRestoreGlyph" Text="&#xE922;" FontFamily="Segoe Fluent Icons" FontSize="10"/></Button>
+                    <Button Click="Close_Click" Style="{StaticResource CloseTitleBarButtonStyle}" AutomationProperties.Name="Close"><TextBlock Text="&#xE8BB;" FontFamily="Segoe Fluent Icons" FontSize="10"/></Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+        <Border Grid.Row="1" Background="White" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1">
+            <Grid><StackPanel x:Name="Breadcrumb" Orientation="Horizontal" Margin="82,0,0,0" VerticalAlignment="Center"><TextBlock Text="Maps" Foreground="{StaticResource MutedInkBrush}"/><TextBlock Text="  /  "/><TextBlock Text="{Binding Title}" MaxWidth="360" TextTrimming="CharacterEllipsis"/><TextBlock Text="  /  "/><TextBlock Text="{Binding Subtitle}" Foreground="{StaticResource MutedInkBrush}"/></StackPanel><TextBlock x:Name="PerspectiveTitle" Text="Surface Analysis" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="16" FontWeight="SemiBold"/></Grid>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="62"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <Border Background="{StaticResource SidebarBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,1,0">
+                <StackPanel><Button x:Name="SurfaceAnalysisRail" Content="&#xECA5;" ToolTip="Surface Analysis" AutomationProperties.Name="Surface Analysis" Style="{StaticResource RailButton}" Background="#D9EAFB" Foreground="#0F6CBD" Click="SurfaceAnalysis_Click"/><Button x:Name="InteractionGraphRail" Content="&#xE968;" ToolTip="Interaction Graph" AutomationProperties.Name="Interaction Graph" Style="{StaticResource RailButton}" Click="InteractionGraph_Click"/></StackPanel>
+            </Border>
+
+            <Grid x:Name="SurfaceAnalysisPanel" Grid.Column="1">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="250"/><ColumnDefinition Width="*"/><ColumnDefinition Width="300"/></Grid.ColumnDefinitions>
+                <Border Background="White" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,1,0">
+                    <Grid><Grid.RowDefinitions><RowDefinition Height="48"/><RowDefinition Height="*"/></Grid.RowDefinitions><Border BorderBrush="#4C3BDC" BorderThickness="0,0,0,2" Margin="24,0"><TextBlock Text="Hierarchy" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#4C3BDC" FontWeight="SemiBold"/></Border><TreeView x:Name="HierarchyTree" Grid.Row="1" ItemsSource="{Binding Hierarchy}" ItemTemplate="{StaticResource HierarchyTemplate}" SelectedItemChanged="Hierarchy_SelectedItemChanged" Background="White" BorderThickness="0" Padding="12" AutomationProperties.Name="UI Map hierarchy"><TreeView.ItemContainerStyle><Style TargetType="TreeViewItem"><Setter Property="IsExpanded" Value="{Binding IsExpanded}"/><Setter Property="Padding" Value="3"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/></Style></TreeView.ItemContainerStyle></TreeView></Grid>
+                </Border>
+
+                <Grid Grid.Column="1">
+                    <Grid.RowDefinitions><RowDefinition Height="52*"/><RowDefinition Height="48*"/></Grid.RowDefinitions>
+                    <Border Background="#F7F9FC" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,1,1">
+                        <Grid><Grid.RowDefinitions><RowDefinition Height="44"/><RowDefinition Height="*"/><RowDefinition Height="42"/></Grid.RowDefinitions><TextBlock Text="Surface topology" FontSize="16" FontWeight="SemiBold" Margin="15,0" VerticalAlignment="Center"/><ScrollViewer Grid.Row="1" x:Name="TopologyViewport" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PreviewMouseWheel="Topology_MouseWheel"><ItemsControl ItemsSource="{Binding Stages}"><ItemsControl.LayoutTransform><ScaleTransform x:Name="TopologyScale" ScaleX="1" ScaleY="1"/></ItemsControl.LayoutTransform><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate><StackPanel MinWidth="170" Margin="4"><TextBlock Text="{Binding Name}" HorizontalAlignment="Center" FontWeight="SemiBold"/><TextBlock Text="{Binding Subtitle}" HorizontalAlignment="Center" Foreground="{StaticResource MutedInkBrush}" FontSize="10" Margin="0,2,0,8"/><ItemsControl ItemsSource="{Binding Cards}"><ItemsControl.ItemTemplate><DataTemplate><Button Style="{StaticResource CanvasButton}" Tag="{Binding}" Click="TopologyCard_Click"><Border Style="{StaticResource ViewerCard}" MinHeight="95"><StackPanel><TextBlock Text="{Binding Name}" TextWrapping="Wrap" FontWeight="SemiBold"/><TextBlock Text="{Binding Detail}" TextWrapping="Wrap" Foreground="{StaticResource MutedInkBrush}" FontSize="10" Margin="0,4,0,0"/><views:MapSurfacePreview Surface="{Binding Surface}" Variant="{Binding Variant}" Height="55" Margin="0,7,0,0"><views:MapSurfacePreview.Style><Style TargetType="views:MapSurfacePreview"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding Surface}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></views:MapSurfacePreview.Style></views:MapSurfacePreview></StackPanel></Border></Button></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></ScrollViewer><StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="8"><Button Content="−" Click="TopologyZoomOut_Click" Width="36"/><Button x:Name="TopologyZoomText" Content="100%" Click="TopologyReset_Click" Width="66"/><Button Content="+" Click="TopologyZoomIn_Click" Width="36"/></StackPanel></Grid>
+                    </Border>
+                    <Border Grid.Row="1" Background="White" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,1,0">
+                        <Grid>
+                            <Grid.RowDefinitions><RowDefinition Height="43"/><RowDefinition Height="45"/><RowDefinition Height="*"/><RowDefinition Height="42"/></Grid.RowDefinitions>
+                            <StackPanel Orientation="Horizontal" Margin="15,0">
+                                <TextBlock Text="Surface viewer" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding SelectedSurfaceTitle}" Foreground="{StaticResource MutedInkBrush}" Margin="18,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <ListBox x:Name="SurfaceModeList" Grid.Row="1" Tag="True" ItemsSource="{Binding SurfaceViewModes}" SelectedItem="{Binding SurfaceViewMode}" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1" Background="#F8FAFC">
+                                <ListBox.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate></ListBox.ItemsPanel>
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                        <Setter Property="AutomationProperties.Name" Value="{Binding}"/>
+                                        <Setter Property="ToolTip" Value="{Binding}"/>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Margin="8" HorizontalAlignment="Center">
+                                            <TextBlock x:Name="ModeGlyph" Text="&#xE91B;" FontFamily="Segoe Fluent Icons" Margin="0,0,6,0"/>
+                                            <TextBlock Text="{Binding}">
+                                                <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding Tag, ElementName=SurfaceModeList}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding}" Value="Controls"><Setter TargetName="ModeGlyph" Property="Text" Value="&#xE9D2;"/></DataTrigger>
+                                            <DataTrigger Binding="{Binding}" Value="Overlay"><Setter TargetName="ModeGlyph" Property="Text" Value="&#xE8B9;"/></DataTrigger>
+                                            <DataTrigger Binding="{Binding}" Value="Structure"><Setter TargetName="ModeGlyph" Property="Text" Value="&#xE8FD;"/></DataTrigger>
+                                            <DataTrigger Binding="{Binding}" Value="Structure Overlay"><Setter TargetName="ModeGlyph" Property="Text" Value="&#xE8EF;"/></DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <ScrollViewer Grid.Row="2" Background="#F3F6F9" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" AutomationProperties.HelpText="Use Control plus mouse wheel to zoom; middle-drag or Shift plus left-drag to pan.">
+                                <views:MapSurfacePreview x:Name="PrimarySurfacePreview" Surface="{Binding SelectedSurface}" Variant="{Binding SelectedVariant}" ViewMode="{Binding SurfaceViewMode}" Margin="30" MinWidth="620" MinHeight="210">
+                                    <views:MapSurfacePreview.LayoutTransform><ScaleTransform x:Name="SurfaceScale" ScaleX="1" ScaleY="1"/></views:MapSurfacePreview.LayoutTransform>
+                                </views:MapSurfacePreview>
+                            </ScrollViewer>
+                            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="8">
+                                <Button Content="−" Click="SurfaceZoomOut_Click" Width="36" AutomationProperties.Name="Zoom out surface viewer"/>
+                                <Button x:Name="SurfaceZoomText" Content="100%" Click="SurfaceReset_Click" Width="66" AutomationProperties.Name="Reset surface viewer zoom to 100 percent"/>
+                                <Button Content="+" Click="SurfaceZoomIn_Click" Width="36" AutomationProperties.Name="Zoom in surface viewer"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <Border Grid.Column="2" Background="White" Padding="18"><ScrollViewer><StackPanel><TextBlock Text="SURFACE" FontSize="10" Foreground="{StaticResource MutedInkBrush}"/><TextBlock Text="{Binding SelectedSurface.Name, FallbackValue=Select a surface}" FontSize="19" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,6,0,4"/><TextBlock Text="{Binding SelectedSurface.Detail}" Foreground="{StaticResource MutedInkBrush}" Margin="0,0,0,18"/><TextBlock Text="Variants" FontSize="15" FontWeight="SemiBold"/><ListBox ItemsSource="{Binding SelectedSurface.Variants}" SelectedItem="{Binding SelectedVariant}" Background="Transparent" BorderThickness="0" Margin="0,7,0,16"><ListBox.ItemTemplate><DataTemplate><Border Style="{StaticResource ViewerCard}" Padding="8"><StackPanel><views:MapSurfacePreview Surface="{Binding DataContext.SelectedSurface, RelativeSource={RelativeSource AncestorType=Window}}" Variant="{Binding}" Height="82"/><TextBlock Text="{Binding Name}" FontWeight="SemiBold" Margin="0,6,0,0"/><TextBlock Text="{Binding Detail}" Foreground="{StaticResource MutedInkBrush}" FontSize="10"/></StackPanel></Border></DataTemplate></ListBox.ItemTemplate></ListBox><TextBlock Text="Selected variant" FontSize="15" FontWeight="SemiBold"/><TextBlock Text="{Binding SelectedVariant.Name, FallbackValue=No variant selected}" Margin="0,6,0,2"/><TextBlock Text="{Binding SelectedVariant.Detail}" Foreground="{StaticResource MutedInkBrush}"/><Separator Margin="0,18"/><TextBlock Text="Understanding" FontSize="15" FontWeight="SemiBold"/><TextBlock Text="{Binding World}" Margin="0,6,0,2" Foreground="#0F6CBD"/><TextBlock Text="Observed keeps evidence distinctions; Structured resolves ownership; Interpreted adds meaning; Atlas shows immutable canonical knowledge." TextWrapping="Wrap" Foreground="{StaticResource MutedInkBrush}"/></StackPanel></ScrollViewer></Border>
+            </Grid>
+
+            <Grid x:Name="InteractionGraphPanel" Grid.Column="1" Visibility="Collapsed">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="270"/><ColumnDefinition Width="*"/><ColumnDefinition Width="320"/></Grid.ColumnDefinitions>
+                <Border Background="White" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,1,0" Padding="16">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                        <TextBlock Text="Graph" FontSize="17" FontWeight="SemiBold"/>
+                        <TextBox Grid.Row="1" Margin="0,14" ToolTip="Search journeys or surfaces" AutomationProperties.Name="Search journeys or surfaces"/>
+                        <ScrollViewer Grid.Row="2">
+                            <StackPanel>
+                                <TextBlock Text="JOURNEYS" Foreground="{StaticResource MutedInkBrush}"/>
+                                <ListBox ItemsSource="{Binding Transitions}" SelectedItem="{Binding SelectedTransition}" BorderThickness="0" Background="Transparent">
+                                    <ListBox.ItemTemplate><DataTemplate><Border Style="{StaticResource ViewerCard}"><StackPanel><TextBlock Text="{Binding Label}" FontWeight="SemiBold"/><TextBlock Text="{Binding Outcome}" FontSize="10" Foreground="{StaticResource MutedInkBrush}"/></StackPanel></Border></DataTemplate></ListBox.ItemTemplate>
+                                </ListBox>
+                                <TextBlock Text="SURFACES" Foreground="{StaticResource MutedInkBrush}" Margin="0,18,0,5"/>
+                                <ItemsControl ItemsSource="{Binding Surfaces}">
+                                    <ItemsControl.ItemTemplate><DataTemplate><Button Style="{StaticResource CanvasButton}" Tag="{Binding EntityRef}" Click="SurfaceButton_Click" AutomationProperties.Name="{Binding Name}"><TextBlock Text="{Binding Name}" Margin="8,5"/></Button></DataTemplate></ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="ENTRY POINTS" Foreground="{StaticResource MutedInkBrush}" Margin="0,18,0,5"/>
+                                <ItemsControl ItemsSource="{Binding EntryPoints}">
+                                    <ItemsControl.ItemTemplate><DataTemplate><Button Style="{StaticResource CanvasButton}" Tag="{Binding EntityRef}" Click="SurfaceButton_Click" AutomationProperties.Name="{Binding Name}"><TextBlock Text="{Binding Name}" Margin="8,5"/></Button></DataTemplate></ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="UNREACHABLE" Foreground="#B45309" Margin="0,18,0,5"/>
+                                <ItemsControl ItemsSource="{Binding UnreachableSurfaces}">
+                                    <ItemsControl.ItemTemplate><DataTemplate><Button Style="{StaticResource CanvasButton}" Tag="{Binding EntityRef}" Click="SurfaceButton_Click" AutomationProperties.Name="{Binding Name}"><TextBlock Text="{Binding Name}" Margin="8,5"/></Button></DataTemplate></ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+                <Grid Grid.Column="1" Background="#F4F7FA">
+                    <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="120"/></Grid.RowDefinitions>
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" AutomationProperties.HelpText="Use Control plus mouse wheel to zoom; middle-drag or Shift plus left-drag to pan.">
+                        <views:MapInteractionGraphCanvas x:Name="GraphCanvas" Surfaces="{Binding Surfaces}" Transitions="{Binding Transitions}" SelectedSurfaceRef="{Binding SelectedSurface.EntityRef}" SurfaceSelected="GraphSurface_Selected" AutomationProperties.Name="Application interaction graph">
+                            <views:MapInteractionGraphCanvas.LayoutTransform><ScaleTransform x:Name="GraphScale" ScaleX="1" ScaleY="1"/></views:MapInteractionGraphCanvas.LayoutTransform>
+                        </views:MapInteractionGraphCanvas>
+                    </ScrollViewer>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10">
+                        <Button Content="−" Click="GraphZoomOut_Click" Width="36" AutomationProperties.Name="Zoom out interaction graph"/>
+                        <Button x:Name="GraphZoomText" Content="100%" Click="GraphReset_Click" Width="66" AutomationProperties.Name="Reset interaction graph zoom to 100 percent"/>
+                        <Button Content="+" Click="GraphZoomIn_Click" Width="36" AutomationProperties.Name="Zoom in interaction graph"/>
+                    </StackPanel>
+                    <Border Grid.Row="1" Background="White" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1,1,0" Padding="12">
+                        <StackPanel>
+                            <TextBlock Text="Path timeline · recorded evidence only" FontWeight="SemiBold"/>
+                            <ItemsControl ItemsSource="{Binding Transitions}" Margin="0,8,0,0">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate><DataTemplate><Border Background="#F4EEFF" BorderBrush="#A78BFA" BorderThickness="1" CornerRadius="10" Padding="10,5" Margin="3"><TextBlock Text="{Binding Label}"/></Border></DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+                <Border Grid.Column="2" Background="White" Padding="18"><StackPanel><TextBlock Text="TRANSITION" FontSize="10" Foreground="{StaticResource MutedInkBrush}"/><TextBlock Text="{Binding SelectedTransition.Label, FallbackValue=Select a transition}" FontSize="19" FontWeight="SemiBold" Margin="0,6,0,20"/><TextBlock Text="Source" FontWeight="SemiBold"/><TextBlock Text="{Binding SelectedTransition.SourceSurfaceRef}" TextWrapping="Wrap" Foreground="{StaticResource MutedInkBrush}" Margin="0,5,0,16"/><TextBlock Text="Destination" FontWeight="SemiBold"/><TextBlock Text="{Binding SelectedTransition.DestinationSurfaceRef}" TextWrapping="Wrap" Foreground="{StaticResource MutedInkBrush}" Margin="0,5,0,16"/><TextBlock Text="Outcome" FontWeight="SemiBold"/><TextBlock Text="{Binding SelectedTransition.Outcome}" Foreground="{StaticResource MutedInkBrush}" Margin="0,5,0,0"/></StackPanel></Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

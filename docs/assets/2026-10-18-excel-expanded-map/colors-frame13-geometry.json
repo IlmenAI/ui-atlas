@@ -1,0 +1,3459 @@
+{
+  "window": {
+    "hwnd": 4461092,
+    "rootOwnerHwnd": 1905186,
+    "processId": 31092,
+    "className": "bosa_sdm_XL9",
+    "title": "Colors",
+    "bounds": {
+      "x": 3178,
+      "y": 790,
+      "width": 272,
+      "height": 315,
+      "isValid": true
+    },
+    "isVisible": true,
+    "isEnabled": true,
+    "isMinimized": false,
+    "isCloaked": false,
+    "dpi": 192,
+    "ownerHwnd": 1708440,
+    "zOrder": 49,
+    "style": 2496462848,
+    "exStyle": 1281,
+    "isToolWindow": false,
+    "isTopMost": false
+  },
+  "records": [
+    {
+      "provider": "uia",
+      "name": "Colors",
+      "kind": "ControlType.Window",
+      "native_hwnd": 4461092,
+      "bounds": {
+        "x": 3172,
+        "y": 790,
+        "width": 284,
+        "height": 321,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "RichEdit Control",
+      "kind": "ControlType.Edit",
+      "native_hwnd": 32705882,
+      "bounds": {
+        "x": 3263,
+        "y": 988,
+        "width": 27,
+        "height": 16,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "RichEdit Control",
+      "kind": "ControlType.Edit",
+      "native_hwnd": 856602,
+      "bounds": {
+        "x": 3263,
+        "y": 1014,
+        "width": 27,
+        "height": 16,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "RichEdit Control",
+      "kind": "ControlType.Edit",
+      "native_hwnd": 1183752,
+      "bounds": {
+        "x": 3263,
+        "y": 1041,
+        "width": 27,
+        "height": 16,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "RichEdit Control",
+      "kind": "ControlType.Edit",
+      "native_hwnd": 1314826,
+      "bounds": {
+        "x": 3263,
+        "y": 1067,
+        "width": 50,
+        "height": 17,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "Colors",
+      "kind": "ControlType.TitleBar",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3178,
+        "y": 797,
+        "width": 271,
+        "height": 23,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "",
+      "kind": "ControlType.Tab",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3190,
+        "y": 834,
+        "width": 350,
+        "height": 48,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "Colors:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 904,
+        "width": 63,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "Colors:",
+      "kind": "ControlType.Image",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 942,
+        "width": 271,
+        "height": 140,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "Luminosity:",
+      "kind": "ControlType.Image",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3497,
+        "y": 942,
+        "width": 25,
+        "height": 142,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "Color model:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1102,
+        "width": 118,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "Color model:",
+      "kind": "ControlType.ComboBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1092,
+        "width": 178,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "Red:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1150,
+        "width": 41,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "Red:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1150,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "Green:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1203,
+        "width": 60,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "Green:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1203,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "Blue:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1256,
+        "width": 45,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "Blue:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1256,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "Hex:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1309,
+        "width": 41,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "Hex:",
+      "kind": "ControlType.Edit",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1309,
+        "width": 108,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "OK",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3557,
+        "y": 833,
+        "width": 151,
+        "height": 54,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "Cancel",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3557,
+        "y": 901,
+        "width": 151,
+        "height": 54,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "",
+      "kind": "ControlType.Image",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3569,
+        "y": 1209,
+        "width": 128,
+        "height": 128,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "Current ",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3595,
+        "y": 1345,
+        "width": 75,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "New ",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3609,
+        "y": 1171,
+        "width": 48,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "New ",
+      "kind": "ControlType.Image",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3190,
+        "y": 882,
+        "width": 350,
+        "height": 493,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "System Menu Bar",
+      "kind": "ControlType.MenuBar",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 2147483647,
+        "y": 2147483647,
+        "width": -2147483648,
+        "height": -2147483648,
+        "isValid": false
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "uia",
+      "name": "Minimize",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3310,
+        "y": 791,
+        "width": 47,
+        "height": 29,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "Maximize",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3357,
+        "y": 791,
+        "width": 46,
+        "height": 29,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "Close",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3403,
+        "y": 791,
+        "width": 47,
+        "height": 29,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "Standard",
+      "kind": "ControlType.TabItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3190,
+        "y": 836,
+        "width": 119,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "Custom",
+      "kind": "ControlType.TabItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3309,
+        "y": 836,
+        "width": 108,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "uia",
+      "name": "System",
+      "kind": "ControlType.MenuItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 2147483647,
+        "y": 2147483647,
+        "width": -2147483648,
+        "height": -2147483648,
+        "isValid": false
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Colors",
+      "kind": "ControlType.Window",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3172,
+        "y": 790,
+        "width": 284,
+        "height": 321,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "System",
+      "kind": "ControlType.Custom",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "System",
+      "kind": "ControlType.MenuItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "System",
+      "kind": "ControlType.Menu",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Restore",
+      "kind": "ControlType.MenuItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Move",
+      "kind": "ControlType.MenuItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Size",
+      "kind": "ControlType.MenuItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Maximize",
+      "kind": "ControlType.MenuItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.Separator",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Close\tAlt+F4",
+      "kind": "ControlType.MenuItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.Custom",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3179,
+        "y": 792,
+        "width": 270,
+        "height": 27,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "IME",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Minimize",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3310,
+        "y": 791,
+        "width": 47,
+        "height": 29,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Maximize",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3357,
+        "y": 791,
+        "width": 46,
+        "height": 29,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Context help",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Close",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3403,
+        "y": 791,
+        "width": 47,
+        "height": 29,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Application",
+      "kind": "ControlType.Custom",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Colors",
+      "kind": "ControlType.Window",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3178,
+        "y": 819,
+        "width": 271,
+        "height": 285,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.Tab",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3190,
+        "y": 834,
+        "width": 350,
+        "height": 48,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Standard",
+      "kind": "ControlType.TabItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3190,
+        "y": 836,
+        "width": 119,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Custom",
+      "kind": "ControlType.TabItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3309,
+        "y": 836,
+        "width": 108,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "fProcessMode",
+      "kind": "ControlType.CheckBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3232,
+        "y": 1190,
+        "width": 108,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.Edit",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3178,
+        "y": 819,
+        "width": 144,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "fCustomChanged",
+      "kind": "ControlType.CheckBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3481,
+        "y": 1074,
+        "width": 108,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "FPreview",
+      "kind": "ControlType.CheckBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3361,
+        "y": 1355,
+        "width": 108,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3259,
+        "y": 988,
+        "width": 144,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3259,
+        "y": 988,
+        "width": 144,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.Edit",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3466,
+        "y": 920,
+        "width": 144,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.Edit",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3466,
+        "y": 980,
+        "width": 144,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.Edit",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3310,
+        "y": 1115,
+        "width": 144,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.ScrollBar",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3259,
+        "y": 1048,
+        "width": 27,
+        "height": 94,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Ninch",
+      "kind": "ControlType.CheckBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1352,
+        "width": 144,
+        "height": 46,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "FEnabled",
+      "kind": "ControlType.CheckBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3394,
+        "y": 1307,
+        "width": 108,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "fSolid",
+      "kind": "ControlType.CheckBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3385,
+        "y": 1265,
+        "width": 168,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "fTransparentShow",
+      "kind": "ControlType.CheckBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3439,
+        "y": 1404,
+        "width": 108,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "TransNinch",
+      "kind": "ControlType.CheckBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1412,
+        "width": 108,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Semitransparent",
+      "kind": "ControlType.CheckBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3190,
+        "y": 1490,
+        "width": 288,
+        "height": 46,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Colors:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 904,
+        "width": 63,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Colors:",
+      "kind": "ControlType.Image",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 942,
+        "width": 272,
+        "height": 272,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Colors:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 904,
+        "width": 63,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Colors:",
+      "kind": "ControlType.Image",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 942,
+        "width": 271,
+        "height": 140,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Luminosity:",
+      "kind": "ControlType.Image",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3497,
+        "y": 942,
+        "width": 25,
+        "height": 142,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Color model:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1102,
+        "width": 118,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Color model:",
+      "kind": "ControlType.ComboBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1092,
+        "width": 178,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "RGB",
+      "kind": "ControlType.ListItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1092,
+        "width": 178,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "HSL",
+      "kind": "ControlType.ListItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1092,
+        "width": 178,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Hue:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1150,
+        "width": 43,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Hue:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1150,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Sat:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1203,
+        "width": 34,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Sat:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1203,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Lum:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1256,
+        "width": 45,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Lum:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1256,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Red:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1150,
+        "width": 41,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Red:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1150,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Green:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1203,
+        "width": 60,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Green:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1203,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Blue:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1256,
+        "width": 45,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Blue:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1256,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Hex:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1309,
+        "width": 41,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Hex:",
+      "kind": "ControlType.Edit",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1309,
+        "width": 108,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Cyan:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1150,
+        "width": 51,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Cyan:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1150,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Magenta:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1203,
+        "width": 88,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Magenta:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1203,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Yellow:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1256,
+        "width": 65,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Yellow:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1256,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Black:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1309,
+        "width": 53,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Black:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1309,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Ink Name",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1324,
+        "width": 314,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Colors:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3217,
+        "y": 928,
+        "width": 138,
+        "height": 38,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Colors:",
+      "kind": "ControlType.List",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3217,
+        "y": 980,
+        "width": 402,
+        "height": 28,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Maintain luminosity",
+      "kind": "ControlType.RadioButton",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3211,
+        "y": 1393,
+        "width": 270,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Keep tint percentage",
+      "kind": "ControlType.RadioButton",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3211,
+        "y": 1393,
+        "width": 270,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Tint:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3190,
+        "y": 1610,
+        "width": 288,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Tint:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3475,
+        "y": 1453,
+        "width": 150,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.ScrollBar",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3214,
+        "y": 1457,
+        "width": 240,
+        "height": 38,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Colors:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3298,
+        "y": 864,
+        "width": 150,
+        "height": 53,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Colors:",
+      "kind": "ControlType.Image",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3190,
+        "y": 894,
+        "width": 300,
+        "height": 375,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Swatch 52.7C: ",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3418,
+        "y": 864,
+        "width": 150,
+        "height": 53,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "1",
+      "kind": "ControlType.RadioButton",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3211,
+        "y": 1393,
+        "width": 270,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "2",
+      "kind": "ControlType.RadioButton",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3211,
+        "y": 1393,
+        "width": 270,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "3",
+      "kind": "ControlType.RadioButton",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3211,
+        "y": 1393,
+        "width": 270,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "4",
+      "kind": "ControlType.RadioButton",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3211,
+        "y": 1393,
+        "width": 270,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "5",
+      "kind": "ControlType.RadioButton",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3211,
+        "y": 1393,
+        "width": 270,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "6",
+      "kind": "ControlType.RadioButton",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3211,
+        "y": 1393,
+        "width": 270,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "7",
+      "kind": "ControlType.RadioButton",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3211,
+        "y": 1393,
+        "width": 270,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Color type:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3478,
+        "y": 864,
+        "width": 150,
+        "height": 53,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Color type:",
+      "kind": "ControlType.ComboBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3409,
+        "y": 1284,
+        "width": 225,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Solid Coated",
+      "kind": "ControlType.ListItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3409,
+        "y": 1284,
+        "width": 225,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Solid Uncoated",
+      "kind": "ControlType.ListItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3409,
+        "y": 1284,
+        "width": 225,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Matte Coated",
+      "kind": "ControlType.ListItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3409,
+        "y": 1284,
+        "width": 225,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Process",
+      "kind": "ControlType.ListItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3409,
+        "y": 1284,
+        "width": 225,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Goe Coated",
+      "kind": "ControlType.ListItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3409,
+        "y": 1284,
+        "width": 225,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Goe Uncoated",
+      "kind": "ControlType.ListItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3409,
+        "y": 1284,
+        "width": 225,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "GoeBridge",
+      "kind": "ControlType.ListItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3409,
+        "y": 1284,
+        "width": 225,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Lookup PANTONE\u00ae color or swatch:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1348,
+        "width": 108,
+        "height": 38,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Lookup PANTONE\u00ae color or swatch:",
+      "kind": "ControlType.Edit",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3409,
+        "y": 1344,
+        "width": 120,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Find",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1408,
+        "width": 210,
+        "height": 53,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Transparency:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3190,
+        "y": 1610,
+        "width": 288,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Transparency:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3499,
+        "y": 1652,
+        "width": 150,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.ScrollBar",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3190,
+        "y": 1655,
+        "width": 288,
+        "height": 38,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "OK",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3557,
+        "y": 833,
+        "width": 151,
+        "height": 54,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Cancel",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3557,
+        "y": 901,
+        "width": 151,
+        "height": 54,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Preview",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3557,
+        "y": 969,
+        "width": 151,
+        "height": 54,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.Image",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3569,
+        "y": 1209,
+        "width": 128,
+        "height": 128,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Current ",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3595,
+        "y": 1345,
+        "width": 75,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "New ",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3609,
+        "y": 1171,
+        "width": 48,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "New ",
+      "kind": "ControlType.Image",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3190,
+        "y": 882,
+        "width": 350,
+        "height": 493,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Vertical",
+      "kind": "ControlType.ScrollBar",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Line up",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Page up",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Position",
+      "kind": "ControlType.Custom",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Page down",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Line down",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Horizontal",
+      "kind": "ControlType.ScrollBar",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Column left",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Page left",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Position",
+      "kind": "ControlType.Custom",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Page right",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Column right",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.Custom",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Colors",
+      "kind": "ControlType.Window",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3178,
+        "y": 819,
+        "width": 271,
+        "height": 285,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.Tab",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3190,
+        "y": 834,
+        "width": 350,
+        "height": 48,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Standard",
+      "kind": "ControlType.TabItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3190,
+        "y": 836,
+        "width": 119,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Custom",
+      "kind": "ControlType.TabItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3309,
+        "y": 836,
+        "width": 108,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "fProcessMode",
+      "kind": "ControlType.CheckBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3232,
+        "y": 1190,
+        "width": 108,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.Edit",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3178,
+        "y": 819,
+        "width": 144,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "fCustomChanged",
+      "kind": "ControlType.CheckBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3481,
+        "y": 1074,
+        "width": 108,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "FPreview",
+      "kind": "ControlType.CheckBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3361,
+        "y": 1355,
+        "width": 108,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3259,
+        "y": 988,
+        "width": 144,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3259,
+        "y": 988,
+        "width": 144,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.Edit",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3466,
+        "y": 920,
+        "width": 144,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.Edit",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3466,
+        "y": 980,
+        "width": 144,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.Edit",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3310,
+        "y": 1115,
+        "width": 144,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.ScrollBar",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3259,
+        "y": 1048,
+        "width": 27,
+        "height": 94,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Ninch",
+      "kind": "ControlType.CheckBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1352,
+        "width": 144,
+        "height": 46,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "FEnabled",
+      "kind": "ControlType.CheckBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3394,
+        "y": 1307,
+        "width": 108,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "fSolid",
+      "kind": "ControlType.CheckBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3385,
+        "y": 1265,
+        "width": 168,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "fTransparentShow",
+      "kind": "ControlType.CheckBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3439,
+        "y": 1404,
+        "width": 108,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "TransNinch",
+      "kind": "ControlType.CheckBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1412,
+        "width": 108,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Semitransparent",
+      "kind": "ControlType.CheckBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3190,
+        "y": 1490,
+        "width": 288,
+        "height": 46,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Colors:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 904,
+        "width": 63,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Colors:",
+      "kind": "ControlType.Image",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 942,
+        "width": 272,
+        "height": 272,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Colors:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 904,
+        "width": 63,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Colors:",
+      "kind": "ControlType.Image",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 942,
+        "width": 271,
+        "height": 140,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Luminosity:",
+      "kind": "ControlType.Image",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3497,
+        "y": 942,
+        "width": 25,
+        "height": 142,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Color model:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1102,
+        "width": 118,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Color model:",
+      "kind": "ControlType.ComboBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1092,
+        "width": 178,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "RGB",
+      "kind": "ControlType.ListItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1092,
+        "width": 178,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "HSL",
+      "kind": "ControlType.ListItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1092,
+        "width": 178,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Hue:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1150,
+        "width": 43,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Hue:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1150,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Sat:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1203,
+        "width": 34,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Sat:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1203,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Lum:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1256,
+        "width": 45,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Lum:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1256,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Red:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1150,
+        "width": 41,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Red:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1150,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Green:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1203,
+        "width": 60,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Green:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1203,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Blue:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1256,
+        "width": 45,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Blue:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1256,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Hex:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1309,
+        "width": 41,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Hex:",
+      "kind": "ControlType.Edit",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1309,
+        "width": 108,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Cyan:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1150,
+        "width": 51,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Cyan:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1150,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Magenta:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1203,
+        "width": 88,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Magenta:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1203,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Yellow:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1256,
+        "width": 65,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Yellow:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1256,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Black:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1309,
+        "width": 53,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Black:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3344,
+        "y": 1309,
+        "width": 94,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Ink Name",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1324,
+        "width": 314,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Colors:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3217,
+        "y": 928,
+        "width": 138,
+        "height": 38,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Colors:",
+      "kind": "ControlType.List",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3217,
+        "y": 980,
+        "width": 402,
+        "height": 28,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Maintain luminosity",
+      "kind": "ControlType.RadioButton",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3211,
+        "y": 1393,
+        "width": 270,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Keep tint percentage",
+      "kind": "ControlType.RadioButton",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3211,
+        "y": 1393,
+        "width": 270,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Tint:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3190,
+        "y": 1610,
+        "width": 288,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Tint:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3475,
+        "y": 1453,
+        "width": 150,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.ScrollBar",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3214,
+        "y": 1457,
+        "width": 240,
+        "height": 38,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Colors:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3298,
+        "y": 864,
+        "width": 150,
+        "height": 53,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Colors:",
+      "kind": "ControlType.Image",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3190,
+        "y": 894,
+        "width": 300,
+        "height": 375,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Swatch 52.7C: ",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3418,
+        "y": 864,
+        "width": 150,
+        "height": 53,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "1",
+      "kind": "ControlType.RadioButton",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3211,
+        "y": 1393,
+        "width": 270,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "2",
+      "kind": "ControlType.RadioButton",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3211,
+        "y": 1393,
+        "width": 270,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "3",
+      "kind": "ControlType.RadioButton",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3211,
+        "y": 1393,
+        "width": 270,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "4",
+      "kind": "ControlType.RadioButton",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3211,
+        "y": 1393,
+        "width": 270,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "5",
+      "kind": "ControlType.RadioButton",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3211,
+        "y": 1393,
+        "width": 270,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "6",
+      "kind": "ControlType.RadioButton",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3211,
+        "y": 1393,
+        "width": 270,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "7",
+      "kind": "ControlType.RadioButton",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3211,
+        "y": 1393,
+        "width": 270,
+        "height": 31,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Color type:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3478,
+        "y": 864,
+        "width": 150,
+        "height": 53,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Color type:",
+      "kind": "ControlType.ComboBox",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3409,
+        "y": 1284,
+        "width": 225,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Solid Coated",
+      "kind": "ControlType.ListItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3409,
+        "y": 1284,
+        "width": 225,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Solid Uncoated",
+      "kind": "ControlType.ListItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3409,
+        "y": 1284,
+        "width": 225,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Matte Coated",
+      "kind": "ControlType.ListItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3409,
+        "y": 1284,
+        "width": 225,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Process",
+      "kind": "ControlType.ListItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3409,
+        "y": 1284,
+        "width": 225,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Goe Coated",
+      "kind": "ControlType.ListItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3409,
+        "y": 1284,
+        "width": 225,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Goe Uncoated",
+      "kind": "ControlType.ListItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3409,
+        "y": 1284,
+        "width": 225,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "GoeBridge",
+      "kind": "ControlType.ListItem",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3409,
+        "y": 1284,
+        "width": 225,
+        "height": 50,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Lookup PANTONE\u00ae color or swatch:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1348,
+        "width": 108,
+        "height": 38,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Lookup PANTONE\u00ae color or swatch:",
+      "kind": "ControlType.Edit",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3409,
+        "y": 1344,
+        "width": 120,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Find",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3208,
+        "y": 1408,
+        "width": 210,
+        "height": 53,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Transparency:",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3190,
+        "y": 1610,
+        "width": 288,
+        "height": 45,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "Transparency:",
+      "kind": "ControlType.Spinner",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3499,
+        "y": 1652,
+        "width": 150,
+        "height": 44,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.ScrollBar",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3190,
+        "y": 1655,
+        "width": 288,
+        "height": 38,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "OK",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3557,
+        "y": 833,
+        "width": 151,
+        "height": 54,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Cancel",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3557,
+        "y": 901,
+        "width": 151,
+        "height": 54,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Preview",
+      "kind": "ControlType.Button",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3557,
+        "y": 969,
+        "width": 151,
+        "height": 54,
+        "isValid": true
+      },
+      "offscreen": true
+    },
+    {
+      "provider": "msaa",
+      "name": "",
+      "kind": "ControlType.Image",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3569,
+        "y": 1209,
+        "width": 128,
+        "height": 128,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "Current ",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3595,
+        "y": 1345,
+        "width": 75,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "New ",
+      "kind": "ControlType.Text",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3609,
+        "y": 1171,
+        "width": 48,
+        "height": 30,
+        "isValid": true
+      },
+      "offscreen": false
+    },
+    {
+      "provider": "msaa",
+      "name": "New ",
+      "kind": "ControlType.Image",
+      "native_hwnd": 0,
+      "bounds": {
+        "x": 3190,
+        "y": 882,
+        "width": 350,
+        "height": 493,
+        "isValid": true
+      },
+      "offscreen": false
+    }
+  ]
+}

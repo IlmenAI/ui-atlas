@@ -1,0 +1,24 @@
+recording validate 20261019-130737-excel-e84d903d
+valid
+exit=0
+map validate 20261019-130737-excel-e84d903d
+valid
+exit=0
+map quality 20261019-130737-excel-e84d903d
+STATUS	NEEDS REVIEW
+SCREENS	5
+SEMANTIC SURFACES	2
+CONTROLS	784
+SAVED DATA GRIDS	0
+UIA-NATIVE DATA GRIDS	0
+NON-UIA-NATIVE DATA GRIDS	0
+TABLE CELLS	0
+SCREENSHOTS	5
+EXACT DUPLICATE SCREENSHOTS	0
+INTERACTIONS	3/4 complete
+PARTIAL SCREEN SCANS	5
+MISSING SCREENSHOTS	0
+REVIEW	UI Maps candidates await explicit review; use map validate-drafts for publication eligibility
+REVIEW	1 interaction without a confirmed result screen
+REVIEW	5 screen scans returned partial controls
+exit=0

@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package uimaps.v1;
+option csharp_namespace = "UIMaps.Protocol.V1";
+
+import "uimaps/v1/common.proto";
+
+message PropertyCoverage {
+  int64 attempted = 1; int64 read = 2; int64 failed = 3;
+  int64 unsupported = 4; int64 protected_or_redacted = 5;
+  repeated string failure_classes = 6;
+}
+
+message TraversalFrontier {
+  string frontier_id = 1; string capture_window_id = 2; string provider_id = 3;
+  string parent_evidence_id = 4; string source_element_evidence = 5;
+  bool reason_known = 6; string stop_reason = 7; int32 estimated_child_count = 8;
+  string created_at = 9; string terminal_state = 10;
+}
+
+message ProviderAttemptOutcome {
+  string attempt_id = 1; string capture_window_id = 2; string provider_id = 3;
+  string worker_version = 4; string worker_architecture = 5;
+  string started_at = 6; string ended_at = 7; string status = 8; string failure_class = 9;
+  bool retryable = 10; repeated string evidence_packet_ids = 11;
+  int64 nodes_observed = 12; int64 nodes_included = 13;
+  int64 properties_attempted = 14; int64 properties_read = 15; int64 properties_failed = 16;
+  int32 frontier_added = 17; repeated StringProperty resource_usage_summary = 18;
+}
+
+message WindowCaptureOutcome {
+  string capture_window_id = 1; string terminal_status = 2; string identity_status = 3;
+  repeated string providers_attempted = 4; repeated string providers_succeeded = 5;
+  repeated ProviderAttemptOutcome provider_attempts = 6;
+  int64 nodes_observed = 7; int64 nodes_included = 8;
+  int32 truncated_subtree_count = 9; int32 remaining_frontier_count = 10;
+  PropertyCoverage property_coverage = 11; string first_observation_at = 12;
+  string last_observation_at = 13; string terminal_reason = 14; Health health = 15;
+}
+
+message ScreenshotCoverage {
+  int64 selected_display_area_px = 1; int64 captured_area_px = 2;
+  int64 protected_or_missing_area_px = 3; repeated RectPx protected_or_missing_regions = 4;
+  string status = 5;
+}
+
+enum ConvergenceState {
+  CONVERGENCE_STATE_UNSPECIFIED = 0;
+  CONVERGENCE_NOT_APPLICABLE = 1; CONVERGENCE_IN_PROGRESS = 2;
+  CONVERGENCE_CONVERGED = 3; CONVERGENCE_FRONTIER_REMAINING = 4;
+  CONVERGENCE_BUDGET_EXHAUSTED = 5; CONVERGENCE_CANCELLED = 6;
+  CONVERGENCE_PROVIDER_BLOCKED = 7; CONVERGENCE_LIMIT_REACHED = 8;
+}
+
+message ReasonCount { string reason = 1; int32 count = 2; }
+message ProviderDuration { string provider_id = 1; int64 duration_ms = 2; }
+
+message CoverageReport {
+  int32 cataloged_windows = 1; int32 eligible_windows = 2; int32 windows_attempted = 3;
+  int32 windows_completed = 4; int32 windows_partial = 5; int32 windows_timed_out = 6;
+  int32 windows_provider_failed = 7; int32 windows_native_only = 8; int32 windows_inaccessible = 9;
+  int32 windows_cancelled = 10; int32 windows_budget_exhausted = 11;
+  repeated ReasonCount excluded_window_counts_by_reason = 12;
+  int64 nodes_observed = 13; int64 nodes_included = 14; int32 truncated_subtrees = 15;
+  int32 remaining_frontier_count = 16; PropertyCoverage property_coverage = 17;
+  ScreenshotCoverage screenshot_coverage = 18; int32 pass_count = 19;
+  ConvergenceState convergence_state = 20; int64 total_duration_ms = 21;
+  repeated ProviderDuration provider_durations = 22; string session_terminal_state = 23;
+  int32 unexplained_omission_count = 24; repeated WindowCaptureOutcome window_outcomes = 25;
+}

@@ -1,0 +1,17 @@
+0.0-9.0  I have a problem. I'm looking at PowerPoint data we just fixed. I'm looking at change
+9.0-15.0  case. I think we have two options with change case. I go to window, you can see there are
+15.0-22.4  two of them. This variation of change case doesn't have any metadata for the control
+22.4-32.4  even to a trotted world view. I wonder why. Let's think number one. Think number two.
+32.4-39.1  I do not see textual data for the tooltip and I think it's about time to save all
+39.1-46.1  tooltip window as an additional type of windows that we can have a raw world, semantic world
+46.1-60.1  and later on Atlas world as well. What else? Good. Looks good. This also looks like a tooltip.
+60.1-72.1  We need to be able to distinguish between tooltips. It's good. Let's look here. Maybe we have two of them.
+73.1-77.1  That's a bit unclear. Probably we captured twice.
+82.1-85.1  That looks good. Dictate looks good.
+85.1-95.1  Looks good. Looks good. Looks good.
+95.1-100.1  Initial styles look good. Initial looks good.
+100.1-105.1  Initial looks good. Titles. Share dials.
+105.1-112.1  Quick styles. Shape fill.
+112.1-122.1  Shape fill once again. This is also interesting. We have two shape fill here and here.
+122.1-129.1  Are they the same? Is they the same? I think we should say that this is just an observation of the same thing.
+129.1-135.1  Figure this out, please. We have three times, so figure this out.

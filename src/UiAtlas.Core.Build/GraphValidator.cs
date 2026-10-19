@@ -21,7 +21,7 @@ public static class GraphValidator
         else if (graph.Metadata.PrivacyProfile is not (FormatVersions.SafeExportProfile or FormatVersions.FullEvidenceProfile))
             issues.Add(new("graph.metadata", "error", "metadata.privacyProfile", "Graph privacy profile is unsupported."));
         var ids = new HashSet<string>(StringComparer.Ordinal);
-        if (graph.Nodes.Count > 100_000 || graph.Edges.Count > 100_000)
+        if (graph.Nodes.Count > GraphContractLimits.MaxNodes || graph.Edges.Count > GraphContractLimits.MaxEdges)
             issues.Add(new("graph.count-limit", "error", "$", "Graph exceeds node or edge limit."));
         foreach (var node in graph.Nodes)
         {
@@ -72,8 +72,8 @@ public static class GraphValidator
             if (string.IsNullOrEmpty(edge.Id) || edge.Id.Length > 128 || string.IsNullOrEmpty(edge.Kind) || edge.Kind.Length > 128 ||
                 string.IsNullOrEmpty(edge.FromId) || string.IsNullOrEmpty(edge.ToId) || edge.Properties is null || edge.Evidence is null)
             { issues.Add(new("graph.required", "error", edge.Id, "Edge fields are invalid.")); continue; }
-            if (edge.Kind is not ("contains" or "observed-transition" or "opens-popup" or "interaction" or
-                "predicts-transition" or "confirmed-as" or "contradicted-by"))
+            if (edge.Kind is not ("contains" or "presents" or "occludes" or "observed-transition" or "opens-popup" or "interaction" or
+                "predicts-transition" or "confirmed-as" or "contradicted-by" or "semantic-interpreted-from"))
                 issues.Add(new("graph.edge-kind", "error", edge.Id, "Edge kind is unsupported."));
             if (!ids.Add(edge.Id)) issues.Add(new("graph.duplicate-id", "error", edge.Id, "Duplicate edge identifier."));
             if (!nodeIds.Contains(edge.FromId) || !nodeIds.Contains(edge.ToId))
@@ -151,6 +151,14 @@ public static class GraphValidator
         var byId = nodes.GroupBy(node => node.Id, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
         var contains = edges.Where(edge => edge is not null && edge.Kind == "contains")
             .Select(edge => (edge.FromId, edge.ToId)).ToHashSet();
+        foreach (var edge in edges.Where(edge => edge is not null && edge.Kind == "semantic-interpreted-from"))
+            if (!rawNodes.TryGetValue(edge.FromId, out var source) || !byId.TryGetValue(edge.ToId, out var target) ||
+                LayerOf(layersByNode, target.Id) != "semantic-world" || source.Kind != target.Kind ||
+                !target.Properties.Any(p => p.Name is "sourceRawSurfaceId" or "sourceRawControlId" or "sourceRawStateId" && p.Value == source.Id) ||
+                edge.Evidence.Count == 0 || edge.Evidence.Any(e => !source.Evidence.Any(s => s.BundleId == e.BundleId && s.FrameSequence == e.FrameSequence) ||
+                    !target.Evidence.Any(t => t.BundleId == e.BundleId && t.FrameSequence == e.FrameSequence)) ||
+                !edge.Properties.Any(p => p.Name == "cardinality" && p.Value is "one-to-one" or "many-to-one" or "one-to-many" or "many-to-many"))
+                issues.Add(new("graph.semantic-lineage", "error", edge.Id, "Interpretation requires typed Raw World sources and shared observation evidence."));
         foreach (var node in nodes.Where(node => node.Kind != GraphNodeKind.Application))
             if (!contains.Contains((node.ParentId, node.Id)))
                 issues.Add(new("graph.containment", "error", node.Id, "Hierarchy parent is not represented by containment evidence."));
@@ -166,6 +174,12 @@ public static class GraphValidator
             if (!rawNodes.TryGetValue(edge.FromId, out var from) || !rawNodes.TryGetValue(edge.ToId, out var to) ||
                 from.Kind != GraphNodeKind.State || to.Kind != GraphNodeKind.State || from.ParentId != to.ParentId)
                 issues.Add(new("graph.transition", "error", edge.Id, "Observed transition must connect Raw World states on one surface."));
+        foreach (var edge in edges.Where(edge => edge is not null && edge.Kind is "presents" or "occludes"))
+            if (!rawNodes.TryGetValue(edge.FromId, out var surface) || surface.Kind != GraphNodeKind.Surface ||
+                !rawNodes.TryGetValue(edge.ToId, out var control) || control.Kind != GraphNodeKind.Control || edge.Evidence.Count == 0 ||
+                edge.Evidence.Any(evidence => !surface.Evidence.Any(item => item.BundleId == evidence.BundleId && item.FrameSequence == evidence.FrameSequence) ||
+                    !control.Evidence.Any(item => item.BundleId == evidence.BundleId && item.FrameSequence == evidence.FrameSequence)))
+                issues.Add(new("graph.scene-relationship", "error", edge.Id, "Scene relationship must connect a Raw World surface and control with evidence from the same observation."));
         foreach (var edge in edges.Where(edge => edge is not null && edge.Kind == "opens-popup"))
         {
             if (!byId.TryGetValue(edge.FromId, out var from) || !byId.TryGetValue(edge.ToId, out var to) ||
@@ -302,6 +316,7 @@ public static class GraphValidator
             {
                 GraphNodeKind.Surface => "sourceRawSurfaceId",
                 GraphNodeKind.Control => "sourceRawControlId",
+                GraphNodeKind.State => "sourceRawStateId",
                 _ => string.Empty
             };
             if (propertyName.Length == 0)
@@ -323,7 +338,14 @@ public static class GraphValidator
 
             if (!byId.TryGetValue(semantic.ParentId, out var parent)) continue;
             var parentLayer = LayerOf(layersByNode, parent.Id);
-            if (semantic.Kind == GraphNodeKind.Surface)
+            if (semantic.Kind == GraphNodeKind.State)
+            {
+                if (parent.Kind != GraphNodeKind.Surface || parentLayer != "semantic-world" ||
+                    sourceIds.Any(id => rawNodes.TryGetValue(id, out var state) &&
+                        !parent.Properties.Any(p => p.Name == "sourceRawSurfaceId" && p.Value == state.ParentId)))
+                    issues.Add(new("graph.semantic-variant", "error", semantic.Id, "Semantic variant must reference states on its declared source surfaces."));
+            }
+            else if (semantic.Kind == GraphNodeKind.Surface)
             {
                 var kind = semantic.Properties.FirstOrDefault(property => property.Name == "semanticSurfaceKind")?.Value;
                 if (kind is not ("Window" or "PopupFamily" or "PopupVariant"))
@@ -364,7 +386,13 @@ public static class GraphValidator
                 foreach (var sourceId in sourceIds)
                     if (rawNodes.TryGetValue(sourceId, out var rawControl) &&
                         rawControl.Properties.FirstOrDefault(property => property.Name == "rawSurfaceId")?.Value is { } sourceSurface &&
-                        (semanticSurface is null || !semanticSurface.Properties.Where(property => property.Name == "sourceRawSurfaceId").Any(property => property.Value == sourceSurface)))
+                        (semanticSurface is null || !semanticSurface.Properties.Where(property => property.Name == "sourceRawSurfaceId").Any(property => property.Value == sourceSurface)) &&
+                        !(semantic.Properties.Any(property => property is { Name: "sceneLineageBasis", Value: "retained-reported-owner" }) &&
+                          rawControl.Properties.Any(property => property.Name == "sceneReconstruction" && property.Value is "surface-scene/1" or "surface-scene/2") &&
+                          rawControl.Properties.FirstOrDefault(property => property.Name == "sceneReportedSurfaceRef")?.Value is { } reportedSurface &&
+                          semanticSurface?.Properties.Any(property => property.Name == "sourceRawSurfaceId" && property.Value == reportedSurface) == true &&
+                          rawNodes.TryGetValue(reportedSurface, out var reported) && rawControl.Evidence.All(evidence => reported.Evidence.Any(item =>
+                              item.BundleId == evidence.BundleId && item.FrameSequence == evidence.FrameSequence))))
                         issues.Add(new("graph.lineage-surface", "error", semantic.Id, "Semantic control lineage crosses a surface boundary."));
             }
         }
@@ -420,8 +448,8 @@ public static class GraphValidator
                 issues.Add(new("graph.safe-profile", "error", node.Id, "Safe profile node retains non-redacted content."));
         }
         foreach (var edge in graph.Edges.Where(edge => edge is not null))
-            if (!OpaqueId(edge.Id, "edge") || edge.Kind is not ("contains" or "observed-transition" or "opens-popup" or "interaction" or
-                    "predicts-transition" or "confirmed-as" or "contradicted-by") || edge.Properties is null || edge.Properties.Count != 0 || edge.Evidence is null || edge.Evidence.Any(evidence => evidence?.Bounds is not null))
+            if (!OpaqueId(edge.Id, "edge") || edge.Kind is not ("contains" or "presents" or "occludes" or "observed-transition" or "opens-popup" or "interaction" or
+                    "predicts-transition" or "confirmed-as" or "contradicted-by" or "semantic-interpreted-from") || edge.Properties is null || edge.Properties.Count != 0 || edge.Evidence is null || edge.Evidence.Any(evidence => evidence?.Bounds is not null))
                 issues.Add(new("graph.safe-profile", "error", edge.Id, "Safe profile edge retains non-redacted content."));
     }
 

@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package uimaps.v2_1;
+option csharp_namespace = "UIMaps.Protocol.V2_1";
+
+import "uimaps/v1/common.proto";
+import "uimaps/v2_1/grid_grounding.proto";
+
+message VisibleGridCellInstance {
+  string grid_column_ref = 1;
+  string original_text = 2;
+  string normalized_text = 3;
+  uimaps.v1.RectPx bounds_px = 4;
+  double confidence = 5;
+  uimaps.v1.Lineage lineage = 6;
+}
+message VisibleGridRowInstance {
+  string instance_ref = 1;
+  int32 visible_ordinal = 2;
+  repeated string row_key_hypotheses = 3;
+  repeated VisibleGridCellInstance visible_cells = 4;
+  double association_confidence = 5;
+  uimaps.v1.Lineage lineage = 6;
+}
+
+message DataGridInstance {
+  string instance_ref = 1;
+  string data_grid_ref = 2;
+  string surface_ref = 3;
+  string surface_variant_ref = 4;
+  uint64 world_state_version = 5;
+  uimaps.v1.CaptureInterval observation_interval = 6;
+  uimaps.v1.RectPx current_bounds_px = 7;
+  repeated string observed_headers = 8;
+  repeated string observed_columns = 9;
+  repeated VisibleGridRowInstance visible_rows = 10;
+  GridGroundingStatus grounding_status = 11;
+  double confidence = 12;
+  string ambiguity = 13;
+  uimaps.v1.Lineage lineage = 14;
+  bool evidence_available = 15;
+}
+
+message GridChange {
+  string kind = 1;
+  string subject_ref = 2;
+  string before_value = 3;
+  string after_value = 4;
+  double confidence = 5;
+}
+
+message VisibleGridDelta {
+  string delta_ref = 1;
+  string map_revision_ref = 2;
+  string data_grid_ref = 3;
+  uint64 before_world_state_version = 4;
+  uint64 after_world_state_version = 5;
+  uimaps.v1.CaptureInterval before_observation_interval = 6;
+  uimaps.v1.CaptureInterval after_observation_interval = 7;
+  repeated GridChange grid_changes = 8;
+  repeated GridChange column_changes = 9;
+  repeated GridChange visible_row_changes = 10;
+  repeated GridChange visible_cell_changes = 11;
+  repeated string unmatched_before = 12;
+  repeated string unmatched_after = 13;
+  string ambiguity = 14;
+  uimaps.v1.Health health = 15;
+  uimaps.v1.Lineage lineage = 16;
+}

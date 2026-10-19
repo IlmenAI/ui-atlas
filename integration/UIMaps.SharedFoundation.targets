@@ -1,0 +1,63 @@
+<Project>
+  <!-- Imported only by the proprietary integration workspace. UI Atlas builds
+       without this file or any sibling checkout. UIMaps.SharedShell compiles the
+       shared presentation; private settings, grid services, localization,
+       workflow contracts and runtime adapters stay in the integration workspace. -->
+  <PropertyGroup>
+    <_AtlasProtocol>$(UIAtlasFoundationRoot)\vendor\uimaps\uimaps-protocol</_AtlasProtocol>
+    <_AtlasPerception>$(UIAtlasFoundationRoot)\vendor\uimaps\uimaps-perception\src\UIMaps.Perception.Core</_AtlasPerception>
+    <_AtlasMap>$(UIAtlasFoundationRoot)\vendor\uimaps\uimaps-map\src\UIMaps.Map.Core</_AtlasMap>
+    <_AtlasRecorder>$(UIAtlasFoundationRoot)\vendor\uimaps\uimaps-recorder\src\UIMaps.Recorder.Windows</_AtlasRecorder>
+    <DefineConstants>$(DefineConstants);UIMAPS_SHARED_FOUNDATION</DefineConstants>
+    <AtlasMappingToolsBuildRoot Condition="'$(AtlasMappingToolsBuildRoot)' == ''">$(UIAtlasFoundationRoot)\.codex-out\maplock-deployment</AtlasMappingToolsBuildRoot>
+  </PropertyGroup>
+  <Target Name="ValidateUIAtlasFoundation" BeforeTargets="PrepareForBuild">
+    <Error Condition="!Exists('$(UIAtlasFoundationRoot)\provenance\uimaps-foundation.json')" Text="The shared UI Atlas mapping foundation is missing. Set UIAtlasFoundationRoot to the public checkout." />
+  </Target>
+  <Target Name="PublishAtlasMappingTools" AfterTargets="Publish" DependsOnTargets="StageAtlasMappingTools"
+          Condition="'$(MSBuildProjectName)' == 'UIMaps.Application' and '$(DesignTimeBuild)' != 'true'">
+    <Copy SourceFiles="@(_AtlasMappingTools)" DestinationFiles="@(_AtlasMappingTools->'$(PublishDir)atlas\%(AtlasRelativePath)')" SkipUnchangedFiles="true" />
+  </Target>
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'UIMaps.Protocol'">
+    <Compile Remove="*.cs;Workflow\**\*.cs" />
+    <Compile Include="$(_AtlasProtocol)\src\UIMaps.Protocol\*.cs" />
+    <Protobuf Remove="@(Protobuf)" />
+    <Protobuf Include="$(_AtlasProtocol)\proto\**\*.proto" ProtoRoot="$(_AtlasProtocol)\proto" GrpcServices="None" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'UIMaps.Perception.Core'">
+    <Compile Remove="AssociationPolicyV1.cs;FrameSynchronizer.cs;ObservationNormalizer.cs;PacketValidator.cs;PerceptionEngine.cs;PerceptionPolicy.cs;TrackAssociator.cs;VisualTextObservationProvider.cs;WorldObjectBuilder.cs;Grid\WindowsOcrProvider.cs" />
+    <Compile Include="$(_AtlasPerception)\*.cs;$(_AtlasPerception)\Grid\*.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'UIMaps.Map.Core'">
+    <Compile Remove="*.cs;Grid\DataGridMapStore.cs" />
+    <Compile Include="$(_AtlasMap)\*.cs;$(_AtlasMap)\Grid\DataGridMapStore.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'UIMaps.Recorder.Windows'">
+    <FrameworkReference Include="Microsoft.WindowsDesktop.App.WPF" />
+    <PackageReference Remove="System.Drawing.Common" />
+    <!-- Continuous input and workflow probes remain private, as does the
+         private provider worker's workflow dispatch. -->
+    <_SharedRecorderSource Include="$(_AtlasRecorder)\*.cs" Exclude="$(_AtlasRecorder)\GuidedInteractionObserver.cs" />
+    <Compile Remove="@(_SharedRecorderSource->'%(Filename)%(Extension)')" />
+    <Compile Include="@(_SharedRecorderSource)" />
+    <EmbeddedResource Remove="..\..\profiles\capture-profiles.v1.json" />
+    <EmbeddedResource Include="$(_AtlasRecorder)\..\..\profiles\capture-profiles.v1.json" LogicalName="UIMaps.Recorder.Windows.capture-profiles.v1.json" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'UIMaps.Recorder.Windows'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <Target Name="StageAtlasMappingTools" AfterTargets="Build" Condition="'$(MSBuildProjectName)' == 'UIMaps.Application' and '$(DesignTimeBuild)' != 'true'">
+    <!-- This is a separate dependency graph and output root. VS only builds the
+         solution's normal outputs; its reference/solution flags must not make
+         the isolated Atlas build skip its own dependencies. -->
+    <MSBuild Projects="$(UIAtlasFoundationRoot)\src\UiAtlas.Core.Cli\UiAtlas.Core.Cli.csproj" Targets="Restore;GetAtlasDeploymentFiles"
+             RemoveProperties="ArtifactsPath;UseArtifactsOutput;BaseOutputPath;BaseIntermediateOutputPath;OutputPath;IntermediateOutputPath;CurrentSolutionConfigurationContents"
+             Properties="Configuration=$(Configuration);BuildingInsideVisualStudio=false;BuildProjectReferences=true;BuildingSolutionFile=false;StopRunningUiAtlasProcesses=false;UiAtlasIsolatedBuildRoot=$(AtlasMappingToolsBuildRoot)">
+      <Output TaskParameter="TargetOutputs" ItemName="_AtlasMappingTools" />
+    </MSBuild>
+    <Copy SourceFiles="@(_AtlasMappingTools)" DestinationFiles="@(_AtlasMappingTools->'$(TargetDir)atlas\%(AtlasRelativePath)')" SkipUnchangedFiles="true" />
+  </Target>
+  <ItemGroup Condition="Exists('$(UIMapsIntegrationRoot)\uimaps-workflow-contracts\UIMaps.Workflow.Contracts.csproj') and ($(MSBuildProjectName.StartsWith('UIMaps.WorkflowRecorder')) or $(MSBuildProjectName.StartsWith('UIMaps.Recorder')) or $(MSBuildProjectName.StartsWith('UIMaps.Localization')) or '$(MSBuildProjectName)' == 'UIMaps.Application' or '$(MSBuildProjectName)' == 'UIMaps.Application.Tests' or '$(MSBuildProjectName)' == 'UIMaps.Protocol.Tests')">
+    <ProjectReference Include="$(UIMapsIntegrationRoot)\uimaps-workflow-contracts\UIMaps.Workflow.Contracts.csproj" />
+  </ItemGroup>
+</Project>

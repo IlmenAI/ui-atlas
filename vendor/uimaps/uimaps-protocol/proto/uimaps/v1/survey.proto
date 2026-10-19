@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package uimaps.v1;
+option csharp_namespace = "UIMaps.Protocol.V1";
+
+import "uimaps/v1/common.proto";
+import "uimaps/v1/perception.proto";
+import "uimaps/v1/capture_policy.proto";
+import "uimaps/v1/coverage.proto";
+
+message SurveyObservationInterval {
+  string source_ref = 1; string window_scope_ref = 2; CaptureInterval interval = 3;
+}
+
+message SegmentLineage { string segment_id = 1; uint64 sequence_number = 2; string checksum = 3; }
+
+message SurveyObjectRecord {
+  WorldObject world_object = 1; string first_observed_at = 2; string last_observed_at = 3;
+  repeated CaptureInterval observation_intervals = 4;
+}
+
+message SurveyScenePublication {
+  string publication_id = 1; PublicationKind publication_kind = 2; string perception_epoch = 3;
+  uint64 survey_version = 4; string episode_id = 5; string scene_id = 6; string display_id = 7;
+  string started_at = 8; string ended_at = 9; EffectiveCapturePolicy effective_policy = 10;
+  CoverageReport coverage_report = 11; repeated SurveyObjectRecord world_objects = 12;
+  repeated Track tracks = 13; repeated SurveyObservationInterval observation_intervals = 14;
+  repeated SegmentLineage segment_lineage = 15; ConvergenceState convergence_state = 16;
+  Health health = 17; string published_at = 18;
+}

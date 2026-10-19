@@ -26,7 +26,7 @@ public sealed record GridSchemaReview(
 /// <summary>The screen and host on which the user reviewed this grid; not live reading qualification.</summary>
 public sealed record DataGridReviewContext(
     ParentScopedGridLocator WindowLocator, string SurfaceLayerKey, GridLocatorSegment Control, RectI RelativeBounds,
-    bool? IsUiaNative = null);
+    bool? IsUiaNative = null, string? SourceBundleId = null, long? SourceFrame = null, string? SourceEvidenceId = null);
 
 public sealed record SavedDataGridReview(
     string GridId, string DisplayName, DataGridReviewContext Context, GridSchemaReview Review, DateTimeOffset SavedUtc);

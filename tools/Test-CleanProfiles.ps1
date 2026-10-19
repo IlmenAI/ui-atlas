@@ -34,10 +34,27 @@ try {
     Invoke-UiAtlas $cli recording validate clean-profile
     Invoke-UiAtlas $cli map build clean-profile
     Invoke-UiAtlas $cli map validate clean-profile
-    Invoke-UiAtlas $cli map quality clean-profile --strict
+    $map = Join-Path ${env:UI-ATLAS_DATA_HOME} 'maps\clean-profile.db'
+    $draft = (Invoke-UiAtlas $cli map drafts $map) | ConvertFrom-Json
+    Invoke-UiAtlas $cli map review $map $draft.mapDraftRef accept-all - --etag $draft.etag --reviewer clean-profile-test | Out-Null
+    Invoke-UiAtlas $cli map validate-drafts $map | Out-Null
+    Invoke-UiAtlas $cli map publish $map --reviewer clean-profile-test | Out-Null
     Invoke-UiAtlas $cli map export json clean-profile
-    $consumer = Join-Path $installed 'samples\consumer\UiAtlas.Core.Consumer.dll'
-    Invoke-UiAtlas $consumer (Join-Path ${env:UI-ATLAS_DATA_HOME} 'maps\clean-profile.db')
+    Invoke-UiAtlas $cli export json validate (Join-Path ${env:UI-ATLAS_DATA_HOME} 'exports\clean-profile.json')
+    $workspaceArchive = Join-Path $profileRoot 'application.atlas-map'
+    Invoke-UiAtlas $cli map export-workspace $map --out $workspaceArchive --allow-sensitive-evidence
+    Invoke-UiAtlas $cli map import-workspace $workspaceArchive --out (Join-Path $profileRoot 'imported') --allow-sensitive-evidence
+    Invoke-UiAtlas $cli map validate-drafts (Join-Path $profileRoot 'imported\map.db') | Out-Null
+    # Reinstallation exercises the upgrade/rollback path with an existing map.
+    $pointer = $map + '.uimaps\active.json'
+    $before = (Get-FileHash -LiteralPath $pointer -Algorithm SHA256).Hash
+    Set-Content -LiteralPath (Join-Path $installed 'upgrade-sentinel.txt') -Value 'previous installation'
+    & (Join-Path $packageRoot 'install.ps1') -InstallRoot $installed -NoShortcut
+    if ($LASTEXITCODE) { throw "Upgrade install $index failed." }
+    $backup = @(Get-ChildItem -LiteralPath $profileRoot -Directory -Filter 'installed.backup-*')
+    if ($backup.Count -ne 1 -or -not (Test-Path -LiteralPath (Join-Path $backup[0].FullName 'upgrade-sentinel.txt'))) { throw 'Previous installation was not retained.' }
+    if ((Get-FileHash -LiteralPath $pointer -Algorithm SHA256).Hash -ne $before) { throw 'Upgrade changed the existing map authority.' }
+    Invoke-UiAtlas $cli map validate-drafts $map | Out-Null
     Invoke-UiAtlas $cli map delete clean-profile --yes
     Invoke-UiAtlas $cli recording delete clean-profile --yes
     if ((Get-ChildItem -LiteralPath (Join-Path ${env:UI-ATLAS_DATA_HOME} 'maps') -Filter *.db -File -ErrorAction SilentlyContinue).Count -ne 0) {

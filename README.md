@@ -1,10 +1,43 @@
 # UiAtlas
 
+Open `UiAtlas.Core.slnx` and run **Launcher** for the desktop. It opens the shared
+shell with UI Maps and Diagnostics, plus recording and map-build settings. The
+terminal command `ui-atlas` shows help; `ui-atlas shell` starts the interactive CLI,
+and `ui-atlas app [--workspace maps|diagnostics]` opens the desktop.
+See [shared launchers](docs/2026-10-19-shared-launchers.md) for composition and build details.
+UI Atlas and MapLock now share the [same Atlas recordings and map library](docs/2026-10-19-shared-atlas-library.md).
+
+UI Atlas provides an attended UI mapping recorder, command-line tool, and UI
+Knowledge Graph Editor. New recordings use the UI Maps native recorder; new maps
+use UI Maps Perception and Map Core. Raw Data Streams, Raw World, Semantic World
+and Predicted remain in the editor, with original sensor evidence retained
+alongside reviewable map drafts. The public
+checkout builds independently; the MapLock-specific services, workflow recorder,
+workflow authoring, runtime, and product integrations remain proprietary.
+See the [migration rollout](docs/2026-10-13-uimaps-foundation-rollout.md) for
+architecture, commands, compatibility, and local qualification.
+
+Open **Settings** from the recorder's **More** menu or the map editor toolbar.
+**Recording profiles** lists the shared Recorder profiles, including Atlas's
+Mapping checkpoint default. Choose the profile for new recordings, customize
+its timeouts and coverage limits, and save; an active recording keeps the
+settings it started with. Restore defaults is staged until saved. Deep survey
+keeps unlimited duration/window/node/depth coverage while exposing worker safeguards.
+The recorder's existing table-reading settings remain available from this window.
+
+**UI Map building** sets independent node and edge limits for the next build or
+rebuild (100,000 each by default, up to 2,000,000 each). A build exceeding either
+limit reports the required counts and keeps the previous map and source recordings.
+Existing maps remain readable when local build limits are lowered. Larger maps
+need more memory; older Atlas versions may reject maps above 100,000 nodes or edges.
+Settings are saved locally under `%LOCALAPPDATA%\UiAtlas` in
+`recording-profiles.json` and `map-build-settings.json`; MapLock settings are not modified.
+
 <p align="center"><a href="https://gcore.jsdelivr.net/gh/AI-Successors/ui-atlas@4d1a316/docs/media/ui-atlas-demo.mp4"><strong>▶ Watch the UiAtlas product demo with English subtitles</strong></a></p>
 
 <a href="https://www.producthunt.com/products/ui-atlas?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-ui-atlas" target="_blank" rel="noopener noreferrer"><img alt="UI-Atlas - Map desktop interfaces for computer-use agents | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1245359&amp;theme=light&amp;t=1788941722658"></a>
 
-UiAtlas is an offline-first Windows toolkit for manually recording one selected desktop application and its owned popups, preserving Raw Data Streams, deterministically building Raw World and Semantic World UI Knowledge Graph layers, inspecting and diffing them, and consuming a lossless JSON export from an independent library.
+UiAtlas is an offline-first Windows toolkit for manually recording one selected desktop application and its owned popups, preserving Raw Data Streams, building and reviewing UI Maps knowledge, inspecting and diffing graph projections, and sharing maps with their evidence.
 
 <p align="center">
   <a href="https://gcore.jsdelivr.net/gh/AI-Successors/ui-atlas@6988b62/docs/media/ui-atlas.mp4">
@@ -14,7 +47,7 @@ UiAtlas is an offline-first Windows toolkit for manually recording one selected 
 
 <p align="center"><a href="https://gcore.jsdelivr.net/gh/AI-Successors/ui-atlas@6988b62/docs/media/ui-atlas.mp4"><strong>▶ Watch the UiAtlas product introduction</strong></a></p>
 
-The supported v1 scope is deliberately narrow: attended manual capture, Windows 10 version 2004 or later and Windows 11, Win32 window metadata, bounded UI Automation, scoped window screenshots, immutable recording bundles, observed mapping entities and transitions, SQLite, JSON, a command-line tool, and a read-only WPF explorer. It does not perform actions in applications or provide authoring, execution, remote-control, or background-monitoring features.
+The supported scope includes Windows 10 version 2004 or later and Windows 11, attended capture, immutable recording bundles, UI Maps perception, map review, immutable revision publication, SQLite/JSON interchange, and the WPF editor. Automatic mapping exploration remains an explicit recorder mode. Publishing a map creates knowledge; it does not authorize application actions or create a workflow.
 
 ## Product demo
 
@@ -32,7 +65,7 @@ Learn more [here](https://x.com/danielko/status/2097594696193413448)
 
 - Windows 10 2004+ or Windows 11
 - .NET 10 Windows Desktop Runtime for the release ZIP
-- .NET SDK 10.0.200 only for source builds
+- .NET SDK 10.0.200 or a newer .NET 10.0 SDK feature band for source builds
 - A desktop session at the same integrity level as the target application
 
 ## Install the release ZIP
@@ -55,7 +88,11 @@ dotnet build UiAtlas.Core.slnx -c Release --no-restore
 dotnet test UiAtlas.Core.slnx -c Release --no-build --no-restore
 ```
 
-Windows builds, rebuilds, and cleans automatically terminate running processes that use the executable project's exact output paths, including the recorder's UIA workers, desktop explorer, and copied Firebird adapter. This also handles `dotnet`-hosted DLLs and applies in Visual Studio. Finish active recordings before building. Other output configurations, checkouts, and installed copies are left running; design-time builds skip cleanup. To opt out, pass `-p:StopRunningUiAtlasProcesses=false`.
+Windows builds, rebuilds, and cleans automatically terminate running processes that use the executable project's exact output paths, including the recorder's UIA workers and desktop explorer. This also handles `dotnet`-hosted DLLs and applies in Visual Studio. Finish active recordings before building. Other output configurations, checkouts, and installed copies are left running; design-time builds skip cleanup. To opt out, pass `-p:StopRunningUiAtlasProcesses=false`.
+
+In Visual Studio 2026, set `UiAtlas.Core.Cli` as the startup project, select Debug or Release, then Build/Rebuild and run with F5 or Ctrl+F5. Executable projects disable Visual Studio's fast up-to-date shortcut so MSBuild runs the output-cleanup hook and performs its incremental build checks. The launched recorder comes from that project's current `bin\<Configuration>\net10.0-windows10.0.19041.0` output. Finish active recordings before building; replacing the output stops running copies from that same directory.
+
+Each recorder Build/Rebuild embeds the next local build number, displayed as `UI Atlas Core 2.0.N` in the startup banner and command help. Debug and Release share the counter in `.build/recorder-build-number.txt`, which is ignored by Git and survives Clean/Rebuild. Design-time checks and `--no-build` launches do not increment it. Numbers are allocated before compilation, so failed build attempts can leave gaps. `tools/Test-RecorderBuildNumber.ps1` verifies the emitted banners, repeated builds, Rebuild, both configurations, and fixed-number determinism. For reproducible packaging, `tools/Package.ps1` pins `UiAtlasBuildNumber=0`; build pipelines can supply `-p:UiAtlasBuildNumber=<number>` explicitly.
 
 When all locked packages are already available in the local NuGet cache and the machine is intentionally offline, add `-p:NuGetAudit=false` to the restore command. Run the normal restore or the vulnerability command in `docs/release.md` while online to refresh advisory data before release.
 
@@ -68,7 +105,7 @@ dotnet run --project src/UiAtlas.Core.Cli -c Release -- list recordings
 dotnet run --project src/UiAtlas.Core.Cli -c Release -- list maps
 ```
 
-`recording start` asks for explicit consent and takes one full baseline observation. Each attended click is stored immediately, then UiAtlas persists either a complete resulting screen, an owned popup/dialog, or an explicit failed/unobserved interaction. Pixels, UI Automation, visual geometry, OCR, and bounded native verification use independent lanes where the target permits it; provider delays do not erase the screenshot fallback. Exact visual duplicates are retained as raw evidence but collapsed into one higher-level map state. The recorder shows elapsed time, the active capture/build stage, and a concrete completion or review message. Finish waits up to two seconds for queued popup work; Cancel ends only the current recording and leaves the toolbar available for another session.
+`recording start` asks for explicit consent and takes a native baseline Survey. Each attended click is stored immediately, then UiAtlas records the resulting state, an owned popup/dialog, or an explicit failed/unobserved interaction. UI Maps' isolated providers acquire pixels, window topology and accessibility; Perception derives visual/OCR observations. Original native packets retain coverage, timing and provider attempts. The Atlas toolbar shows elapsed time and capture/build progress. Finish seals evidence and builds the map; Cancel ends the current recording. Automatic exploration remains an explicit mode.
 
 To capture the mapper's visible boundaries, control highlights, click indicators, and toolbar, take a desktop or region screenshot (for example, with Windows Snipping Tool). These overlays are included in user screenshots and screen sharing. UiAtlas temporarily hides them while capturing its own recording evidence so they do not become part of the mapped application.
 
@@ -105,7 +142,34 @@ ui-atlas export map validate C:\exports\sample-map.json
 ui-atlas export map delete "$env:LOCALAPPDATA\UiAtlas\Core\exports\sample-map.json"
 ```
 
-`format=json` is the default human-readable `ui-atlas.map.json/2` projection, including ordered interaction sessions, merged routes, affordances, and separate negative examples. `format=ui-atlas_flat` produces the existing v5 `uikg/vnext` compatibility document. `format=sqlite` publishes a lossless standalone copy of the authoritative graph database. All three retain identity-bearing UI information and require confirmation; unattended scripts can supply `--acknowledge-sensitive-identities`. `map export json` remains the separate privacy-safe graph interchange command. Catalog recordings, maps, and exports are moved to catalog trash. Export deletion accepts only a direct child of the managed exports directory; unrelated, nested, external, or linked paths are rejected.
+`format=json`, `format=ui-atlas_flat`, and `format=sqlite` export compatibility projections. All three retain identity-bearing UI information and require confirmation; unattended scripts can supply `--acknowledge-sensitive-identities`. `map export json` remains the separate privacy-safe graph interchange command. For a complete editable map, use **Export → Complete map workspace** or `map export-workspace`; a SQLite projection alone does not contain UI Maps review authority. Catalog deletion moves both the projection and its authority to recoverable trash.
+
+## Review and share a UI Maps map
+
+Keep `sample.db` together with its adjacent `sample.db.uimaps` directory. Open the
+map and select **Review map** to inspect entities, observed interactions, and
+source evidence; accept or reject candidates, correct names and parents, validate,
+then publish an immutable revision. Undo/redo is scoped to the open review window.
+
+```powershell
+ui-atlas map drafts sample.db
+ui-atlas map validate-drafts sample.db
+ui-atlas map review sample.db <draft-ref> accept <entity-ref> --etag <etag> --reviewer <name>
+ui-atlas map publish sample.db --reviewer <name>
+ui-atlas map export-revision sample.db <revision-ref> --out application.uimap
+ui-atlas map export-workspace sample.db --out application.atlas-map --allow-sensitive-evidence
+ui-atlas map import-workspace application.atlas-map --out restored --allow-sensitive-evidence
+ui-atlas map convert-recording existing.mlrec --out new-map.db
+ui-atlas map import-episode episode.pb --window <window-evidence-id> --output native-import --allow-sensitive-evidence
+ui-atlas open native-import
+```
+
+Review commands require a current draft etag. Validation returns exit code 4 when
+review or evidence blocks publication. Revision export excludes pixels and raw
+provider packets but retains labels and source references. Workspace export retains
+all evidence. Conversion leaves the original recording unchanged. Existing Atlas
+SQLite/JSON maps remain readable; old curation stays with the legacy map, while
+new UI Maps identities require their own review.
 
 ## Interactive command shell
 
@@ -143,7 +207,9 @@ dotnet run --project samples/UiAtlas.Core.Consumer -c Release -- sample.db --que
 
 The second sample is the integration seam for an autotest or AI agent: it returns semantic control IDs, stable selectors, supported actions, evidence counts, and observed destination states without giving the sample permission to click the application.
 
-The explorer opens the canonical graph without workspace context. Its three progressive understanding levels use the same mapping concepts as the main editor: Raw Data Streams (lossless per-observation native windows and UIA), Raw World (fused effective surface ownership), and Semantic World (interpreted reusable surfaces and controls). Environment Hierarchy contains surface/window instances and `Sessions → Steps → Source → Results`. Every visible surface-bearing topology node is selectable even when it belongs to an earlier column. The primary Main Window, Raw Window, and Semantic Window remain on one readable row-zero lineage while owned and popup branches occupy later rows. Higher-world filmstrips hide empty, popup-owned, and duplicate observations while preserving every captured frame in Raw Data Streams. Window shows the selected surface pixels. Controls shows opaque retained pixels for eligible interactive controls without a scene underlay; large structural frames remain behind descendants. Overlay uses those same control crops over a subdued scene. Structure uses pale layer-aware fills without inferred connectors, and Structure Overlay keeps those boundaries dominant over a subdued scene. Trace shows full-frame source/action/result evidence; Routes shows merged observed paths plus dashed affordances with unknown destinations. `map open <map-id>` automatically attaches the matching validated catalog recording when it exists; a direct-path map can use **Evidence** or `--evidence`. A safe export has no screenshot linkage and cannot display pixels.
+The editor opens the current UI Maps authority and projects three layers: original Raw Data Streams, Perception's Raw World, and the reviewed Semantic World. Hierarchy, topology, selection, filtering, screenshot crops and overlays remain available. **Review map** exposes the actual Map entities, variants, observed interactions, review decisions and publication state. A graph-only export opens for inspection; import the complete workspace to edit its authority.
+
+Legacy maps retain their existing trace, route, curation and evidence views. Those graph formats cannot represent every UI Maps review or interaction field. New observed interactions are inspected in **Review map → Observed interactions** and retained in revision/workspace exports. `map open <map-id>` attaches catalog evidence automatically; UI Maps workspaces also resolve their retained recordings. Safe exports omit screenshot linkage.
 
 For a direct local launch, the desktop executable also accepts `graph.db --evidence recording.mlrec`.
 
@@ -157,7 +223,9 @@ dotnet run --project src/UiAtlas.Core.Cli -c Release -- synthetic-record --out s
 
 For table schema extraction, Recorder **More → Settings** (also **Header reading settings** in schema review) offers Local OCR or Azure OpenAI **GPT-5.6 Sol · Light**. Azure requires your resource endpoint, deployment name, and API key. **Test connection** checks a synthetic header; **Save settings** applies the provider to the next **Extract schema** action. Schema extraction sends selected header-cell crops, keys are stored in Windows Credential Manager, and names remain editable before saving. Local OCR is the default.
 
-The [app table to Excel workflow](docs/mcp-visual-exploration.md) uses `list_apps` → `list_app_grids` → `start_grid_read` → `get_grid_read` → `export_grid_to_excel`. The local HUD requires approval for full reachable table capture and Azure header/body-cell reading using those saved settings. Excel export writes the retained dataset directly to Downloads without controlling Excel or using Computer Use. [Requirements](docs/specs/datagrid-demo/task-5-orders-excel.requirements.md) and [implementation](docs/specs/datagrid-demo/task-5-orders-excel.implementation.md) define its scope and verification.
+The release contains the mapping recorder, CLI, and editor. Historical MCP,
+customer-data migration, and consumer examples remain in repository history/source
+for compatibility; their separate executables are excluded from this release.
 
 Recording can retain pixels, window titles, accessibility labels, window handles, process identity, and input timing. Printable key identities and literal typed text are suppressed by default. The safe JSON export removes screenshot references, application-provided labels/properties, raw stable keys, source linkage, coordinates, build time, and canonical IDs. Generic kinds and topology can still be sensitive. Review every artifact before sharing it. Full-evidence and main UiAtlas compatibility exports each require explicit acknowledgement.
 

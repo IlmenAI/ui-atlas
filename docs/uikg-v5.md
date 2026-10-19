@@ -4,6 +4,13 @@
 
 The schema is [uikg-v5.schema.json](../schemas/uikg-v5.schema.json). Organized and human-readable export schemas also accept the new graph version. Cross-reference and hash integrity remain enforced by the runtime validator.
 
+Raw World reconstruction also emits `presents` and `occludes` edges. Each connects
+a Raw World surface to a control with evidence from the same observation;
+`contains` continues to express structural ownership. These edges require a
+reader with surface-scene reconstruction support. Source-reported ownership is
+retained separately from reconstructed ownership. Existing semantic assignments
+can explicitly retain their reported-owner lineage pending review.
+
 Version 4 maps remain readable, including maps created during the initial observation rollout that already contain this field. The reader validates their original hash, preserves their content, and upgrades only the format version in memory. Opening a map does not rewrite its database. Version 1 through 3 migrations remain supported.
 
 Older readers reject version 5 as unsupported instead of silently dropping observation facts and reporting a misleading corruption error. Build the recorder and viewer together. Recorder-only builds now build Desktop as a dependency and stage it under the recorder's `viewer` directory; published flat packages remain supported.

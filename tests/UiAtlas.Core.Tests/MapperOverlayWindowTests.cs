@@ -19,6 +19,150 @@ public sealed class MapperDesktopCollection;
 [Collection("Mapper desktop")]
 public sealed class MapperOverlayWindowTests
 {
+    [Fact]
+    public void OwnedDialogMsaaOverlayIsVisibleOutsideOwnerAndSurvivesEmptyUiaRefresh()
+    {
+        Sta(() =>
+        {
+            var owner = new Window { Title = "Overlay owner fixture", Left = 100, Top = 100, Width = 350, Height = 250, Topmost = true };
+            var button = new Button { Content = "Dialog OK", Width = 100, Height = 35 };
+            var dialog = new Window { Title = "Overlay dialog fixture", Left = 500, Top = 160, Width = 300, Height = 230,
+                Content = button, Topmost = true };
+            RecordingHighlightOverlay? overlay = null;
+            try
+            {
+                owner.Show(); dialog.Owner = owner; dialog.Show(); dialog.Activate(); Pump(100);
+                var target = WindowCatalog.Resolve(new WindowInteropHelper(owner).Handle.ToInt64());
+                var dialogTarget = WindowCatalog.Resolve(new WindowInteropHelper(dialog).Handle.ToInt64());
+                var main = WindowSnapshotCapture.Observe(target) with { IsEnabled = false, ZOrder = 5 };
+                var surface = WindowSnapshotCapture.Observe(dialogTarget) with
+                    { Bounds = WindowSnapshotCapture.VisibleFrameBounds(dialogTarget), ZOrder = 4 };
+                var point = button.PointToScreen(new Point());
+                var end = button.PointToScreen(new Point(button.ActualWidth, button.ActualHeight));
+                var control = MapperHighlightTests.Control("opaque-dialog-evidence", "Button",
+                    new((int)point.X, (int)point.Y, (int)(end.X - point.X), (int)(end.Y - point.Y)), "") with
+                    { WindowHwnd = dialogTarget.Hwnd, Name = "MSAA dialog control" };
+                var now = DateTimeOffset.UtcNow;
+                var frame = new FrameObservation(1, now, "", main, [control], true, "partial", "manual-action", [main, surface],
+                    RawStreams: [new("msaa", "msaa", now, now, "ok", [control], TargetWindowHwnd: dialogTarget.Hwnd)],
+                    NativeEpisodeEntry: "raw/native/frame-000001.episode.pb");
+                overlay = new RecordingHighlightOverlay(target); overlay.Start();
+                var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+                var dispatcher = (Dispatcher)typeof(RecordingHighlightOverlay).GetField("_dispatcher", flags)!.GetValue(overlay)!;
+                dispatcher.Invoke(() => typeof(RecordingHighlightOverlay).GetField("_lastVisibleLayerRefreshUtc", flags)!
+                    .SetValue(overlay, DateTimeOffset.MaxValue));
+                overlay.ReplaceMapperHighlights(main.Bounds, frame);
+                Await(() => dispatcher.Invoke(() => overlay.MapperHighlights.Any(item => item.Source == "MSAA")));
+                dispatcher.Invoke(() =>
+                {
+                    Assert.True(overlay.IsMapperPointVisible(new Point(point.X + 10, point.Y + 10)));
+                    Assert.Equal(dialogTarget.Hwnd, typeof(RecordingHighlightOverlay).GetField("_mapperSurfaceHwnd", flags)!.GetValue(overlay));
+                });
+
+                dialog.Left += 30; dialog.Top += 20; Pump(450);
+                point = button.PointToScreen(new Point());
+                dispatcher.Invoke(() =>
+                {
+                    var bounds = (RectI)typeof(RecordingHighlightOverlay).GetField("_currentRootBounds", flags)!.GetValue(overlay)!;
+                    var layer = (string)typeof(RecordingHighlightOverlay).GetField("_visibleLayerKey", flags)!.GetValue(overlay)!;
+                    var revision = typeof(RecordingHighlightOverlay).GetField("_mapperRevision", flags)!.GetValue(overlay);
+                    typeof(RecordingHighlightOverlay).GetMethod("RefreshMapperFromLiveSurface", flags)!.Invoke(overlay,
+                        [bounds, WindowCatalog.Resolve(dialogTarget.Hwnd), Array.Empty<AutomationObservation>(),
+                            Array.Empty<AutomationObservation>(), layer, false, revision, bounds]);
+                    var item = Assert.Single(overlay.MapperHighlights);
+                    Assert.Equal("MSAA", item.Source);
+                    Assert.Equal((int)point.X, item.Bounds.X);
+                    Assert.Equal((int)point.Y, item.Bounds.Y);
+                    Assert.True(overlay.IsMapperPointVisible(new Point(point.X + 10, point.Y + 10)));
+                });
+
+                // A new recorded response, unlike a different provider's passive
+                // refresh, replaces the previous observation's MSAA evidence.
+                overlay.ReplaceMapperHighlights(main.Bounds, frame with { Automation = [], RawStreams = [], AutomationStatus = "ok" });
+                Await(() => dispatcher.Invoke(() => overlay.MapperHighlights.Count == 0));
+            }
+            finally { overlay?.Dispose(); dialog.Close(); owner.Close(); }
+        });
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void StationaryOverlayKeepsScreenCoordinatesAndAcceptsPassiveRefresh(bool nativeFrame)
+    {
+        Sta(() =>
+        {
+            var button = new Button { Content = "Example", Width = 100, Height = 35 };
+            var canvas = new Canvas();
+            Canvas.SetLeft(button, 25); Canvas.SetTop(button, 25); canvas.Children.Add(button);
+            var window = new Window { Title = "Mapping bounds qualification", Width = 500, Height = 350,
+                Left = 150, Top = 150, Content = canvas, ShowActivated = false };
+            RecordingHighlightOverlay? overlay = null;
+            try
+            {
+                window.Show(); Pump(100);
+                var target = WindowCatalog.Resolve(new WindowInteropHelper(window).Handle.ToInt64());
+                var bounds = nativeFrame ? WindowSnapshotCapture.VisibleFrameBounds(target) : target.Bounds;
+                if (nativeFrame) Assert.NotEqual(target.Bounds, bounds);
+                var topLeft = button.PointToScreen(new Point());
+                var bottomRight = button.PointToScreen(new Point(button.ActualWidth, button.ActualHeight));
+                var buttonBounds = new RectI((int)topLeft.X, (int)topLeft.Y,
+                    (int)(bottomRight.X - topLeft.X), (int)(bottomRight.Y - topLeft.Y));
+                var control = MapperHighlightTests.Control("native-example", "Button",
+                    buttonBounds) with { Name = "Example" };
+                var visual = MapperHighlightTests.Control("visual:fixture", "Table",
+                    new(bounds.X + 25, bounds.Y + 120, 200, 100), "UiAtlas.Visual.Ocr");
+                var frame = new FrameObservation(1, DateTimeOffset.UtcNow, "", WindowSnapshotCapture.Observe(target) with { Bounds = bounds },
+                    [control, visual], false, "ok", "native-bounds",
+                    NativeEpisodeEntry: nativeFrame ? "raw/native/frame-000001.episode.pb" : null);
+                overlay = new RecordingHighlightOverlay(target); overlay.Start();
+                overlay.ReplaceMapperHighlights(bounds, frame);
+                Await(() => overlay.GridHitWindows.Count == 1);
+                var hit = overlay.GridHitWindows.Single();
+                var currentBounds = typeof(RecordingHighlightOverlay).GetMethod("CurrentBounds",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                    [typeof(MapperHighlight)])!;
+                void AssertStationary()
+                {
+                    hit.Dispatcher.Invoke(() =>
+                    {
+                        var highlightedButton = Assert.Single(overlay.MapperHighlights, item =>
+                            item.Control.ControlType == "ControlType.Button" && item.Name is "Example" or "Passive refresh accepted");
+                        Assert.Equal(buttonBounds, currentBounds.Invoke(overlay, [highlightedButton]));
+                        Assert.Equal(visual.Bounds, RecordingHighlightOverlay.ReadPhysicalBounds(hit));
+                    });
+                }
+                // Sample across many position ticks and more than two passive-refresh intervals.
+                for (var sample = 0; sample < 18; sample++) { Pump(150); AssertStationary(); }
+                button.Content = "Passive refresh accepted";
+                Await(() => hit.Dispatcher.Invoke(() => overlay.MapperHighlights.Any(item => item.Name == "Passive refresh accepted")));
+                AssertStationary();
+
+                window.Left += 25; window.Top += 15; Pump(450);
+                topLeft = button.PointToScreen(new Point());
+                buttonBounds = buttonBounds with { X = (int)topLeft.X, Y = (int)topLeft.Y };
+                hit.Dispatcher.Invoke(() =>
+                {
+                    var highlightedButton = Assert.Single(overlay.MapperHighlights, item =>
+                        item.Control.ControlType == "ControlType.Button" && item.Name == "Passive refresh accepted");
+                    Assert.Equal(buttonBounds, currentBounds.Invoke(overlay, [highlightedButton]));
+
+                    // A probe started at the old origin must not be accepted just
+                    // because its completion can query the window's new DWM bounds.
+                    var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+                    var revision = typeof(RecordingHighlightOverlay).GetField("_mapperRevision", flags)!.GetValue(overlay);
+                    var beforeStaleProbe = overlay.MapperHighlights;
+                    typeof(RecordingHighlightOverlay).GetMethod("RefreshMapperFromLiveSurface", flags)!.Invoke(overlay,
+                        [bounds, target, new[] { control with { Name = "Stale probe" } },
+                            Array.Empty<AutomationObservation>(), "", false, revision, null]);
+                    Assert.Same(beforeStaleProbe, overlay.MapperHighlights);
+                    Assert.Equal(buttonBounds, currentBounds.Invoke(overlay, [highlightedButton]));
+                });
+            }
+            finally { overlay?.Dispose(); window.Close(); }
+        });
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -57,7 +201,7 @@ public sealed class MapperOverlayWindowTests
                     c.Name == "Fixture table" && c.ControlType == "ControlType.DataGrid");
                 var frame = new FrameObservation(1, DateTimeOffset.UtcNow, "", WindowSnapshotCapture.Observe(target), [control], false, "ok", "synthetic-live");
                 overlay = new RecordingHighlightOverlay(target); overlay.Start(); overlay.ReplaceMapperHighlights(target.Bounds, frame);
-                recorder = new ManualRecordingSession(target, System.IO.Path.Combine(System.IO.Path.GetTempPath(), "explorer-recorder-" + Guid.NewGuid().ToString("N") + ".zip"));
+                recorder = new ManualRecordingSession(target, System.IO.Path.Combine(System.IO.Path.GetTempPath(), "explorer-recorder-" + Guid.NewGuid().ToString("N") + ".zip"), useNativeRecorder: false);
                 recorder.Start(explicitConsent: true); recorder.SetInputCapturePaused(true);
                 overlay.ExplorationRunner = (action, token) => Task.Run(() => recorder.RunGridExplorationAsync(() => action(token), token));
                 Await(() => overlay.GridHitWindows.Count > 0);

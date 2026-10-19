@@ -1,10 +1,10 @@
 # Reproducible release procedure
 
-1. Start from a clean clone on Windows with .NET SDK 10.0.200.
+1. Start from a clean clone on Windows with .NET SDK 10.0.200 or a newer .NET 10.0 SDK feature band. CI uses 10.0.200; `global.json` permits a newer feature band when the requested band is unavailable.
 2. Run `dotnet restore UiAtlas.Core.slnx --locked-mode`. For a deliberately offline verification using an already populated package cache, add `-p:NuGetAudit=false`; this disables only the remote advisory lookup for that verification and does not replace the online vulnerability gate below.
 3. Run Release build, all tests, `tools/Test-RepositoryBoundary.ps1`, and `tools/Smoke-Offline.ps1`.
-4. Run `tools/Package.ps1 -Version 1.9.0`. The script performs one symbol-free solution build in an isolated intermediate/output tree, publishes only from that build, removes Git-state drift from assembly informational metadata, sorts entries, and normalizes timestamps.
-5. Run `tools/Test-CleanProfiles.ps1 -Archive <release.zip> -Profiles 10`. This checks ten isolated installs/catalogs on the current host; it does not replace independent-host qualification.
+4. Run `tools/Package.ps1 -Version 2.1.0-native-preview.4`. The script performs one symbol-free solution build in an isolated intermediate/output tree, publishes only recorder/CLI/editor plus the isolated native provider worker, removes Git-state drift from assembly informational metadata, sorts entries, and normalizes timestamps. Source provenance and package gates exclude private components and separate legacy integration executables.
+5. Run `tools/Test-CleanProfiles.ps1 -Archive <release.zip> -Profiles 10`. This checks ten isolated installs/catalogs, explicit Map review/publication, complete workspace interchange, and upgrade backup/catalog preservation on the current host; it does not replace independent-host qualification.
 6. Compare the generated ZIP SHA-256 across two clean environments, including one source tree that has already been built and tested. Prior build state must not alter the archive.
 7. Run external worktree, index, reachable-history, secret, license, SBOM, and vulnerability audits. Keep sensitive deny terms and audit reports outside the repository.
 8. Code-sign only after the unsigned artifact hash is approved. Signing identity and publication are intentionally outside this repository.

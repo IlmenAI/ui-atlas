@@ -1,0 +1,142 @@
+syntax = "proto3";
+
+package uimaps.v3;
+option csharp_namespace = "UIMaps.Protocol.V3";
+
+message LiveGridServiceCapabilitiesRequest {}
+
+message LiveGridServiceCapabilitiesResponse {
+  string schema_version = 1;
+  repeated string features = 2;
+}
+
+message ListLiveGridWindowsRequest {}
+
+message LiveGridWindow {
+  string app_ref = 1;
+  string name = 2;
+  string process_name = 3;
+  string window_title = 4;
+  string mapping_status = 5;
+  string map_revision_ref = 6;
+}
+
+message ListLiveGridWindowsResponse {
+  string observed_at = 1;
+  repeated LiveGridWindow windows = 2;
+  repeated string limitations = 3;
+}
+
+enum LiveGridOcrProviderKind {
+  LIVE_GRID_OCR_PROVIDER_KIND_UNSPECIFIED = 0;
+  LIVE_GRID_OCR_PROVIDER_KIND_LOCAL = 1;
+  LIVE_GRID_OCR_PROVIDER_KIND_AZURE_OPENAI = 2;
+}
+
+message ListAvailableDataGridsRequest {
+  string app_ref = 1;
+  LiveGridOcrProviderKind ocr_provider = 2;
+}
+
+message AvailableDataGrid {
+  string data_grid_ref = 1;
+  string name = 2;
+  string role = 3;
+  string readiness = 4;
+  bool can_obtain_data = 5;
+  repeated string columns = 6;
+  string source_kind = 7;
+  string safe_summary = 8;
+}
+
+message ListAvailableDataGridsResponse {
+  string observation_ref = 1;
+  string status = 2;
+  repeated AvailableDataGrid data_grids = 3;
+  repeated string limitations = 4;
+}
+
+message RetrieveDataGridRequest {
+  string data_grid_ref = 1;
+  bool approve_scrolling = 2;
+  LiveGridOcrProviderKind ocr_provider = 3;
+  bool capture_only = 4;
+  int32 maximum_scroll_mutations = 5; // 0 = legacy default 50; accepted range 1..500.
+}
+
+message GetDataGridAcquisitionRequest { string acquisition_ref = 1; }
+message ExtractCapturedGridRequest {
+  string acquisition_ref = 1;
+  LiveGridOcrProviderKind ocr_provider = 2;
+}
+message CapturedGridSchemaColumn {
+  int32 ordinal = 1;
+  string header = 2;
+  int32 left = 3;
+  int32 right = 4;
+}
+message ReviewCapturedGridSchemaRequest {
+  string acquisition_ref = 1;
+  string image_sha256 = 2;
+  repeated CapturedGridSchemaColumn columns = 3;
+  string reviewed_by = 4;
+}
+message CapturedGridImage {
+  int32 vertical_band = 1;
+  int32 horizontal_slice = 2;
+  int32 width = 3;
+  int32 height = 4;
+  bytes png = 5;
+  string sha256 = 6;
+  string label = 7;
+}
+
+message LiveGridCell {
+  string column = 1;
+  string value = 2;
+}
+
+message LiveGridRow { repeated LiveGridCell cells = 1; }
+
+message LiveGridCoverageResult {
+  string traversal = 1;
+  string extraction = 2;
+  bool reached_top = 3;
+  bool reached_bottom = 4;
+  bool reached_left = 5;
+  bool reached_right = 6;
+  int32 accepted_viewports = 7;
+  int32 duplicate_viewports = 8;
+  int32 scroll_mutations = 9;
+  int32 trimmed_overlap_rows = 10;
+  int32 ambiguous_transitions = 11;
+  int32 coverage_gaps = 12;
+}
+
+message LiveGridReceiptResult {
+  string state = 1;
+  string terminal_reason = 2;
+  bool target_mutated = 3;
+  bool restoration_attempted = 4;
+  bool restoration_succeeded = 5;
+}
+
+message DataGridAcquisitionResponse {
+  string status = 1;
+  string acquisition_ref = 2;
+  string data_grid_ref = 3;
+  repeated string columns = 4;
+  repeated LiveGridRow rows = 5;
+  LiveGridCoverageResult coverage = 6;
+  LiveGridReceiptResult receipt = 7;
+  repeated string limitations = 8;
+  int32 retry_after_ms = 9;
+  bool complete = 10;
+  string ocr_provider = 11;
+  repeated CapturedGridImage images = 12;
+  int32 image_step = 13;
+  bool schema_review_required = 14;
+  repeated CapturedGridSchemaColumn schema_columns = 15;
+  string schema_image_sha256 = 16;
+  string schema_source = 17;
+}

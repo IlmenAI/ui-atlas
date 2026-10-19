@@ -1,0 +1,256 @@
+syntax = "proto3";
+
+package uimaps.v1;
+option csharp_namespace = "UIMaps.Protocol.V1";
+
+import "uimaps/v1/common.proto";
+import "uimaps/v1/sensor.proto";
+import "uimaps/v1/perception.proto";
+import "uimaps/v1/capture_policy.proto";
+import "uimaps/v1/coverage.proto";
+import "uimaps/v1/capture_session.proto";
+import "uimaps/v1/survey.proto";
+
+message Empty {}
+
+message CapabilitiesRequest {
+  ProtocolVersion requested_version = 1;
+  string correlation_id = 2;
+}
+
+message RecorderCapabilities {
+  ProtocolVersion minimum_version = 1;
+  ProtocolVersion maximum_version = 2;
+  string service_version = 3;
+  repeated string features = 4;
+  int64 maximum_message_bytes = 5;
+  int64 max_segment_bytes = 6;
+  int64 max_episode_bytes = 7;
+  repeated string supported_provider_ids = 8;
+  bool supports_capture_sessions = 9;
+  bool supports_segmented_capture = 10;
+}
+
+enum GuidedObservationState {
+  GUIDED_OBSERVATION_STATE_UNSPECIFIED = 0;
+  GUIDED_OBSERVATION_INACTIVE = 1;
+  GUIDED_OBSERVATION_PREPARING = 2;
+  GUIDED_OBSERVATION_ARMED = 3;
+  GUIDED_OBSERVATION_PAUSED = 4;
+  GUIDED_OBSERVATION_STOPPED = 5;
+  GUIDED_OBSERVATION_FAILED = 6;
+}
+
+enum GuidedPointerActionKind {
+  GUIDED_POINTER_ACTION_KIND_UNSPECIFIED = 0;
+  GUIDED_POINTER_PRIMARY = 1;
+  GUIDED_POINTER_DOUBLE_CLICK = 2;
+  GUIDED_POINTER_SECONDARY = 3;
+  GUIDED_POINTER_MIDDLE = 4;
+  GUIDED_POINTER_WHEEL = 5;
+}
+
+message GuidedObservationScope {
+  string recording_session_ref = 1;
+  string mapping_session_ref = 2;
+  int32 target_process_id = 3;
+  string target_process_instance_evidence = 4;
+  repeated string target_root_window_handle_evidence = 5;
+  string selected_display_id = 6;
+  bool observe_primary_pointer = 7;
+  bool observe_double_click = 8;
+  bool prohibit_keyboard_text = 9;
+  bool prohibit_input_dispatch = 10;
+  bool observe_secondary_pointer = 11;
+  bool observe_middle_pointer = 12;
+  bool observe_wheel = 13;
+}
+
+message GuidedPointerAction {
+  string action_event_ref = 1;
+  string recording_session_ref = 2;
+  uint64 sequence_number = 3;
+  GuidedPointerActionKind kind = 4;
+  string occurred_at = 5;
+  int32 screen_x = 6;
+  int32 screen_y = 7;
+  string target_window_handle_evidence = 8;
+  int32 target_process_id = 9;
+  bool in_scope = 10;
+  bool not_authorization = 11;
+  string observed_window_handle_evidence = 12;
+  string root_owner_window_handle_evidence = 13;
+  string target_process_instance_evidence = 14;
+  int32 wheel_x = 15;
+  int32 wheel_y = 16;
+}
+
+message GuidedObservationStatus {
+  string recording_session_ref = 1;
+  GuidedObservationState state = 2;
+  uint64 latest_sequence_number = 3;
+  uint64 ignored_out_of_scope_count = 4;
+  string lease_expires_at = 5;
+  string status_message = 6;
+  bool target_input_capability = 7;
+}
+
+message StartGuidedObservationRequest {
+  GuidedObservationScope scope = 1;
+  string correlation_id = 2;
+}
+
+message StartGuidedObservationResponse {
+  GuidedObservationStatus status = 1;
+  Error error = 2;
+}
+
+message PollGuidedObservationRequest {
+  string recording_session_ref = 1;
+  uint64 after_sequence_number = 2;
+  string correlation_id = 3;
+}
+
+message PollGuidedObservationResponse {
+  GuidedObservationStatus status = 1;
+  repeated GuidedPointerAction actions = 2;
+  Error error = 3;
+}
+
+message SetGuidedObservationStateRequest {
+  string recording_session_ref = 1;
+  string correlation_id = 2;
+}
+
+message SetGuidedObservationStateResponse {
+  GuidedObservationStatus status = 1;
+  Error error = 2;
+}
+
+message PerceptionCapabilities {
+  ProtocolVersion minimum_version = 1;
+  ProtocolVersion maximum_version = 2;
+  string service_version = 3;
+  string perception_epoch = 4;
+  repeated string features = 5;
+  int64 maximum_message_bytes = 6;
+  int64 max_segment_bytes = 7;
+  int64 max_episode_bytes = 8;
+  int32 max_objects_per_publication = 9;
+  repeated PublicationKind supported_publication_kinds = 10;
+  repeated string supported_compression = 11;
+}
+
+message ListDisplaysRequest {
+  string correlation_id = 1;
+  int32 deadline_ms = 2;
+}
+
+message ListDisplaysResponse {
+  repeated DisplayDescriptor displays = 1;
+  Error error = 2;
+}
+
+message CaptureDisplaySnapshotRequest {
+  string display_id = 1;
+  CapturePolicy capture_policy = 2;
+  string correlation_id = 3;
+  int32 deadline_ms = 4;
+}
+
+message CaptureDisplaySnapshotResponse {
+  SensorEpisodeBundle bundle = 1;
+  Error error = 2;
+}
+
+message GetCaptureProfilesRequest { string correlation_id = 1; }
+message GetCaptureProfilesResponse { CaptureProfileCatalog catalog = 1; Error error = 2; }
+
+message ConsumerIngestConstraints {
+  int64 max_segment_bytes = 1; int64 max_episode_bytes = 2;
+  bool supports_segments = 3; repeated PublicationKind supported_publication_kinds = 4;
+}
+
+message StartCaptureRequest {
+  string display_id = 1; CapturePolicyRequest policy_request = 2;
+  ConsumerIngestConstraints consumer_constraints = 3; string correlation_id = 4;
+}
+message StartCaptureResponse { CaptureSessionDescriptor session = 1; Error error = 2; }
+message GetCaptureSessionRequest { string session_id = 1; string correlation_id = 2; }
+message GetCaptureSessionResponse { CaptureSessionDescriptor session = 1; CaptureProgress progress = 2; Error error = 3; }
+message CancelCaptureRequest { string session_id = 1; string correlation_id = 2; }
+message CancelCaptureResponse { string state = 1; bool cancellation_requested = 2; Error error = 3; }
+message GetCaptureResultRequest { string session_id = 1; string correlation_id = 2; }
+message GetCaptureResultResponse { SensorEpisodeBundle bundle = 1; EffectiveCapturePolicy effective_policy = 2; CoverageReport coverage_report = 3; string state = 4; Error error = 5; }
+message ListCaptureSegmentsRequest { string session_id = 1; string correlation_id = 2; }
+message ListCaptureSegmentsResponse { repeated CaptureSegmentDescriptor segments = 1; Error error = 2; }
+message ReadCaptureSegmentRequest { string session_id = 1; string segment_id = 2; string correlation_id = 3; }
+message ReadCaptureSegmentResponse { CaptureSegmentDescriptor descriptor = 1; bytes payload = 2; Error error = 3; }
+
+message IngestEpisodeRequest {
+  SensorEpisodeBundle bundle = 1;
+  string correlation_id = 2;
+  int32 deadline_ms = 3;
+}
+
+message IngestResult {
+  string perception_epoch = 1;
+  uint64 world_state_version = 2;
+  Health health = 3;
+  string publication_id = 4;
+  PublicationKind publication_kind = 5;
+  uint64 survey_version = 6;
+}
+
+message IngestEpisodeResponse {
+  IngestResult result = 1;
+  Error error = 2;
+}
+
+message GetWorldStateRequest {
+  string perception_epoch = 1;
+  uint64 world_state_version = 2;
+  string correlation_id = 3;
+  int32 deadline_ms = 4;
+}
+
+message GetWorldStateResponse {
+  WorldStateSnapshot snapshot = 1;
+  Error error = 2;
+}
+
+message GetPublicationRequest { string publication_id = 1; string correlation_id = 2; }
+message GetPublicationResponse {
+  oneof publication { SnapshotPublication snapshot = 1; SurveyScenePublication survey = 2; }
+  Error error = 3;
+}
+
+message GetPerceptionHealthResponse {
+  string perception_epoch = 1;
+  uint64 latest_world_state_version = 2;
+  Health health = 3;
+}
+
+message SubscribeWorldStateRequest {
+  string perception_epoch = 1;
+  uint64 after_world_state_version = 2;
+  string correlation_id = 3;
+  int32 deadline_ms = 4;
+}
+
+message WorldStatePublishedEvent {
+  string perception_epoch = 1;
+  uint64 world_state_version = 2;
+  Health health = 3;
+}
+
+message PipeFrame {
+  ProtocolVersion protocol_version = 1;
+  string request_id = 2;
+  string correlation_id = 3;
+  string message_type = 4;
+  uint32 chunk_index = 5;
+  uint32 chunk_count = 6;
+  bytes payload = 7;
+  bool is_response = 8;
+}

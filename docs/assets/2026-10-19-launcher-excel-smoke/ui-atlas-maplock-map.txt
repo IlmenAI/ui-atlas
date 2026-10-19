@@ -1,0 +1,99 @@
+Window: "UI Atlas", App: UiAtlas.exe.
+	0 window UI Atlas Secondary Actions: Raise
+		1 text UI Atlas ID: ProductTitle
+		2 button Open Micro HUD Description: Open Micro HUD ID: MicroHudButton
+			3 text 
+		4 button Minimize
+			5 text 
+		6 button Maximize or restore
+			7 text  ID: MaximizeRestoreGlyph
+		8 button Close
+			9 text 
+		10 custom ID: ProductLogo
+			11 text UI ATLAS
+		12 combo box ID: ProfileSelector
+		13 list view ID: NavigationList
+			14 list item (selectable) ExperienceNavigationItem { Route = maps, Label = Maps, Glyph = , IsAvailable = True, Status = , StartsNewSection = False }
+				15 text 
+				16 text Maps
+				17 text
+			18 list item (selectable) ExperienceNavigationItem { Route = recordings, Label = Recordings, Glyph = , IsAvailable = True, Status = , StartsNewSection = False }
+				19 text 
+				20 text Recordings
+				21 text
+			22 list item (selectable) ExperienceNavigationItem { Route = diagnostics, Label = Diagnostics, Glyph = , IsAvailable = True, Status = , StartsNewSection = False }
+				23 text 
+				24 text Diagnostics
+				25 text
+			26 list item (selectable) ExperienceNavigationItem { Route = settings, Label = Settings, Glyph = , IsAvailable = True, Status = , StartsNewSection = True }
+				27 text 
+				28 text Settings
+				29 text
+		989 custom Recorded UI Maps library
+			1107 pane ID: ApplicationDetailsPanel
+				1108 text E
+				1109 text EXCEL
+				1110 text EXCEL
+				1111 text ·
+				1112 text 1 version
+				1113 text ·
+				1114 text 3 recordings
+				1115 button Archive all drafts
+					1116 text Archive all drafts
+				1117 button Description: Record the launched EXCEL window. ID: RecordNewMapForApplicationButton
+					1118 text 
+					1119 text Record new map
+				1120 text 
+				1121 text One Ready UI Map per application version. Choosing another moves the current Ready map back to Draft.
+				1122 radio button (selectable) Active ID: DetailsActiveTab
+					1123 text Active
+				1124 radio button (selectable) Archive ID: DetailsArchiveTab
+					1125 text Archive
+				1126 list view ID: VersionsItemsControl
+					1127 dataitem UIMaps.Application.Core.MapVersionPresentation
+						1128 group
+							1129 button ID: HeaderSite
+								1130 text Unknown version
+								1131 text 3 recordings
+								1132 text No Ready map
+							1133 list view
+								1134 dataitem UIMaps.Application.Core.MapRowPresentation
+									1135 text Today, 5:18 PM
+									1136 text uimaps:map-draft:ce3736aeea9441ad87f4a9f782229814
+									1137 text 2 surfaces · 457 controls · 0 Data Grids · 5 sources
+									1138 text 462 blocking items · 5 sources
+									1139 text Draft
+									1140 button Open
+										1141 text Open
+									1142 button Mark ready
+										1143 text Mark ready
+									1144 button Archive
+										1145 text Archive
+								1146 dataitem UIMaps.Application.Core.MapRowPresentation
+									1147 text Yesterday, 9:41 PM
+									1148 text uimaps:map-draft:60d2dbb1b6954740bd7817117cdc4211
+									1149 text 13 surfaces · 5958 controls · 0 Data Grids · 22 sources
+									1150 text 5982 blocking items · 22 sources
+									1151 text Draft
+									1152 button Open
+										1153 text Open
+									1154 button Mark ready
+										1155 text Mark ready
+									1156 button Archive
+										1157 text Archive
+								1158 dataitem UIMaps.Application.Core.MapRowPresentation
+									1159 text Yesterday, 3:02 PM
+									1160 text uimaps:map-draft:b28f1431346c44018aaed218c8c70f70
+									1161 text 4 surfaces · 12708 controls · 0 Data Grids · 8 sources
+									1162 text 12719 blocking items · 8 sources
+									1163 text Draft
+									1164 button Open
+										1165 text Open
+									1166 button Mark ready
+										1167 text Mark ready
+									1168 button Archive
+										1169 text Archive
+
+Document text: ```
+UI ATLAS
+```

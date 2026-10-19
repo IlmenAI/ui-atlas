@@ -24,7 +24,10 @@ public sealed record UiMapVariantView(
     IReadOnlyDictionary<string, long>? ControlSourceFrames = null,
     string RecordKind = "observation",
     string CaptureStatus = "legacy-unknown",
-    string SurfaceId = "");
+    string SurfaceId = "",
+    long? NativeWindowHwnd = null,
+    string SemanticVariantId = "",
+    string SemanticVariantName = "");
 
 public enum UiMapProjectionMode
 {
@@ -65,8 +68,8 @@ public static class UiMapPresentation
     public static UiMapControlView ForObservation(UiMapControlView control, string? bundleId, long? frameSequence)
     {
         var source = ForObservation(control.Source, bundleId, frameSequence);
-        return control with { Source = source, DisplayName = source.Label,
-            Bounds = ResolveControlBounds(control, frameSequence, bundleId) };
+        return SemanticWorldPresentation.ForObservation(control with { Source = source, DisplayName = source.Label,
+            Bounds = ResolveControlBounds(control, frameSequence, bundleId) }, bundleId, frameSequence);
     }
 
     public static UiMapVariantView? ResolveControlVariant(
@@ -109,6 +112,8 @@ public static class UiMapPresentation
         IReadOnlyList<UiMapControlView>? siblingControls = null)
     {
         var sourceFrame = long.TryParse(SourceProperty(control.Source, "sourceFrame"), out var source) ? source : frameSequence;
+        if (control.Level == UiUnderstandingLevel.SemanticWorld && control.ObservationSources is not null)
+            return SemanticWorldPresentation.ForObservation(control, bundleId, sourceFrame).Bounds;
         var observed = sourceFrame is null
             ? control.Bounds
             : control.Evidence.FirstOrDefault(evidence =>
@@ -354,7 +359,7 @@ public static class UiMapPresentation
     {
         UiMapProjectionMode.Window => new(true, 1.0, false, false, false, 0.0),
         UiMapProjectionMode.Controls => new(false, 0.0, true, true, false, 0.96),
-        UiMapProjectionMode.Overlay => new(true, 0.68, false, true, false, 0.0),
+        UiMapProjectionMode.Overlay => new(true, 1.0, true, true, false, 0.0),
         UiMapProjectionMode.Structure => new(false, 0.0, false, true, true, 0.94),
         UiMapProjectionMode.StructureOverlay => new(true, 0.68, false, true, false, 0.20),
         UiMapProjectionMode.Trace => new(true, 1.0, false, false, false, 0.0),
@@ -553,7 +558,9 @@ public sealed record UiMapControlView(
     string ParentControlId,
     RectI Bounds,
     IReadOnlyList<EvidenceRef> Evidence,
-    GraphNode Source);
+    GraphNode Source,
+    IReadOnlyList<GraphNode>? ObservationSources = null,
+    IReadOnlySet<string>? SourceSurfaceIds = null);
 
 public sealed record UiMapLayerView(
     UiUnderstandingLevel Level,
@@ -566,7 +573,7 @@ public sealed record UiMapLayerView(
         var variant = Surfaces.FirstOrDefault(surface => surface.Id == surfaceId)?.Variants.FirstOrDefault(item =>
             item.FrameSequence == frameSequence && item.BundleId == bundleId);
         return Controls
-        .Where(control => string.Equals(control.OwnerSurfaceId, surfaceId, StringComparison.Ordinal))
+        .Where(control => RawWorldPresentation.IsAvailableOnSurface(control, surfaceId))
         .Where(control => frameSequence is null || (variant?.ControlSourceFrames is not null ? variant.ControlIds.Contains(control.Id) : control.Evidence.Any(evidence =>
             evidence.FrameSequence == frameSequence &&
             (bundleId is null || string.Equals(evidence.BundleId, bundleId, StringComparison.Ordinal)))))
@@ -789,7 +796,8 @@ public sealed class UiMappingReadModel
                               string.Equals(evidence.BundleId, variant.BundleId, StringComparison.Ordinal)));
         // A native family can contain two HWNDs in the same observation. Keep each
         // instance and its capture health; grouping solely by frame loses both.
-        if (surfaces.All(surface => surface.Level == UiUnderstandingLevel.RawDataStreams))
+        if (surfaces.Count == 1 || surfaces.All(surface => surface.Level == UiUnderstandingLevel.RawDataStreams ||
+            Property(surface.Source, "sceneReconstruction") is not null || Property(surface.Source, "semanticProjection") is not null))
             return variants.OrderBy(variant => variant.BundleId, StringComparer.Ordinal)
                 .ThenBy(variant => variant.FrameSequence).ThenBy(variant => variant.SurfaceId, StringComparer.Ordinal).ToArray();
         return variants
@@ -799,6 +807,7 @@ public sealed class UiMappingReadModel
         .Select(group =>
         {
             var values = group.ToArray();
+            if (values.Length == 1) return values[0];
             var controlIds = values.SelectMany(value => value.ControlIds).Distinct(StringComparer.Ordinal).OrderBy(id => id, StringComparer.Ordinal).ToArray();
             return new UiMapVariantView(
                 string.Join("+", values.Select(value => value.Id).OrderBy(id => id, StringComparer.Ordinal)),
@@ -811,7 +820,10 @@ public sealed class UiMappingReadModel
                 Reason: string.Join(", ", values.Select(value => value.Reason).Distinct(StringComparer.Ordinal)),
                 ObservationScope: string.Join(", ", values.Select(value => value.ObservationScope).Where(value => value.Length > 0).Distinct(StringComparer.Ordinal)),
                 ControlSourceFrames: values.All(value => value.ControlSourceFrames is null) ? null : values.SelectMany(value => value.ControlSourceFrames ?? new Dictionary<string, long>())
-                    .GroupBy(value => value.Key).ToDictionary(group => group.Key, group => group.Max(value => value.Value)));
+                    .GroupBy(value => value.Key).ToDictionary(group => group.Key, group => group.Max(value => value.Value)),
+                RecordKind: string.Join(", ", values.Select(value => value.RecordKind).Distinct(StringComparer.Ordinal)),
+                CaptureStatus: string.Join(", ", values.Select(value => value.CaptureStatus).Distinct(StringComparer.Ordinal)),
+                SurfaceId: values.Select(value => value.SurfaceId).Distinct(StringComparer.Ordinal).Count() == 1 ? values[0].SurfaceId : "");
         }).ToArray();
     }
 
@@ -941,18 +953,32 @@ public sealed class UiMappingReadModel
 
     private static UiMapLayerView BuildLayer(UiKnowledgeGraph graph, UiUnderstandingLevel level, string layer, string displayName)
     {
+        var byId = graph.Nodes.ToDictionary(node => node.Id, StringComparer.Ordinal);
+        bool Hidden(GraphNode node)
+        {
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            while (visited.Add(node.Id))
+            {
+                if (Property(node, "curationHidden") == bool.TrueString) return true;
+                if (Property(node, "semanticVariantRef") is { } variantId && byId.TryGetValue(variantId, out var variant) &&
+                    Property(variant, "curationHidden") == bool.TrueString) return true;
+                if (!byId.TryGetValue(node.ParentId, out node!)) break;
+            }
+            return false;
+        }
         var surfaceKind = level == UiUnderstandingLevel.RawDataStreams ? GraphNodeKind.Window : GraphNodeKind.Surface;
         var surfaceNodes = graph.Nodes
             .Where(node => (node.Kind == surfaceKind || level == UiUnderstandingLevel.RawDataStreams && node.Kind == GraphNodeKind.Surface)
                 && Property(node, "layer") == layer)
+            .Where(node => !Hidden(node))
+            .Where(node => level != UiUnderstandingLevel.RawWorld || Property(node, "sceneVisible") != "False")
             .Where(node => level != UiUnderstandingLevel.SemanticWorld || Property(node, "semanticSurfaceKind") != "PopupFamily")
             .OrderBy(node => node.Label, StringComparer.OrdinalIgnoreCase)
             .ThenBy(node => node.Id, StringComparer.Ordinal)
             .ToArray();
         var controls = graph.Nodes
             .Where(node => node.Kind == GraphNodeKind.Control && Property(node, "layer") == layer)
-            .Where(node => !string.Equals(Property(node, "curationHidden"), bool.TrueString,
-                StringComparison.OrdinalIgnoreCase))
+            .Where(node => !Hidden(node))
             .Select(node => new UiMapControlView(
                 node.Id,
                 level,
@@ -964,10 +990,14 @@ public sealed class UiMappingReadModel
                     UiUnderstandingLevel.RawWorld => Property(node, "rawSurfaceId") ?? FindSurfaceParent(graph, node, layer),
                     _ => Property(node, "semanticSurfaceId") ?? FindSurfaceParent(graph, node, layer)
                 },
-                graph.Nodes.Any(parent => parent.Id == node.ParentId && parent.Kind == GraphNodeKind.Control) ? node.ParentId : string.Empty,
+                byId.TryGetValue(node.ParentId, out var parent) && parent.Kind == GraphNodeKind.Control ? node.ParentId : string.Empty,
                 node.Evidence.FirstOrDefault()?.Bounds ?? new RectI(0, 0, 0, 0),
                 node.Evidence,
-                node))
+                node,
+                level == UiUnderstandingLevel.SemanticWorld && Property(node, "semanticProjection") is not null
+                    ? node.Properties.Where(p => p.Name == "sourceRawControlId").Select(p => byId.GetValueOrDefault(p.Value)).OfType<GraphNode>().ToArray() : null,
+                level == UiUnderstandingLevel.SemanticWorld && byId.TryGetValue(Property(node, "semanticSurfaceId") ?? "", out var owner)
+                    ? owner.Properties.Where(p => p.Name == "sourceRawSurfaceId").Select(p => p.Value).ToHashSet(StringComparer.Ordinal) : null))
             .ToArray();
         var controlsBySurface = controls.GroupBy(control => control.OwnerSurfaceId, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
@@ -977,14 +1007,16 @@ public sealed class UiMappingReadModel
             .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
         var surfaces = surfaceNodes.Select(node =>
         {
-            var stateSurfaceId = level == UiUnderstandingLevel.SemanticWorld
-                ? Property(node, "sourceRawSurfaceId") ?? node.Id
-                : node.Id;
-            var sourceStates = rawStatesBySurface.GetValueOrDefault(stateSurfaceId) ?? [];
+            var sourceSurfaceIds = level == UiUnderstandingLevel.SemanticWorld
+                ? node.Properties.Where(p => p.Name == "sourceRawSurfaceId").Select(p => p.Value).DefaultIfEmpty(node.Id)
+                : [node.Id];
+            var sourceStates = sourceSurfaceIds.SelectMany(id => rawStatesBySurface.GetValueOrDefault(id) ?? []).ToArray();
+            var semanticVariants = level == UiUnderstandingLevel.SemanticWorld ? graph.Nodes.Where(n => n.Kind == GraphNodeKind.State &&
+                n.ParentId == node.Id && Property(n, "layer") == "semantic-world").ToArray() : [];
             var statesByFrame = sourceStates
                 .SelectMany(state => state.Evidence.Select(evidence => new { evidence.BundleId, evidence.FrameSequence, State = state }))
                 .GroupBy(value => (value.BundleId, value.FrameSequence))
-                .ToDictionary(group => group.Key, group => group.First().State);
+                .ToDictionary(group => group.Key, group => group.Select(x => x.State).DistinctBy(x => x.Id).ToArray());
             var variants = node.Evidence
                 .Where(evidence => evidence.FrameSequence > 0)
                 .GroupBy(evidence => (evidence.BundleId, evidence.FrameSequence))
@@ -993,14 +1025,20 @@ public sealed class UiMappingReadModel
                 .Select(group =>
                 {
                     var evidence = group.First();
-                    var sourceState = statesByFrame.GetValueOrDefault(group.Key);
+                    var matchingStates = statesByFrame.GetValueOrDefault(group.Key) ?? [];
+                    var sourceState = matchingStates.Length == 1 ? matchingStates[0] : null;
+                    var matchingVariants = semanticVariants.Where(n => n.Evidence.Any(e => e.BundleId == group.Key.BundleId && e.FrameSequence == group.Key.FrameSequence)).ToArray();
+                    var semanticVariant = matchingVariants.Length == 1 ? matchingVariants[0] : null;
+                    var rejectedVariant = semanticVariant is not null && Hidden(semanticVariant);
+                    var backgroundDialog = level != UiUnderstandingLevel.RawDataStreams && sourceState is not null &&
+                        Property(sourceState, "sceneBackgroundOfDialog") is { Length: > 0 };
                     var reconstructed = level != UiUnderstandingLevel.RawDataStreams && sourceState is not null &&
                         Property(sourceState, "sceneProjection") == "reconstructed";
                     var members = reconstructed ? graph.Edges.Where(edge => edge.Kind == "contains" && edge.FromId == sourceState!.Id &&
                         edge.Evidence.Any(item => item.BundleId == group.Key.BundleId && item.FrameSequence == group.Key.FrameSequence))
                         .Select(edge => edge.ToId).ToHashSet(StringComparer.Ordinal) : [];
                     var frameControls = controls.Where(control =>
-                        string.Equals(control.OwnerSurfaceId, node.Id, StringComparison.Ordinal) &&
+                        RawWorldPresentation.IsAvailableOnSurface(control, node.Id) &&
                         (reconstructed ? members.Contains(Property(control.Source, "sourceRawControlId") ?? control.Id) :
                         control.Evidence.Any(item => item.FrameSequence == group.Key.FrameSequence &&
                                                      string.Equals(item.BundleId, group.Key.BundleId, StringComparison.Ordinal))));
@@ -1016,6 +1054,9 @@ public sealed class UiMappingReadModel
                         visibleFrameControls.Length,
                         evidence,
                         visibleFrameControls.Select(control => control.Id).OrderBy(id => id, StringComparer.Ordinal).ToArray(),
+                        IsVisibleByDefault: !rejectedVariant && !backgroundDialog && (sourceState is null || Property(sourceState, "sceneVisible") != "False"),
+                        Reason: rejectedVariant ? "rejected-semantic-variant" : backgroundDialog ? "foreground-dialog-observation" :
+                            sourceState is not null && Property(sourceState, "sceneVisible") == "False" ? "surface-not-visible" : "observed",
                         ObservationScope: sourceState is null
                             ? Property(node, "observationScope") ?? string.Empty
                             : Property(sourceState, "observationScope") ?? string.Empty,
@@ -1024,7 +1065,10 @@ public sealed class UiMappingReadModel
                                 .Max(item => item.FrameSequence)) : null,
                         RecordKind: Property(node, "recordKind") ?? "legacy",
                         CaptureStatus: Property(node, "acquisitionStatus") ?? "legacy-unknown",
-                        SurfaceId: node.Id);
+                        SurfaceId: node.Id,
+                        NativeWindowHwnd: RawWorldPresentation.WindowHandle(sourceState) ?? (matchingStates.Length == 0 ? RawWorldPresentation.WindowHandle(node) : null),
+                        SemanticVariantId: semanticVariant?.Id ?? "",
+                        SemanticVariantName: semanticVariant?.Label ?? "");
                 }).ToArray();
             return new UiMapSurfaceView(
                 node.Id,
@@ -1035,7 +1079,7 @@ public sealed class UiMappingReadModel
                     Property(node, "nativeWindowType") ?? "Surface",
                 node.ParentId,
                 node.Evidence.FirstOrDefault()?.Bounds ?? new RectI(0, 0, 0, 0),
-                controlsBySurface.GetValueOrDefault(node.Id),
+                level == UiUnderstandingLevel.RawWorld ? controls.Count(control => RawWorldPresentation.IsAvailableOnSurface(control, node.Id)) : controlsBySurface.GetValueOrDefault(node.Id),
                 variants,
                 node.Evidence,
                 node);
@@ -1043,14 +1087,22 @@ public sealed class UiMappingReadModel
         if (level is UiUnderstandingLevel.RawWorld or UiUnderstandingLevel.SemanticWorld)
         {
             var popupFrames = surfaces
-                .Where(surface => surface.SurfaceKind.Contains("Popup", StringComparison.OrdinalIgnoreCase))
+                .Where(surface => surface.SurfaceKind.Contains("Popup", StringComparison.OrdinalIgnoreCase) && Property(surface.Source, "sceneVisible") != "False")
                 .SelectMany(surface => surface.Evidence)
                 .Where(evidence => evidence.FrameSequence > 0)
                 .Select(evidence => FrameKey(evidence.BundleId, evidence.FrameSequence))
                 .ToHashSet();
             surfaces = surfaces.Select(surface => surface with
             {
-                Variants = ClassifyHigherWorldVariants(surface, controls, popupFrames)
+                Variants = level == UiUnderstandingLevel.SemanticWorld && Property(surface.Source, "semanticProjection") is not null
+                    ? surface.Variants : ClassifyHigherWorldVariants(surface, controls,
+                    Property(surface.Source, "sceneReconstruction") is not null
+                        ? surfaces.Where(popup => popup.SurfaceKind.Contains("Popup", StringComparison.OrdinalIgnoreCase) &&
+                            Property(popup.Source, "sceneVisible") != "False" &&
+                            Property(popup.Source, "ownerWindowHandleEvidence") == Property(surface.Source, "windowHandleEvidence") &&
+                            Property(popup.Source, "processId") == Property(surface.Source, "processId"))
+                            .SelectMany(popup => popup.Evidence).Select(item => FrameKey(item.BundleId, item.FrameSequence)).ToHashSet()
+                        : popupFrames)
             }).ToArray();
         }
         return new(level, displayName, surfaces, controls);
@@ -1061,8 +1113,10 @@ public sealed class UiMappingReadModel
         IReadOnlyList<UiMapControlView> controls,
         IReadOnlySet<string> popupFrames)
     {
+        if (Property(surface.Source, "sceneVisible") == "False")
+            return surface.Variants.Select(variant => variant with { IsVisibleByDefault = false, Reason = "surface-not-visible" }).ToArray();
         if (surface.SurfaceKind.Contains("Popup", StringComparison.OrdinalIgnoreCase))
-            return surface.Variants.Select(variant => variant with { Reason = "popup_observation" }).ToArray();
+            return surface.Variants.Select(variant => variant.IsVisibleByDefault ? variant with { Reason = "popup_observation" } : variant).ToArray();
 
         var controlsById = controls.ToDictionary(control => control.Id, StringComparer.Ordinal);
         var acceptedStable = new List<(string Id, HashSet<string> Keys)>();
@@ -1070,6 +1124,7 @@ public sealed class UiMappingReadModel
         var result = new List<UiMapVariantView>(surface.Variants.Count);
         foreach (var variant in surface.Variants.OrderBy(item => item.BundleId, StringComparer.Ordinal).ThenBy(item => item.FrameSequence))
         {
+            if (!variant.IsVisibleByDefault) { result.Add(variant); continue; }
             var frameControls = variant.ControlIds
                 .Select(id => controlsById.GetValueOrDefault(id))
                 .Where(control => control is not null)
@@ -1087,8 +1142,8 @@ public sealed class UiMappingReadModel
             var dedupedInto = string.Empty;
             if (frameControls.Length == 0)
             {
-                visible = false;
-                reason = "empty_frame";
+                visible = Property(surface.Source, "sceneReconstruction") is not null;
+                reason = visible ? "image-only" : "empty_frame";
             }
             else if (variant.ControlSourceFrames is null && string.Equals(variant.ObservationScope, "control-delta", StringComparison.Ordinal))
             {
@@ -1224,6 +1279,7 @@ public sealed class UiMappingReadModel
         "borderless-window" => "Borderless Window",
         "tool-window" => "Tool Window",
         "RawPopupWindow" => "Popup Window",
+        "RawTooltipWindow" => "Tooltip Window",
         "RawToolWindow" => "Tool Window",
         _ => fallback
     };
@@ -1236,6 +1292,7 @@ public sealed class UiMappingReadModel
         "borderless-window" => "Borderless window",
         "tool-window" => "Tool window",
         "RawPopupWindow" => "Popup window",
+        "RawTooltipWindow" => "Tooltip window",
         "RawToolWindow" => "Tool window",
         _ => kind
     };

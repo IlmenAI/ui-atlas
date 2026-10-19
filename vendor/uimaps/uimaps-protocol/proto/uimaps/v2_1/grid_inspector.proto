@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package uimaps.v2_1;
+option csharp_namespace = "UIMaps.Protocol.V2_1";
+
+import "uimaps/v1/common.proto";
+
+enum GridInspectorElementKind {
+  GRID_INSPECTOR_ELEMENT_KIND_UNSPECIFIED = 0;
+  INSPECTOR_GRID = 1;
+  INSPECTOR_HEADER = 2;
+  INSPECTOR_COLUMN = 3;
+  INSPECTOR_VISIBLE_ROW = 4;
+  INSPECTOR_VISIBLE_CELL = 5;
+  INSPECTOR_SCROLLBAR = 6;
+  INSPECTOR_UNRESOLVED_REGION = 7;
+}
+enum GridInspectorEpistemicStatus {
+  GRID_INSPECTOR_EPISTEMIC_STATUS_UNSPECIFIED = 0;
+  OBSERVED = 1;
+  INFERRED = 2;
+  REVIEWED = 3;
+  PUBLISHED = 4;
+  CURRENTLY_GROUNDED = 5;
+  AMBIGUOUS_EVIDENCE = 6;
+}
+
+message GridInspectorElement {
+  string inspector_element_ref = 1;
+  string source_candidate_ref = 2;
+  string draft_ref = 3;
+  GridInspectorElementKind kind = 4;
+  string parent_element_ref = 5;
+  uimaps.v1.RectPx evidence_bounds_px = 6;
+  uimaps.v1.RectPx synthetic_bounds_px = 7;
+  string original_text = 8;
+  string reviewed_text = 9;
+  double confidence = 10;
+  repeated string evidence_refs = 11;
+  repeated string alternative_refs = 12;
+  GridInspectorEpistemicStatus epistemic_status = 13;
+  bool partially_visible = 14;
+}
+
+message SyntheticGridViewModel {
+  string view_model_ref = 1;
+  string analysis_ref = 2;
+  string draft_ref = 3;
+  uint64 draft_version = 4;
+  repeated GridInspectorElement elements = 5;
+  string status_message = 6;
+  bool target_input_capability = 7;
+}
+
+message GridInspectorSelection {
+  string view_model_ref = 1;
+  uint64 draft_version = 2;
+  string inspector_element_ref = 3;
+  GridInspectorElementKind kind = 4;
+  bool stale = 5;
+}

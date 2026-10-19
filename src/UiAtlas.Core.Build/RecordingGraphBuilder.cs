@@ -7,9 +7,26 @@ namespace UiAtlas.Core.Build;
 
 public sealed class RecordingGraphBuilder
 {
+    private readonly MapBuildSettings? _settings;
+    public RecordingGraphBuilder(MapBuildSettings? settings = null) => _settings = settings;
     private const string RawDataStreamsLayer = "raw-data-streams";
     private const string RawLayer = "raw-world";
     private const string SemanticLayer = "semantic-world";
+
+    /// <summary>Projects one recorded observation without reconstruction or provider fusion.
+    /// Shared by legacy and native acquisition so the editor has one raw-surface contract.</summary>
+    public static IReadOnlyList<GraphNode> ProjectRawObservation(RecordingManifest manifest,
+        FrameObservation frame, string appId)
+    {
+        var nodes = new Dictionary<string, MutableNode>(StringComparer.Ordinal);
+        var edges = new Dictionary<string, MutableEdge>(StringComparer.Ordinal);
+        var evidencedWindows = RawFrameEvidence.Controls(frame).Select(item => item.Control.WindowHwnd).ToHashSet();
+        var windows = (frame.ScopedWindows ?? [frame.Window]).Where(window =>
+            window.IsVisible && !window.IsMinimized && !window.IsCloaked && ControlGeometry.IsRenderable(window.Bounds)
+            || evidencedWindows.Contains(window.Hwnd)).ToArray();
+        MaterializeRawDataStreamFrame(manifest, frame, windows, frame.Automation, appId, nodes, edges);
+        return nodes.Values.Select(node => node.Build()).OrderBy(node => node.Id, StringComparer.Ordinal).ToArray();
+    }
 
     public UiKnowledgeGraph Build(string bundlePath) => Build(new[] { bundlePath });
 
@@ -42,10 +59,12 @@ public sealed class RecordingGraphBuilder
         return BuildValidated(values, logicalMapId);
     }
 
-    private static UiKnowledgeGraph BuildValidated(
+    private UiKnowledgeGraph BuildValidated(
         IReadOnlyList<RecordingGraphInput> inputs,
         string? logicalMapId)
     {
+        var buildSettings = _settings ?? new MapBuildSettingsStore().Load();
+        buildSettings.Validate();
         var primaryManifest = inputs[0].Manifest;
 
         var nodes = new Dictionary<string, MutableNode>(StringComparer.Ordinal);
@@ -327,6 +346,7 @@ public sealed class RecordingGraphBuilder
 
         MaterializeSemanticWorld(appId, primaryManifest.Target.ProcessName, nodes, edges, rawSurfaces, rawControls);
 
+        buildSettings.CheckCounts(nodes.Count, edges.Count);
         var orderedNodes = nodes.Values.Select(node => node.Build()).OrderBy(node => node.Id, StringComparer.Ordinal).ToArray();
         var orderedEdges = edges.Values.Select(edge => edge.Build()).OrderBy(edge => edge.Id, StringComparer.Ordinal).ToArray();
         var semanticHash = GraphSemantics.ComputeHash(orderedNodes, orderedEdges);

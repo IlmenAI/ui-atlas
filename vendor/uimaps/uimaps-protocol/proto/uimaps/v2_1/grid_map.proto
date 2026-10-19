@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package uimaps.v2_1;
+option csharp_namespace = "UIMaps.Protocol.V2_1";
+
+import "uimaps/v1/common.proto";
+
+message MappedGridColumn {
+  string grid_column_ref = 1;
+  string data_grid_ref = 2;
+  int32 ordinal = 3;
+  string canonical_display_name = 4;
+  repeated string aliases = 5;
+  double expected_width_ratio = 6;
+  repeated string header_matchers = 7;
+  repeated string data_type_hypotheses = 8;
+  bool key_candidate = 9;
+  repeated string source_evidence_refs = 10;
+  repeated string known_limitations = 11;
+}
+message MappedDataGrid {
+  string data_grid_ref = 1;
+  string surface_ref = 2;
+  repeated string surface_variant_refs = 3;
+  string display_name = 4;
+  repeated string native_class_hints = 5;
+  repeated string accessibility_hints = 6;
+  uimaps.v1.RectPx expected_relative_bounds = 7;
+  repeated string expected_header_set = 8;
+  repeated MappedGridColumn columns = 9;
+  string geometry_template = 10;
+  repeated string row_key_candidates = 11;
+  string matcher_policy_ref = 12;
+  repeated string source_evidence_refs = 13;
+  repeated string reviewer_assertions = 14;
+  repeated string qualification_refs = 15;
+  repeated string known_limitations = 16;
+  bool schema_partial = 17;
+}
+
+message MappedSurface {
+  string surface_ref = 1;
+  repeated string surface_variant_refs = 2;
+  string application_ref = 3;
+  repeated string matchers = 4;
+  repeated string visual_anchors = 5;
+  repeated string native_anchors = 6;
+  repeated string accessibility_anchors = 7;
+  repeated string negative_evidence = 8;
+}
+
+message DataGridMapPackage {
+  string schema_version = 1;
+  string map_revision_ref = 2;
+  string parent_revision_ref = 3;
+  string app_ref = 4;
+  repeated string application_matchers = 5;
+  repeated MappedSurface surfaces = 6;
+  repeated MappedDataGrid data_grids = 7;
+  repeated string evidence_manifest = 8;
+  repeated string qualification_summary = 9;
+  repeated string known_limitations = 10;
+  string canonical_payload_hash = 11;
+  string created_at = 12;
+  string published_at = 13;
+  string publisher_identity = 14;
+}
+
+message DataGridMapValidationIssue {
+  string severity = 1;
+  string code = 2;
+  string message = 3;
+}
+
+message DataGridMapValidationReport {
+  bool valid = 1;
+  repeated DataGridMapValidationIssue issues = 2;
+  string canonical_payload_hash = 3;
+}

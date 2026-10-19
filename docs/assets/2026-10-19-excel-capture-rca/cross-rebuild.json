@@ -1,0 +1,34 @@
+[
+  {
+    "Deployment": "atlas",
+    "Input": "20261019-130737-excel-e84d903d",
+    "Root": "C:\\stuff\\dev\\successors\\ui-atlas\\.codex-out\\excel-launcher-rca\\rebuild-atlas-20261019-130737-excel-e84d903d",
+    "BuildExit": 0,
+    "Build": "Built map 20261019-130737-excel-e84d903d: 4008 nodes, 5577 edges. Semantic hash: 9795b5a9d7edd92dc400e9e123c193c59857ffd84acaad46629afea4bbce7e14",
+    "Quality": "STATUS\tNEEDS REVIEW\nSCREENS\t5\nSEMANTIC SURFACES\t2\nCONTROLS\t784\nSAVED DATA GRIDS\t0\nUIA-NATIVE DATA GRIDS\t0\nNON-UIA-NATIVE DATA GRIDS\t0\nTABLE CELLS\t0\nSCREENSHOTS\t5\nEXACT DUPLICATE SCREENSHOTS\t0\nINTERACTIONS\t3/4 complete\nPARTIAL SCREEN SCANS\t5\nMISSING SCREENSHOTS\t0\nREVIEW\tUI Maps candidates await explicit review; use map validate-drafts for publication eligibility\nREVIEW\t1 interaction without a confirmed result screen\nREVIEW\t5 screen scans returned partial controls"
+  },
+  {
+    "Deployment": "maplock",
+    "Input": "20261019-130737-excel-e84d903d",
+    "Root": "C:\\stuff\\dev\\successors\\ui-atlas\\.codex-out\\excel-launcher-rca\\rebuild-maplock-20261019-130737-excel-e84d903d",
+    "BuildExit": 0,
+    "Build": "Built map 20261019-130737-excel-e84d903d: 4008 nodes, 5577 edges. Semantic hash: 44417804036ecd9bdf24f29b4bb589ddd378af5863b4cbebf5f58704de53cc14",
+    "Quality": "STATUS\tNEEDS REVIEW\nSCREENS\t5\nSEMANTIC SURFACES\t2\nCONTROLS\t784\nSAVED DATA GRIDS\t0\nUIA-NATIVE DATA GRIDS\t0\nNON-UIA-NATIVE DATA GRIDS\t0\nTABLE CELLS\t0\nSCREENSHOTS\t5\nEXACT DUPLICATE SCREENSHOTS\t0\nINTERACTIONS\t3/4 complete\nPARTIAL SCREEN SCANS\t5\nMISSING SCREENSHOTS\t0\nREVIEW\tUI Maps candidates await explicit review; use map validate-drafts for publication eligibility\nREVIEW\t1 interaction without a confirmed result screen\nREVIEW\t5 screen scans returned partial controls"
+  },
+  {
+    "Deployment": "atlas",
+    "Input": "20261019-131419-excel-afa718e8",
+    "Root": "C:\\stuff\\dev\\successors\\ui-atlas\\.codex-out\\excel-launcher-rca\\rebuild-atlas-20261019-131419-excel-afa718e8",
+    "BuildExit": 0,
+    "Build": "Built map 20261019-131419-excel-afa718e8: 2200 nodes, 3051 edges. Semantic hash: 6382468bb086caedb97e81c7aa806bc8ff0c1016ac5c0d9cb1094549772dfba3",
+    "Quality": "STATUS\tNEEDS REVIEW\nSCREENS\t5\nSEMANTIC SURFACES\t2\nCONTROLS\t457\nSAVED DATA GRIDS\t0\nUIA-NATIVE DATA GRIDS\t0\nNON-UIA-NATIVE DATA GRIDS\t0\nTABLE CELLS\t0\nSCREENSHOTS\t5\nEXACT DUPLICATE SCREENSHOTS\t0\nINTERACTIONS\t1/4 complete\nPARTIAL SCREEN SCANS\t5\nMISSING SCREENSHOTS\t0\nREVIEW\tUI Maps candidates await explicit review; use map validate-drafts for publication eligibility\nREVIEW\t3 interactions without a confirmed result screen\nREVIEW\t5 screen scans returned partial controls"
+  },
+  {
+    "Deployment": "maplock",
+    "Input": "20261019-131419-excel-afa718e8",
+    "Root": "C:\\stuff\\dev\\successors\\ui-atlas\\.codex-out\\excel-launcher-rca\\rebuild-maplock-20261019-131419-excel-afa718e8",
+    "BuildExit": 0,
+    "Build": "Built map 20261019-131419-excel-afa718e8: 2200 nodes, 3051 edges. Semantic hash: 3125ef81ab2020ff31598e23bcbb0ef7dc4a3b5410ced0fb6c1c2e6bf09163bc",
+    "Quality": "STATUS\tNEEDS REVIEW\nSCREENS\t5\nSEMANTIC SURFACES\t2\nCONTROLS\t457\nSAVED DATA GRIDS\t0\nUIA-NATIVE DATA GRIDS\t0\nNON-UIA-NATIVE DATA GRIDS\t0\nTABLE CELLS\t0\nSCREENSHOTS\t5\nEXACT DUPLICATE SCREENSHOTS\t0\nINTERACTIONS\t1/4 complete\nPARTIAL SCREEN SCANS\t5\nMISSING SCREENSHOTS\t0\nREVIEW\tUI Maps candidates await explicit review; use map validate-drafts for publication eligibility\nREVIEW\t3 interactions without a confirmed result screen\nREVIEW\t5 screen scans returned partial controls"
+  }
+]

@@ -24,6 +24,7 @@ function Start-IdleCli([string]$Directory, [string]$HostKind = 'apphost', [strin
   $start.EnvironmentVariables['UI-ATLAS_DATA_HOME'] = Join-Path $scratch 'catalog'
   if ($HostKind -eq 'relative') { $start.Arguments = '.\ui-atlas.dll' }
   if ($HostKind -eq 'exec') { $start.Arguments = 'exec "' + (Join-Path $Directory 'ui-atlas.dll') + '"' }
+  $start.Arguments = ($start.Arguments + ' shell').Trim()
   $process = [Diagnostics.Process]::Start($start)
   $processes.Add($process)
   $deadline = [DateTime]::UtcNow.AddSeconds(10)
@@ -75,7 +76,19 @@ try {
     if ($process.HasExited) { throw 'Cleanup stopped a process from another output directory.' }
   }
   Invoke-CleanupTarget
-  Write-Output 'Build process cleanup checks passed: native, multiple instances, dotnet relative/exec, copied adapter, path isolation, skip conditions, and repeated cleanup.'
+  # Exercise the actual build pipeline, not only an explicitly invoked hook.
+  # Build/Rebuild must stop the copy whose DLLs would otherwise block output
+  # replacement, while a neighboring output remains running.
+  foreach ($buildTarget in @('Build', 'Rebuild')) {
+    $lockedOutput = Start-IdleCli $target
+    & dotnet msbuild $project -nologo -v:minimal "-t:$buildTarget" "-p:Configuration=$Configuration" "-p:OutDir=$target\"
+    if ($LASTEXITCODE) { throw "$buildTarget failed while the output was running." }
+    if (-not $lockedOutput.WaitForExit(5000)) { throw "$buildTarget did not release its running output." }
+    foreach ($process in @($otherNative, $otherDotnet)) {
+      if ($process.HasExited) { throw "$buildTarget stopped another output directory." }
+    }
+  }
+  Write-Output 'Build process cleanup checks passed: native, multiple instances, dotnet relative/exec, copied adapter, path isolation, skip conditions, repeated cleanup, and locked-output Build/Rebuild.'
 }
 finally {
   foreach ($process in $processes) {

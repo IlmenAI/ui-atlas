@@ -1,0 +1,80 @@
+{
+  "recording": "C:\\Users\\danie\\AppData\\Local\\UiAtlas\\Core\\recordings\\20261018-094439-excel-c63a40af.mlrec",
+  "sha256": "bdb4717f1c9174955104a6d1c522202cb95b6d379b6933220cb4521d21708a7a",
+  "frames": 38,
+  "raw_source_records": 71173,
+  "independent_images": 70,
+  "status": {
+    "partial": 24,
+    "interrupted": 5,
+    "ok": 9
+  },
+  "stability": {
+    "stable": 33,
+    "changed": 5
+  },
+  "providers": {
+    "screenshot": {
+      "ok": 38,
+      "records": 0
+    },
+    "native-window-topology": {
+      "ok": 38,
+      "records": 0
+    },
+    "native-hwnd": {
+      "ok": 70,
+      "records": 887
+    },
+    "uia": {
+      "ok": 43,
+      "records": 11544,
+      "timeout": 27
+    },
+    "msaa": {
+      "timeout": 30,
+      "records": 58742,
+      "ok": 40
+    }
+  },
+  "frame_labels": {
+    "1": "Home baseline",
+    "2": "Cell context Filter - first attempt",
+    "3": "Cell context Filter - retry",
+    "4": "Cell context Sort",
+    "5": "Format Cells Font",
+    "6": "Format Cells moved",
+    "7": "Format Cells Number",
+    "8": "Format Cells Alignment",
+    "9": "Alignment Horizontal dropdown",
+    "10": "Format Cells Border",
+    "11": "Format Cells Fill",
+    "12": "Colors Standard",
+    "13": "Colors Custom",
+    "14": "Format Cells Protection",
+    "15": "Sheet context menu",
+    "16": "Sheet Tab Color palette",
+    "17": "Move or Copy - first attempt",
+    "18": "Move or Copy - retry",
+    "19": "Move or Copy workbook picker - first attempt",
+    "20": "Move or Copy workbook picker - retry",
+    "21": "Cancel Move or Copy",
+    "22": "Font dropdown",
+    "23": "Font size dropdown",
+    "24": "Conditional Formatting",
+    "25": "Highlight Cells Rules",
+    "26": "Greater Than - first attempt",
+    "27": "Greater Than - retry with Editing tooltip",
+    "28": "Cancel Greater Than",
+    "29": "Format as Table gallery",
+    "30": "Insert ribbon",
+    "31": "Column chart gallery",
+    "32": "Data ribbon",
+    "33": "What-If Analysis menu",
+    "34": "Goal Seek",
+    "35": "Cancel Goal Seek - first attempt",
+    "36": "Get Data tooltip - retry",
+    "37": "View ribbon",
+    "38": "Freeze Panes menu"
+  }
+}

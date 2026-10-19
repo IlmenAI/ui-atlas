@@ -24,8 +24,8 @@
         "effectiveLogicalMapId": {"type": "string", "maxLength": 256}
       }
     },
-    "nodes": {"type": "array", "maxItems": 100000, "items": {"$ref": "#/$defs/node"}},
-    "edges": {"type": "array", "maxItems": 100000, "items": {"$ref": "#/$defs/edge"}}
+    "nodes": {"type": "array", "maxItems": 2000000, "items": {"$ref": "#/$defs/node"}},
+    "edges": {"type": "array", "maxItems": 2000000, "items": {"$ref": "#/$defs/edge"}}
   },
   "$defs": {
     "edge": {
@@ -39,6 +39,9 @@
             "contains",
             "observed-transition",
             "opens-popup",
+            "presents",
+            "occludes",
+            "semantic-interpreted-from",
             "interaction",
             "predicts-transition",
             "confirmed-as",

@@ -467,8 +467,8 @@ public static class UiAtlasVNextCompatibilityValidator
             RequireMembers(authoring, AuthoringNames, "authoring", issues);
             if (issues.Count > 0) return new(false, issues);
             var applications = Array(authoring, "applications", 1, 10_000, issues);
-            var windows = Array(authoring, "windows", 1, 100_000, issues);
-            var controls = Array(authoring, "controls", 0, 100_000, issues);
+            var windows = Array(authoring, "windows", 1, GraphContractLimits.MaxNodes, issues);
+            var controls = Array(authoring, "controls", 0, GraphContractLimits.MaxNodes, issues);
             if (root.TryGetProperty("observationPackages", out packageArray))
                 ValidateObservationPackages(packageArray, Text(revision, "buildId"), issues);
             if (issues.Count > 0) return new(false, issues);

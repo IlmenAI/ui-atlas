@@ -1,0 +1,98 @@
+[
+  {
+    "Run": "20261019-130737-excel-e84d903d",
+    "Sequence": 1,
+    "Action": "select",
+    "Outcome": "succeeded",
+    "SourceFrame": 1,
+    "SourceControl": "Insert",
+    "ResultFrames": [
+      2
+    ],
+    "Diagnostic": "RootCaptured"
+  },
+  {
+    "Run": "20261019-130737-excel-e84d903d",
+    "Sequence": 2,
+    "Action": "select",
+    "Outcome": "succeeded",
+    "SourceFrame": 2,
+    "SourceControl": "Home",
+    "ResultFrames": [
+      3
+    ],
+    "Diagnostic": "RootCaptured"
+  },
+  {
+    "Run": "20261019-130737-excel-e84d903d",
+    "Sequence": 3,
+    "Action": "invoke",
+    "Outcome": "succeeded",
+    "SourceFrame": 3,
+    "SourceControl": "Format Cell Font",
+    "ResultFrames": [
+      4
+    ],
+    "Diagnostic": "RootCaptured"
+  },
+  {
+    "Run": "20261019-130737-excel-e84d903d",
+    "Sequence": 4,
+    "Action": "unknown",
+    "Outcome": "failed",
+    "SourceFrame": 4,
+    "SourceControl": null,
+    "ResultFrames": [
+      5
+    ],
+    "Diagnostic": "RootCaptured"
+  },
+  {
+    "Run": "20261019-131419-excel-afa718e8",
+    "Sequence": 1,
+    "Action": "select",
+    "Outcome": "succeeded",
+    "SourceFrame": 1,
+    "SourceControl": "Insert",
+    "ResultFrames": [
+      2
+    ],
+    "Diagnostic": "RootCaptured"
+  },
+  {
+    "Run": "20261019-131419-excel-afa718e8",
+    "Sequence": 2,
+    "Action": "unknown",
+    "Outcome": "failed",
+    "SourceFrame": 2,
+    "SourceControl": null,
+    "ResultFrames": [
+      3
+    ],
+    "Diagnostic": "RootCaptured"
+  },
+  {
+    "Run": "20261019-131419-excel-afa718e8",
+    "Sequence": 3,
+    "Action": "unknown",
+    "Outcome": "failed",
+    "SourceFrame": 3,
+    "SourceControl": null,
+    "ResultFrames": [
+      4
+    ],
+    "Diagnostic": "RootCaptured"
+  },
+  {
+    "Run": "20261019-131419-excel-afa718e8",
+    "Sequence": 4,
+    "Action": "unknown",
+    "Outcome": "failed",
+    "SourceFrame": 4,
+    "SourceControl": null,
+    "ResultFrames": [
+      5
+    ],
+    "Diagnostic": "RootCaptured"
+  }
+]

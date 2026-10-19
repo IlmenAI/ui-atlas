@@ -150,23 +150,34 @@ public sealed class UiEvidenceReader : IDisposable
         return bundle.ReadJson<FrameObservation>($"raw/observations/frame-{frameSequence:D6}.json");
     }
 
-    public UiEvidenceImage? ReadWindow(EvidenceRef evidence, long hwnd, bool includeOwnedPopups = true)
+    public UiEvidenceImage? ReadRawSurface(EvidenceRef evidence, long hwnd)
+    {
+        var frame = ReadObservation(evidence.BundleId, evidence.FrameSequence);
+        var window = (frame.ScopedWindows ?? [frame.Window]).SingleOrDefault(window => window.Hwnd == hwnd)
+            ?? throw new InvalidDataException("Selected HWND is not in this observation.");
+        // A standalone dialog is a bounded pixel surface. A provider rectangle
+        // outside it is not permission to sample the underlying application.
+        if (RawObservationSemantics.NativeKind(window) == "dialog-window")
+        {
+            var dialog = ReadWindow(evidence, hwnd);
+            return dialog is null ? null : dialog with { DisplayBounds = window.Bounds };
+        }
+        // An accessibility query may report descendants drawn by a separate HWND.
+        // Keep query membership separate from the screenshot's capture scope. Use
+        // the recorded screen pixels, without stitching planes or inferring owners.
+        var image = Read(evidence);
+        return image is not null
+            ? image with { PixelProvenance = "recorded frame screenshot; cropped to selected query bounds" }
+            : ReadWindow(evidence, hwnd);
+    }
+
+    public UiEvidenceImage? ReadWindow(EvidenceRef evidence, long hwnd)
     {
         // Validate the canonical frame reference even when a separate HWND image exists.
         var original = Read(evidence);
         var frame = ReadObservation(evidence.BundleId, evidence.FrameSequence);
         var window = (frame.ScopedWindows ?? [frame.Window]).SingleOrDefault(item => item.Hwnd == hwnd)
             ?? throw new InvalidDataException("Selected HWND is not in this observation.");
-        var context = RawSurfaceImageLayout.WindowContext(frame, window);
-        if (includeOwnedPopups && original is not null && context.Count > 1)
-        {
-            // Display only a crop of this frame's already recorded pixels. Do not
-            // compose independent HWND images or import any popup control records.
-            return original with {
-                PixelProvenance = $"captured frame crop with {context.Count - 1} owned popup(s)",
-                DisplayBounds = RawSurfaceImageLayout.ContextBounds(context),
-                VisibleRegions = RawSurfaceImageLayout.VisibleContextRegions(frame, context) };
-        }
         var plane = frame.WindowImages?.SingleOrDefault(item => item.Hwnd == hwnd);
         if (plane is { Status: "ok", Entry: not null })
         {
@@ -179,7 +190,7 @@ public sealed class UiEvidenceReader : IDisposable
         if (original is null) return null;
         var occluders = RawSurfaceImageLayout.Occluders(frame, window);
         return original with { PixelProvenance = plane is null
-            ? "legacy screen/composite crop; isolation unverified"
+            ? frame.NativeEpisodeEntry is null ? "legacy screen/composite crop; isolation unverified" : "native target-region screen capture; isolation unverified"
             : $"screen crop; isolated capture {plane.Status}", OccludedRegions = occluders };
     }
 
@@ -199,6 +210,16 @@ public sealed class UiEvidenceReader : IDisposable
         if (!_bundles.TryGetValue(bundleId, out var bundle)) throw new InvalidDataException("Unknown recording.");
         return bundle.Entries.Where(entry => entry.StartsWith("raw/providers/attempt-", StringComparison.Ordinal))
             .OrderBy(entry => entry, StringComparer.Ordinal).Select(bundle.ReadJson<ProviderObservation>).ToArray();
+    }
+
+    public byte[]? ReadNativeEpisode(string bundleId, long frameSequence)
+    {
+        if (!_bundles.TryGetValue(bundleId, out var bundle)) throw new InvalidDataException("Unknown recording.");
+        var frame = ReadObservation(bundleId, frameSequence);
+        if (frame.NativeEpisodeEntry is null) return null;
+        if (frame.NativeEpisodeEntry != $"raw/native/frame-{frameSequence:D6}.episode.pb")
+            throw new InvalidDataException("Native episode reference is not canonical.");
+        return bundle.ReadBytes(frame.NativeEpisodeEntry, RecordingContractLimits.MaxEvidenceEntryBytes);
     }
 
     public void Dispose()

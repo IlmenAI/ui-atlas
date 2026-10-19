@@ -1,0 +1,88 @@
+{
+  "requestedProfileRef": {
+    "profileId": "mapping-checkpoint"
+  },
+  "resolvedProfileRef": {
+    "profileId": "mapping-checkpoint",
+    "profileVersion": "1.0.0"
+  },
+  "catalogVersion": "1.0.0",
+  "resolverVersion": "phase1-resolver/1",
+  "captureSemantics": "CAPTURE_SEMANTICS_SNAPSHOT",
+  "hardWallClockBudgetMs": "20000",
+  "providerBudgets": [
+    {
+      "providerId": "screen",
+      "hardDurationMs": "3000",
+      "maxAttempts": 1,
+      "maxBytes": "16777216"
+    },
+    {
+      "providerId": "native-window-topology",
+      "hardDurationMs": "3000",
+      "maxAttempts": 1
+    },
+    {
+      "providerId": "uia",
+      "hardDurationMs": "3000",
+      "maxAttempts": 1,
+      "maxConcurrentGlobalContribution": 3,
+      "maxNodes": 10000,
+      "maxDepth": 64
+    },
+    {
+      "providerId": "msaa",
+      "hardDurationMs": "3000",
+      "maxAttempts": 1,
+      "maxConcurrentGlobalContribution": 3,
+      "maxNodes": 10000,
+      "maxDepth": 64
+    }
+  ],
+  "retryPolicy": {
+    "maxAttempts": 1,
+    "requireFreshWorker": true,
+    "stopRetryAtRemainingBudgetMs": "500"
+  },
+  "fallbackPolicy": {
+    "preservePrimaryFailure": true
+  },
+  "maxWindows": 64,
+  "maxNodesPerWindow": 10000,
+  "maxNodesPerEpisode": 50000,
+  "maxDepth": 64,
+  "maxBytesPerSegment": "16777216",
+  "maxBytesPerEpisode": "134217728",
+  "schedulingPolicy": {
+    "strategyId": "coverage-staged/1",
+    "globalConcurrency": 3,
+    "perProcessConcurrency": 1,
+    "foregroundPriority": 100,
+    "visiblePriority": 50,
+    "displayIntersectionPriority": 25,
+    "unfinishedFrontierPriority": 75,
+    "recoveryPriority": 10
+  },
+  "synchronizationPolicy": {
+    "frameAnchorSource": "screenshot",
+    "targetToleranceMs": "250",
+    "hardAttachmentToleranceMs": "500",
+    "staleEvidencePolicy": "retain_in_episode_exclude_from_frame"
+  },
+  "coverageTarget": "temporally_coherent_priority_evidence",
+  "checkpointPolicy": {
+    "intervalMs": "10000"
+  },
+  "adjustments": [
+    {
+      "code": "target_window_priority",
+      "safeDescription": "The passively observed target window is prioritized for provider scheduling."
+    },
+    {
+      "code": "capture_wide_visual_control_detection_opt_in",
+      "safeDescription": "Capture-wide visual control detection and OCR were explicitly enabled."
+    }
+  ],
+  "visualControlDetectionEnabled": true,
+  "ocrOnVisualControlsEnabled": true
+}

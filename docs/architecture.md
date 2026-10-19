@@ -1,5 +1,26 @@
 # Architecture and data flow
 
+New Atlas recordings and builds use the [UI Maps foundation](2026-10-13-uimaps-foundation-rollout.md).
+Its durable Map database is authoritative; the graph formats described below are
+compatibility projections. Legacy maps retain their original reader and curation behavior.
+
+The native path retains Atlas target selection, attended controls, bundle sealing,
+catalog and KG editor. `NativeRecorderCapture` invokes UI Maps' isolated native
+recorder. `AtlasMapWorkspace` passes its original episodes through Perception and
+Map; `AtlasMapProjection` feeds the existing three observed layers. Predicted
+state remains a separate editor session overlay. MapLock launches the public CLI
+and imports an explicit draft snapshot through its private Map host.
+
+New UI mapping recordings default to `deep-survey` (including mapping launched
+from MapLock). Its exhaustive pass retains UIA, MSAA and native HWND evidence,
+without overall, accessibility-worker, node or depth cutoffs by default. Capture
+remains cancellable; resource limits and provider failures remain explicit. The
+Settings page can select a different profile or set a finite accessibility timeout.
+Existing saved profile selections are preserved. Map building consumes the retained
+recording and does not choose a capture profile or reacquire missing evidence.
+
+The following sections describe the historical Atlas components and compatibility
+formats. The linked rollout defines the current native acquisition and authority.
 The repository uses small projects so capture, untrusted-input parsing, canonical construction, persistence, reading, and presentation remain independently testable.
 
 ```text

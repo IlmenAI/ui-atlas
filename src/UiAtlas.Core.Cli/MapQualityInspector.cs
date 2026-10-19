@@ -114,6 +114,11 @@ internal static class MapQualityInspector
             node.Kind == GraphNodeKind.State &&
             HasProperty(node, "layer", "raw-world") &&
             node.Evidence.Any(item => !string.IsNullOrWhiteSpace(item.ScreenshotEntry)));
+        var usesUiMaps = graph.Nodes.Any(node => HasProperty(node, "mappingEngine", "UIMaps"));
+        if (usesUiMaps)
+            screens = semanticNodes.Where(node => node.Kind == GraphNodeKind.Surface).SelectMany(node => node.Evidence)
+                .Where(item => !string.IsNullOrWhiteSpace(item.ScreenshotEntry))
+                .Select(item => (item.BundleId, item.FrameSequence)).Distinct().Count();
 
         var visualFrames = evidence.Frames
             .Where(item => IsVisualFrame(item.Frame))
@@ -137,6 +142,13 @@ internal static class MapQualityInspector
             !item.Recoverable || CriticalCaptureStatuses.Contains(item.Status));
 
         var reasons = new List<string>();
+        if (usesUiMaps)
+        {
+            if (semanticNodes.Any(node => HasProperty(node, "reviewState", "ReviewUnreviewed")))
+                reasons.Add("UI Maps candidates await explicit review; use map validate-drafts for publication eligibility");
+            if (graph.Nodes.Any(node => HasProperty(node, "acquisitionSemantic", "Survey")))
+                reasons.Add("retained observations are partial Surveys, not simultaneous snapshots");
+        }
         if (screens == 0)
             reasons.Add("no complete screen was promoted to the map");
         if (interactionsWithoutResult > 0)

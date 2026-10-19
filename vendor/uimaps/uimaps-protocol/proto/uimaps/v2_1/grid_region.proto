@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package uimaps.v2_1;
+option csharp_namespace = "UIMaps.Protocol.V2_1";
+
+import "uimaps/v1/common.proto";
+
+enum GridRegionOrigin {
+  GRID_REGION_ORIGIN_UNSPECIFIED = 0;
+  USER_SELECTED = 1;
+  PROACTIVE_GRID_DETECTOR = 2;
+  DIAGNOSTICS_REPLAY = 3;
+  IMPORTED_EVIDENCE = 4;
+}
+message GridRegionOfInterest {
+  string region_ref = 1;
+  GridRegionOrigin origin = 2;
+  string source_episode_ref = 3;
+  uint64 source_world_state_version = 4;
+  string source_screenshot_packet_id = 5;
+  string source_screenshot_hash = 6;
+  string application_instance_ref = 7;
+  string window_evidence_ref = 8;
+  string surface_scope_ref = 9;
+  uimaps.v1.RectPx bounds_px = 10;
+  string coordinate_transform = 11;
+  string created_by = 12;
+  string created_at = 13;
+  string privacy_policy_ref = 14;
+  string retention_policy_ref = 15;
+  string status = 16;
+  uimaps.v1.Lineage lineage = 17;
+}
+
+message ProactiveGridTrigger {
+  string trigger_ref = 1;
+  uint64 source_world_state_version = 2;
+  string application_instance_ref = 3;
+  uimaps.v1.RectPx proposed_bounds_px = 4;
+  repeated string trigger_signals = 5;
+  int64 unexplained_area_px = 6;
+  double grid_likelihood = 7;
+  double relevance = 8;
+  string deduplication_key = 9;
+  int32 priority = 10;
+  string terminal_outcome = 11;
+  string created_at = 12;
+}

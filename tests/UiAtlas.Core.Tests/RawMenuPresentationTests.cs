@@ -19,50 +19,6 @@ public sealed class RawMenuPresentationTests
     private static FrameObservation Frame(params WindowObservation[] windows) =>
         new(1, DateTimeOffset.UtcNow, "", windows[0], [], false, "ok", "test", windows);
 
-    [Fact]
-    public void ContextFollowsImmediateOwnersAndCascadesButNeverCrossesDialogs()
-    {
-        var main = Window(1, 0, "OpusApp", new(-800, 40, 700, 500), 6);
-        var menu = Window(2, 1, "Net UI Tool Window", new(-150, 100, 200, 200), 3);
-        var cascade = Window(3, 2, "Net UI Tool Window", new(40, 200, 100, 100), 2);
-        var font = Window(4, 1, "bosa_sdm_msword", new(-600, 200, 200, 200), 4);
-        var palette = Window(5, 4, "Net UI Tool Window", new(-500, 300, 200, 200), 1);
-        var colors = Window(6, 4, "#32770", new(-550, 250, 200, 200), 0);
-        var frame = Frame(main, cascade, menu, font, palette, colors);
-        var context = RawSurfaceImageLayout.WindowContext(frame, main);
-        Assert.Equal(new long[] { 1, 2, 3 }, context.Select(window => window.Hwnd));
-        Assert.Equal(new RectI(-800, 40, 940, 500), RawSurfaceImageLayout.ContextBounds(context));
-        Assert.Equal(new long[] { 4, 5 }, RawSurfaceImageLayout.WindowContext(frame, font).Select(window => window.Hwnd));
-        Assert.Single(RawSurfaceImageLayout.WindowContext(frame, colors));
-        Assert.Single(RawSurfaceImageLayout.WindowContext(frame with { ScopedWindows = [main,
-            menu with { IsVisible = false }, palette with { OwnerHwnd = 1, ProcessId = 99 }] }, main));
-    }
-
-    [Fact]
-    public void CroppingRetainsMenusBeyondWindowEdgesWithoutCopyingBackgroundOrCoveringDialogs()
-    {
-        var main = Window(1, 0, "OpusApp", new(-100, -50, 100, 100), 3);
-        var menu = Window(2, 1, "Net UI Tool Window", new(-10, -40, 30, 40), 0);
-        var dialog = Window(3, 1, "#32770", new(-60, -20, 80, 40), 1);
-        var frame = Frame(main, menu, dialog);
-        var context = RawSurfaceImageLayout.WindowContext(frame, main);
-        var regions = RawSurfaceImageLayout.VisibleContextRegions(frame, context);
-        MapperOverlayWindowTests.Sta(() =>
-        {
-            var pixels = Enumerable.Repeat((byte)255, 120 * 100 * 4).ToArray();
-            var source = BitmapSource.Create(120, 100, 96, 96, PixelFormats.Bgra32, null, pixels, 120 * 4);
-            var bounds = RawSurfaceImageLayout.ContextBounds(context);
-            var rendered = ExplorerWindow.RenderRawWindowImage(source, bounds, bounds, visibleRegions: regions)!;
-            rendered.CopyPixels(pixels, 120 * 4, 0);
-            byte Alpha(int x, int y) => pixels[(y * 120 + x) * 4 + 3];
-            Assert.Equal(255, Alpha(5, 5)); // observed main window
-            Assert.Equal(255, Alpha(110, 15)); // owned menu outside main window
-            Assert.Equal(255, Alpha(95, 35)); // menu above the unrelated covering dialog
-            Assert.Equal(0, Alpha(50, 35)); // independent dialog masked
-            Assert.Equal(0, Alpha(110, 80)); // unrelated desktop outside both regions
-        });
-    }
-
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -76,12 +32,14 @@ public sealed class RawMenuPresentationTests
         using var reader = UiEvidenceReader.Open(path);
         var frame = reader.ReadObservation("golden", 1);
         var evidence = new EvidenceRef("golden", 1, "raw/observations/frame-000001.json", null);
-        var image = reader.ReadWindow(evidence, frame.Window.Hwnd);
+        var image = reader.ReadRawSurface(evidence, frame.Window.Hwnd);
         if (!screenshot) { Assert.Null(image); return; }
         Assert.Equal(reader.Read(evidence)!.Png, image!.Png);
         Assert.Equal(frame.FrameEntry, image.Entry);
-        Assert.Contains("owned popup", image.PixelProvenance);
-        Assert.NotNull(image.VisibleRegions);
+        Assert.Contains("recorded frame screenshot", image.PixelProvenance);
+        Assert.Null(image.VisibleRegions);
+        Assert.Null(image.DisplayBounds);
+        Assert.Null(image.OccludedRegions);
         Assert.False(image.InheritedPixels);
     }
 
@@ -127,6 +85,7 @@ public sealed class RawMenuPresentationTests
         var frame = Frame(Window(1, 0, "Main", new(0, 0, 100, 100), 0));
         frame = frame with { Acquisition = new(RawObservationSemantics.Version, "observation:1", frame.TimestampUtc,
             frame.TimestampUtc, "partial", "screen", "stable") };
-        Assert.Equal(mode == UiMapProjectionMode.Controls, RawVariantPresentation.PolicyFor(mode, frame).ShowsControlCrops);
+        Assert.Equal(mode is UiMapProjectionMode.Controls or UiMapProjectionMode.Overlay,
+            RawVariantPresentation.PolicyFor(mode, frame).ShowsControlCrops);
     }
 }

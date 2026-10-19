@@ -1,0 +1,8 @@
+Copyright (c) AI Successors Corp.
+
+UiAtlas.Shell includes presentation code extracted from UIMaps.Application and
+the Windows application classifier from UIMaps.LocalServices.
+
+All rights reserved. Licensing terms for public distribution will be supplied
+before publication as open source. Extraction does not relicense those components
+under the UI Atlas repository's root license.

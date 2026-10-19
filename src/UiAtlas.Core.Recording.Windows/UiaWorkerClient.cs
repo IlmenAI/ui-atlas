@@ -276,14 +276,16 @@ public sealed class UiaWorkerClient
         var processPath = Environment.ProcessPath ?? throw new InvalidOperationException("Entry process path is unavailable.");
         var assembly = Assembly.GetEntryAssembly()?.Location ?? throw new InvalidOperationException("Entry assembly path is unavailable.");
         var isMuxer = string.Equals(Path.GetFileNameWithoutExtension(processPath), "dotnet", StringComparison.OrdinalIgnoreCase);
-        var info = new ProcessStartInfo(workerExecutable ?? processPath)
+        var workerDll = workerExecutable is not null && Path.GetExtension(workerExecutable).Equals(".dll", StringComparison.OrdinalIgnoreCase);
+        var info = new ProcessStartInfo(workerDll ? "dotnet" : workerExecutable ?? processPath)
         {
             UseShellExecute = false,
             CreateNoWindow = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true
         };
-        if (isMuxer && workerExecutable is null) info.ArgumentList.Add(assembly);
+        if (workerDll) info.ArgumentList.Add(workerExecutable!);
+        else if (isMuxer && workerExecutable is null) info.ArgumentList.Add(assembly);
         info.ArgumentList.Add("__uia-worker");
         info.ArgumentList.Add(target.RootOwnerHwnd.ToString(System.Globalization.CultureInfo.InvariantCulture));
         info.ArgumentList.Add(maxNodes.ToString(System.Globalization.CultureInfo.InvariantCulture));

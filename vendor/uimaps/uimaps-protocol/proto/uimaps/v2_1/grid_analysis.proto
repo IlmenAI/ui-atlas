@@ -1,0 +1,295 @@
+syntax = "proto3";
+
+package uimaps.v2_1;
+option csharp_namespace = "UIMaps.Protocol.V2_1";
+
+import "uimaps/v1/common.proto";
+import "uimaps/v1/sensor.proto";
+import "uimaps/v2_1/grid_region.proto";
+
+enum GridQualityProfile {
+  GRID_QUALITY_PROFILE_UNSPECIFIED = 0;
+  LOCAL_FAST = 1;
+  INSTANT = 2;
+  AUTO = 3;
+}
+
+enum GridAnalysisContext {
+  GRID_ANALYSIS_CONTEXT_UNSPECIFIED = 0;
+  DISCOVERY = 1;
+  APPROVED_VIEWPORT_CONTINUATION = 2;
+}
+
+enum GridAnalysisLifecycleState {
+  GRID_ANALYSIS_LIFECYCLE_UNSPECIFIED = 0;
+  LOCAL_PROVISIONAL = 1;
+  FUSED_FINAL = 2;
+  LOCAL_FINAL = 3;
+  PARTIAL_FINAL = 4;
+  ANALYSIS_CANCELLED = 5;
+}
+
+message GridAnalysisRequest {
+  string request_id = 1;
+  string region_ref = 2;
+  repeated string requested_provider_ids = 3;
+  repeated string language_hints = 4;
+  int32 maximum_columns = 5;
+  int32 maximum_visible_rows = 6;
+  int32 maximum_cells = 7;
+  int32 deadline_ms = 8;
+  int32 priority = 9;
+  string privacy_policy_ref = 10;
+  GridQualityProfile quality_profile = 11;
+  bool remote_processing_allowed = 12;
+  string provider_policy_ref = 13;
+  string cost_budget_ref = 14;
+  int32 maximum_remote_requests = 15;
+  int32 maximum_input_image_bytes = 16;
+  int32 maximum_output_tokens = 17;
+  GridAnalysisContext analysis_context = 18;
+  // Reviewed, ordered UI Map schema for an already-localized mapped grid.
+  // Empty means that schema discovery remains the provider's responsibility.
+  repeated string reviewed_schema_headers = 19;
+  // Explicit crop-relative header band, or a body-up proposal when absent.
+  uimaps.v1.RectPx header_band = 20;
+  bool propose_header_band = 21;
+  ReviewedGridImageSchema reviewed_image_schema = 22;
+  bool contains_top_header = 23;
+  // Untrusted local OCR readings inside reviewed physical cells. These are
+  // transcription aids, never schema authority or substitute provider output.
+  repeated GridModelVisibleRowProposal reviewed_cell_text_hints = 24;
+}
+
+// Physical coordinates belong to the retained panorama, never to host identity.
+message ReviewedGridImageSchema {
+  int32 image_width = 1;
+  int32 image_height = 2;
+  string image_sha256 = 3;
+  bytes image_png = 4;
+  uimaps.v1.RectPx header_band = 5;
+  repeated GridColumnCandidate columns = 6;
+  string reviewed_by = 7;
+  string reviewed_at = 8;
+  int32 host_relative_top = 9;
+}
+
+message AzureOpenAIGridProviderConfiguration {
+  string provider_configuration_ref = 1;
+  string azure_resource_ref = 2;
+  string endpoint_origin = 3;
+  string deployment_name = 4;
+  string expected_model_family = 5;
+  string qualified_model_version = 6;
+  string api_surface = 7;
+  string authentication_mode = 8;
+  string credential_reference = 9;
+  string reasoning_effort = 10;
+  string image_detail = 11;
+  bool store = 12;
+  string prompt_template_version = 13;
+  string output_schema_version = 14;
+  int32 maximum_input_image_bytes = 15;
+  int32 maximum_output_tokens = 16;
+  int32 request_timeout_ms = 17;
+  int32 maximum_attempts = 18;
+  string retry_policy_version = 19;
+  string network_policy_ref = 20;
+  string privacy_policy_ref = 21;
+  bool enabled = 22;
+  string configuration_hash = 23;
+}
+
+message GridProviderAttempt {
+  string provider_id = 1;
+  string provider_version = 2;
+  string configuration_hash = 3;
+  string started_at = 4;
+  string completed_at = 5;
+  string status = 6;
+  int64 duration_ms = 7;
+  string source_crop_hash = 8;
+  uimaps.v1.Health health = 9;
+  string provider_attempt_ref = 10;
+  string provider_kind = 11;
+  GridQualityProfile quality_profile = 12;
+  string deployment_ref = 13;
+  string requested_model_family = 14;
+  string resolved_model_version = 15;
+  string api_surface = 16;
+  string reasoning_effort = 17;
+  string image_detail = 18;
+  string prompt_template_version = 19;
+  string output_schema_version = 20;
+  int64 input_image_bytes = 21;
+  int64 input_tokens = 22;
+  int64 output_tokens = 23;
+  int32 retry_count = 24;
+  string service_request_ref = 25;
+}
+
+message GridModelProposal {
+  string proposal_ref = 1;
+  string provider_attempt_ref = 2;
+  string region_ref = 3;
+  bool is_grid = 4;
+  double grid_likelihood = 5;
+  repeated double coarse_bounds_normalized = 6;
+  repeated string header_proposals = 7;
+  repeated string column_proposals = 8;
+  repeated string visible_row_proposals = 9;
+  repeated string visible_cell_role_bindings = 10;
+  repeated string alternative_proposals = 11;
+  repeated string uncertainty_codes = 12;
+  string concise_evidence_summary = 13;
+  string source_crop_hash = 14;
+  string schema_version = 15;
+  uimaps.v1.Lineage lineage = 16;
+  repeated GridModelVisibleRowProposal structured_visible_rows = 17;
+  string provider_display_name = 18;
+  string requested_model_family = 19;
+  string reasoning_effort_display = 20;
+  string acquisition_mode = 21;
+}
+
+message GridModelVisibleCellProposal {
+  int32 column_ordinal = 1;
+  string text = 2;
+  double confidence = 3;
+}
+
+message GridModelVisibleRowProposal {
+  int32 visible_ordinal = 1;
+  repeated GridModelVisibleCellProposal cells = 2;
+}
+
+message GridTextObservation {
+  string text_observation_ref = 1;
+  string original_text = 2;
+  string normalized_text = 3;
+  string language = 4;
+  uimaps.v1.RectPx bounds_px = 5;
+  double confidence = 6;
+  string provider_id = 7;
+  string provider_version = 8;
+  string source_crop_hash = 9;
+  uimaps.v1.Lineage lineage = 10;
+}
+
+enum GridStructuralHintKind {
+  GRID_STRUCTURAL_HINT_KIND_UNSPECIFIED = 0;
+  NATIVE_WINDOW = 1;
+  ACCESSIBILITY = 2;
+}
+
+// Passive structure retained from the same frozen Snapshot as the exact crop.
+// Bounds are crop-relative; source refs preserve the original evidence identity.
+message GridStructuralHint {
+  string hint_ref = 1;
+  GridStructuralHintKind kind = 2;
+  string source_evidence_ref = 3;
+  string parent_evidence_ref = 4;
+  string role = 5;
+  string name = 6;
+  uimaps.v1.RectPx bounds_px = 7;
+  double confidence = 8;
+  repeated uimaps.v1.StringProperty properties = 9;
+}
+
+message VisibleGridCellCandidate {
+  string candidate_ref = 1;
+  string column_candidate_ref = 2;
+  string row_candidate_ref = 3;
+  uimaps.v1.RectPx bounds_px = 4;
+  repeated string text_observation_refs = 5;
+  string original_text = 6;
+  string normalized_text = 7;
+  double confidence = 8;
+  uimaps.v1.Lineage lineage = 9;
+}
+
+message VisibleGridRowCandidate {
+  string candidate_ref = 1;
+  int32 visible_ordinal = 2;
+  uimaps.v1.RectPx bounds_px = 3;
+  repeated VisibleGridCellCandidate cell_candidates = 4;
+  repeated string row_key_hypotheses = 5;
+  double confidence = 6;
+  uimaps.v1.Lineage lineage = 7;
+}
+
+message GridColumnCandidate {
+  string candidate_ref = 1;
+  int32 ordinal = 2;
+  uimaps.v1.RectPx bounds_px = 3;
+  string header_text_ref = 4;
+  repeated string aliases = 5;
+  double width_ratio = 6;
+  double confidence = 7;
+  uimaps.v1.Lineage lineage = 8;
+}
+
+message GridHeaderCandidate {
+  string candidate_ref = 1;
+  uimaps.v1.RectPx bounds_px = 2;
+  repeated string text_observation_refs = 3;
+  repeated string column_candidate_refs = 4;
+  double confidence = 5;
+  uimaps.v1.Lineage lineage = 6;
+}
+
+message DataGridCandidate {
+  string candidate_ref = 1;
+  string region_ref = 2;
+  uimaps.v1.RectPx bounds_px = 3;
+  double grid_confidence = 4;
+  repeated GridHeaderCandidate header_candidates = 5;
+  repeated GridColumnCandidate column_candidates = 6;
+  repeated VisibleGridRowCandidate visible_row_candidates = 7;
+  repeated string alternative_grouping_refs = 8;
+  repeated uimaps.v1.RectPx unresolved_subregions = 9;
+  repeated string provider_evidence_refs = 10;
+  uimaps.v1.Health health = 11;
+  uimaps.v1.Lineage lineage = 12;
+  repeated string feature_contributions = 13;
+}
+
+enum GridAnalysisStatus {
+  GRID_ANALYSIS_STATUS_UNSPECIFIED = 0;
+  GRID_ANALYSIS_COMPLETE = 1;
+  GRID_ANALYSIS_PARTIAL = 2;
+  GRID_ANALYSIS_CANCELLED = 3;
+  GRID_ANALYSIS_NO_CANDIDATE = 4;
+  GRID_ANALYSIS_PROVIDER_UNAVAILABLE = 5;
+  GRID_ANALYSIS_INVALID_REQUEST = 6;
+}
+
+message GridAnalysisResult {
+  string analysis_ref = 1;
+  string region_ref = 2;
+  GridAnalysisStatus status = 3;
+  repeated GridProviderAttempt provider_attempts = 4;
+  repeated GridTextObservation text_observations = 5;
+  repeated DataGridCandidate grid_candidates = 6;
+  repeated uimaps.v1.RectPx unresolved_subregions = 7;
+  double semantic_coverage = 8;
+  uimaps.v1.Health health = 9;
+  uimaps.v1.Lineage lineage = 10;
+  string completed_at = 11;
+  GridQualityProfile requested_quality_profile = 12;
+  GridQualityProfile effective_quality_profile = 13;
+  GridAnalysisLifecycleState lifecycle_state = 14;
+  string escalation_decision = 15;
+  repeated GridModelProposal model_proposals = 16;
+  repeated string provisional_grid_candidate_refs = 17;
+  repeated string fusion_conflicts = 18;
+  ReviewedGridImageSchema reviewed_image_schema = 19;
+}
+
+// IPC envelope. Pixels remain observation evidence and never become Map identity.
+message GridAnalysisSubmission {
+  GridAnalysisRequest request = 1;
+  GridRegionOfInterest region = 2;
+  uimaps.v1.ScreenshotPacket screenshot = 3;
+  repeated GridStructuralHint structural_hints = 4;
+}

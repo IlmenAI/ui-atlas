@@ -1,0 +1,141 @@
+syntax = "proto3";
+
+package uimaps.v1;
+option csharp_namespace = "UIMaps.Protocol.V1";
+
+import "uimaps/v1/common.proto";
+import "uimaps/v1/capture_policy.proto";
+import "uimaps/v1/coverage.proto";
+
+enum ObservationKind {
+  OBSERVATION_KIND_UNSPECIFIED = 0;
+  WINDOW = 1;
+  ACCESSIBILITY_OBSERVATION = 2;
+  VISUAL_SURFACE_OBSERVATION = 3;
+  VISUAL_TEXT_OBSERVATION = 4;
+}
+message Observation {
+  string observation_id = 1;
+  string episode_id = 2;
+  string frame_candidate_id = 3;
+  ObservationKind observation_kind = 4;
+  RectPx bounds_px = 5;
+  string role = 6;
+  string observed_name = 7;
+  repeated StringProperty properties = 8;
+  Health health = 9;
+  Confidence confidence = 10;
+  Freshness freshness = 11;
+  Lineage lineage = 12;
+  string parent_evidence_id = 13;
+  string source_evidence_id = 14;
+  string window_evidence_id = 15;
+  string process_instance_evidence = 16;
+  CaptureInterval source_interval = 17;
+}
+
+message PacketSkew {
+  string packet_id = 1;
+  double skew_ms = 2;
+  bool within_tolerance = 3;
+}
+
+message Frame {
+  string frame_id = 1;
+  string episode_id = 2;
+  int64 anchor_monotonic_ticks = 3;
+  string display_id = 4;
+  repeated string observation_ids = 5;
+  repeated PacketSkew packet_skew = 6;
+  CoordinateSpace coordinate_space = 7;
+  Health health = 8;
+  string captured_at = 9;
+}
+
+enum WorldObjectKind {
+  WORLD_OBJECT_KIND_UNSPECIFIED = 0;
+  DISPLAY = 1;
+  WINDOW_OBJECT = 2;
+  ACCESSIBILITY_ELEMENT = 3;
+  VISUAL_SURFACE = 4;
+  VISUAL_TEXT = 5;
+}
+
+message WorldObject {
+  string world_object_id = 1;
+  string track_id = 2;
+  WorldObjectKind object_kind = 3;
+  string role = 4;
+  string name = 5;
+  RectPx bounds_px = 6;
+  string parent_world_object_id = 7;
+  repeated StringProperty process_evidence = 8;
+  repeated StringProperty properties = 9;
+  Health health = 10;
+  Confidence confidence = 11;
+  Freshness freshness = 12;
+  Lineage lineage = 13;
+  string display_id = 14;
+  string process_instance_evidence = 15;
+  string window_scope_ref = 16;
+  string first_observed_at = 17;
+  string last_observed_at = 18;
+}
+
+enum PublicationKind {
+  PUBLICATION_KIND_UNSPECIFIED = 0;
+  PUBLICATION_KIND_SNAPSHOT = 1;
+  PUBLICATION_KIND_SURVEY = 2;
+}
+
+message SnapshotPublication {
+  string publication_id = 1;
+  PublicationKind publication_kind = 2;
+  EffectiveCapturePolicy effective_policy = 3;
+  CoverageReport coverage_report = 4;
+  WorldStateSnapshot world_state_snapshot = 5;
+  Health health = 6;
+}
+
+enum AssociationState {
+  ASSOCIATION_STATE_UNSPECIFIED = 0;
+  NEW = 1;
+  MATCHED = 2;
+  AMBIGUOUS = 3;
+}
+
+message Track {
+  string track_id = 1;
+  string current_world_object_id = 2;
+  string previous_world_object_id = 3;
+  AssociationState association_state = 4;
+  repeated string association_evidence = 5;
+  Confidence confidence = 6;
+  Health health = 7;
+}
+
+message Scene {
+  string scene_id = 1;
+  string episode_id = 2;
+  string kind = 3;
+  string display_id = 4;
+  string frame_id = 5;
+  Health health = 6;
+}
+
+message WorldStateSnapshot {
+  string perception_epoch = 1;
+  uint64 world_state_version = 2;
+  string episode_id = 3;
+  string frame_id = 4;
+  Scene scene = 5;
+  string display_id = 6;
+  repeated WorldObject world_objects = 7;
+  repeated Track tracks = 8;
+  Health health = 9;
+  string captured_at = 10;
+  string published_at = 11;
+  repeated string source_packet_ids = 12;
+  repeated Observation observations = 13;
+  Frame frame = 14;
+}

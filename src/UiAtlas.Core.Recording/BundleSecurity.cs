@@ -6,8 +6,8 @@ namespace UiAtlas.Core.Recording;
 
 public sealed record BundleLimits(
     int MaxEntries = RecordingContractLimits.MaxBundleEntries,
-    long MaxEntryBytes = 64 * 1024 * 1024,
-    long MaxTotalBytes = 512L * 1024 * 1024,
+    long MaxEntryBytes = RecordingContractLimits.MaxEvidenceEntryBytes,
+    long MaxTotalBytes = RecordingContractLimits.MaxRecordingBytes,
     double MaxCompressionRatio = 100);
 
 public static class BundleSecurity

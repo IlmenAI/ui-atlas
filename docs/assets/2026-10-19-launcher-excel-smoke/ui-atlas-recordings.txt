@@ -1,0 +1,312 @@
+Window: "UI Atlas", App: UiAtlas.exe.
+	0 window UI Atlas Secondary Actions: Raise
+		1 text UI Atlas ID: ProductTitle
+		2 button Open Micro HUD Description: Open Micro HUD ID: MicroHudButton
+			3 text 
+		4 button Minimize
+			5 text 
+		6 button Maximize or restore
+			7 text  ID: MaximizeRestoreGlyph
+		8 button Close
+			9 text 
+		10 custom ID: ProductLogo
+			11 text UI ATLAS
+		12 combo box ID: ProfileSelector
+		13 list view ID: NavigationList
+			14 list item (selectable) ExperienceNavigationItem { Route = maps, Label = Maps, Glyph = , IsAvailable = True, Status = , StartsNewSection = False }
+				15 text 
+				16 text Maps
+				17 text
+			18 list item (selectable) ExperienceNavigationItem { Route = recordings, Label = Recordings, Glyph = , IsAvailable = True, Status = , StartsNewSection = False }
+				19 text 
+				20 text Recordings
+				21 text
+			22 list item (selectable) ExperienceNavigationItem { Route = diagnostics, Label = Diagnostics, Glyph = , IsAvailable = True, Status = , StartsNewSection = False }
+				23 text 
+				24 text Diagnostics
+				25 text
+			26 list item (selectable) ExperienceNavigationItem { Route = settings, Label = Settings, Glyph = , IsAvailable = True, Status = , StartsNewSection = True }
+				27 text 
+				28 text Settings
+				29 text
+		712 custom
+			713 text Recordings
+			714 text UI Atlas recordings, shared by both apps.
+			715 text C:\Users\danie\AppData\Local\UiAtlas\Core
+			716 button New recording
+				717 text New recording
+			718 button Refresh
+				719 text Refresh
+			720 button Build UI Map
+				721 text Build UI Map
+			722 button Open map
+				723 text Open map
+			724 button (disabled) Cancel build
+				725 text (disabled) Cancel build
+			726 button Import…
+				727 text Import…
+			728 button Find previous MapLock recordings…
+				729 text Find previous MapLock recordings…
+			730 text 25 recordings. Select one to build or open its Atlas map.
+			731 datagrid
+				732 header ID: PART_ColumnHeadersPresenter
+					733 header item Application
+						734 text Application
+						735 thumb ID: PART_RightHeaderGripper
+					736 header item Recorded
+						737 text Recorded
+						738 thumb ID: PART_LeftHeaderGripper
+						739 thumb ID: PART_RightHeaderGripper
+					740 header item Outcome
+						741 text Outcome
+						742 thumb ID: PART_LeftHeaderGripper
+						743 thumb ID: PART_RightHeaderGripper
+					744 header item Frames
+						745 text Frames
+						746 thumb ID: PART_LeftHeaderGripper
+						747 thumb ID: PART_RightHeaderGripper
+					748 header item Recording ID
+						749 text Recording ID
+						750 thumb ID: PART_LeftHeaderGripper
+						751 thumb ID: PART_RightHeaderGripper
+				752 dataitem (selectable) CatalogRecording { Id = 20261019-131419-excel-afa718e8, StartedUtc = 10/19/2026 1:14:41 PM +00:00, Outcome = partial, ProcessName = EXCEL, FrameCount = 5, MapId = 20261019-131419-excel-afa718e8 }
+					753 header item
+						754 thumb ID: PART_BottomHeaderGripper
+					755 data grid cell EXCEL Value: EXCEL
+						756 text EXCEL
+					757 data grid cell 10/19/2026 1:14 PM +00:00 Value: 10/19/2026 1:14 PM +00:00
+						758 text 10/19/2026 1:14 PM +00:00
+					759 data grid cell partial Value: partial
+						760 text partial
+					761 data grid cell 5 Value: 5
+						762 text 5
+					763 data grid cell 20261019-131419-excel-afa718e8 Value: 20261019-131419-excel-afa718e8
+						764 text 20261019-131419-excel-afa718e8
+				765 dataitem (selectable) CatalogRecording { Id = 20261019-130737-excel-e84d903d, StartedUtc = 10/19/2026 1:08:03 PM +00:00, Outcome = partial, ProcessName = EXCEL, FrameCount = 5, MapId = 20261019-130737-excel-e84d903d }
+					766 header item
+						767 thumb ID: PART_TopHeaderGripper
+						768 thumb ID: PART_BottomHeaderGripper
+					769 data grid cell EXCEL Value: EXCEL
+						770 text EXCEL
+					771 data grid cell 10/19/2026 1:08 PM +00:00 Value: 10/19/2026 1:08 PM +00:00
+						772 text 10/19/2026 1:08 PM +00:00
+					773 data grid cell partial Value: partial
+						774 text partial
+					775 data grid cell 5 Value: 5
+						776 text 5
+					777 data grid cell 20261019-130737-excel-e84d903d Value: 20261019-130737-excel-e84d903d
+						778 text 20261019-130737-excel-e84d903d
+				779 dataitem (selectable) CatalogRecording { Id = 20261019-083838-powerpnt-b6598185, StartedUtc = 10/19/2026 8:38:39 AM +00:00, Outcome = partial, ProcessName = POWERPNT, FrameCount = 50, MapId = 20261019-083838-powerpnt-b6598185 }
+					780 header item
+						781 thumb ID: PART_TopHeaderGripper
+						782 thumb ID: PART_BottomHeaderGripper
+					783 data grid cell POWERPNT Value: POWERPNT
+						784 text POWERPNT
+					785 data grid cell 10/19/2026 8:38 AM +00:00 Value: 10/19/2026 8:38 AM +00:00
+						786 text 10/19/2026 8:38 AM +00:00
+					787 data grid cell partial Value: partial
+						788 text partial
+					789 data grid cell 50 Value: 50
+						790 text 50
+					791 data grid cell 20261019-083838-powerpnt-b6598185 Value: 20261019-083838-powerpnt-b6598185
+						792 text 20261019-083838-powerpnt-b6598185
+				793 dataitem (selectable) CatalogRecording { Id = 20261018-172907-excel-dbb8ea28, StartedUtc = 10/18/2026 5:29:08 PM +00:00, Outcome = complete, ProcessName = EXCEL, FrameCount = 22, MapId = 20261018-172907-excel-dbb8ea28 }
+					794 header item
+						795 thumb ID: PART_TopHeaderGripper
+						796 thumb ID: PART_BottomHeaderGripper
+					797 data grid cell EXCEL Value: EXCEL
+						798 text EXCEL
+					799 data grid cell 10/18/2026 5:29 PM +00:00 Value: 10/18/2026 5:29 PM +00:00
+						800 text 10/18/2026 5:29 PM +00:00
+					801 data grid cell complete Value: complete
+						802 text complete
+					803 data grid cell 22 Value: 22
+						804 text 22
+					805 data grid cell 20261018-172907-excel-dbb8ea28 Value: 20261018-172907-excel-dbb8ea28
+						806 text 20261018-172907-excel-dbb8ea28
+				807 dataitem (selectable) CatalogRecording { Id = 20261018-150046-excel-6389ddd9, StartedUtc = 10/18/2026 3:01:34 PM +00:00, Outcome = partial, ProcessName = EXCEL, FrameCount = 1, MapId = }
+					808 header item
+						809 thumb ID: PART_TopHeaderGripper
+						810 thumb ID: PART_BottomHeaderGripper
+					811 data grid cell EXCEL Value: EXCEL
+						812 text EXCEL
+					813 data grid cell 10/18/2026 3:01 PM +00:00 Value: 10/18/2026 3:01 PM +00:00
+						814 text 10/18/2026 3:01 PM +00:00
+					815 data grid cell partial Value: partial
+						816 text partial
+					817 data grid cell 1 Value: 1
+						818 text 1
+					819 data grid cell 20261018-150046-excel-6389ddd9 Value: 20261018-150046-excel-6389ddd9
+						820 text 20261018-150046-excel-6389ddd9
+				821 dataitem (selectable) CatalogRecording { Id = 20261018-105733-excel-cc06cdb2, StartedUtc = 10/18/2026 10:58:52 AM +00:00, Outcome = partial, ProcessName = EXCEL, FrameCount = 8, MapId = 20261018-105733-excel-cc06cdb2 }
+					822 header item
+						823 thumb ID: PART_TopHeaderGripper
+						824 thumb ID: PART_BottomHeaderGripper
+					825 data grid cell EXCEL Value: EXCEL
+						826 text EXCEL
+					827 data grid cell 10/18/2026 10:58 AM +00:00 Value: 10/18/2026 10:58 AM +00:00
+						828 text 10/18/2026 10:58 AM +00:00
+					829 data grid cell partial Value: partial
+						830 text partial
+					831 data grid cell 8 Value: 8
+						832 text 8
+					833 data grid cell 20261018-105733-excel-cc06cdb2 Value: 20261018-105733-excel-cc06cdb2
+						834 text 20261018-105733-excel-cc06cdb2
+				835 dataitem (selectable) CatalogRecording { Id = 20261018-094439-excel-c63a40af, StartedUtc = 10/18/2026 9:45:51 AM +00:00, Outcome = partial, ProcessName = EXCEL, FrameCount = 38, MapId = }
+					836 header item
+						837 thumb ID: PART_TopHeaderGripper
+						838 thumb ID: PART_BottomHeaderGripper
+					839 data grid cell EXCEL Value: EXCEL
+						840 text EXCEL
+					841 data grid cell 10/18/2026 9:45 AM +00:00 Value: 10/18/2026 9:45 AM +00:00
+						842 text 10/18/2026 9:45 AM +00:00
+					843 data grid cell partial Value: partial
+						844 text partial
+					845 data grid cell 38 Value: 38
+						846 text 38
+					847 data grid cell 20261018-094439-excel-c63a40af Value: 20261018-094439-excel-c63a40af
+						848 text 20261018-094439-excel-c63a40af
+				849 dataitem (selectable) CatalogRecording { Id = 20261018-072025-excel-c3e5072b, StartedUtc = 10/18/2026 7:20:25 AM +00:00, Outcome = partial, ProcessName = EXCEL, FrameCount = 3, MapId = 20261018-072025-excel-c3e5072b }
+					850 header item
+						851 thumb ID: PART_TopHeaderGripper
+						852 thumb ID: PART_BottomHeaderGripper
+					853 data grid cell EXCEL Value: EXCEL
+						854 text EXCEL
+					855 data grid cell 10/18/2026 7:20 AM +00:00 Value: 10/18/2026 7:20 AM +00:00
+						856 text 10/18/2026 7:20 AM +00:00
+					857 data grid cell partial Value: partial
+						858 text partial
+					859 data grid cell 3 Value: 3
+						860 text 3
+					861 data grid cell 20261018-072025-excel-c3e5072b Value: 20261018-072025-excel-c3e5072b
+						862 text 20261018-072025-excel-c3e5072b
+				863 dataitem (selectable) CatalogRecording { Id = 20261015-103851-winword-1a1fd5a8, StartedUtc = 10/15/2026 5:04:48 PM +00:00, Outcome = partial, ProcessName = WINWORD, FrameCount = 10, MapId = 20261015-103851-winword-1a1fd5a8 }
+					864 header item
+						865 thumb ID: PART_TopHeaderGripper
+						866 thumb ID: PART_BottomHeaderGripper
+					867 data grid cell WINWORD Value: WINWORD
+						868 text WINWORD
+					869 data grid cell 10/15/2026 5:04 PM +00:00 Value: 10/15/2026 5:04 PM +00:00
+						870 text 10/15/2026 5:04 PM +00:00
+					871 data grid cell partial Value: partial
+						872 text partial
+					873 data grid cell 10 Value: 10
+						874 text 10
+					875 data grid cell 20261015-103851-winword-1a1fd5a8 Value: 20261015-103851-winword-1a1fd5a8
+						876 text 20261015-103851-winword-1a1fd5a8
+				877 dataitem (selectable) CatalogRecording { Id = 20261014-193900-winword-951ca23c, StartedUtc = 10/14/2026 7:39:01 PM +00:00, Outcome = partial, ProcessName = WINWORD, FrameCount = 22, MapId = 20261014-193900-winword-951ca23c }
+					878 header item
+						879 thumb ID: PART_TopHeaderGripper
+						880 thumb ID: PART_BottomHeaderGripper
+					881 data grid cell WINWORD Value: WINWORD
+						882 text WINWORD
+					883 data grid cell 10/14/2026 7:39 PM +00:00 Value: 10/14/2026 7:39 PM +00:00
+						884 text 10/14/2026 7:39 PM +00:00
+					885 data grid cell partial Value: partial
+						886 text partial
+					887 data grid cell 22 Value: 22
+						888 text 22
+					889 data grid cell 20261014-193900-winword-951ca23c Value: 20261014-193900-winword-951ca23c
+						890 text 20261014-193900-winword-951ca23c
+				891 dataitem (selectable) CatalogRecording { Id = 20261013-201130-winword-614f702d, StartedUtc = 10/13/2026 8:11:31 PM +00:00, Outcome = partial, ProcessName = WINWORD, FrameCount = 28, MapId = 20261013-201130-winword-614f702d }
+					892 header item
+						893 thumb ID: PART_TopHeaderGripper
+						894 thumb ID: PART_BottomHeaderGripper
+					895 data grid cell WINWORD Value: WINWORD
+						896 text WINWORD
+					897 data grid cell 10/13/2026 8:11 PM +00:00 Value: 10/13/2026 8:11 PM +00:00
+						898 text 10/13/2026 8:11 PM +00:00
+					899 data grid cell partial Value: partial
+						900 text partial
+					901 data grid cell 28 Value: 28
+						902 text 28
+					903 data grid cell 20261013-201130-winword-614f702d Value: 20261013-201130-winword-614f702d
+						904 text 20261013-201130-winword-614f702d
+				905 dataitem (selectable) CatalogRecording { Id = word-quality, StartedUtc = 10/12/2026 3:02:15 AM +00:00, Outcome = partial, ProcessName = WINWORD, FrameCount = 7, MapId = word-quality }
+					906 header item
+						907 thumb ID: PART_TopHeaderGripper
+						908 thumb ID: PART_BottomHeaderGripper
+					909 data grid cell WINWORD Value: WINWORD
+						910 text WINWORD
+					911 data grid cell 10/12/2026 3:02 AM +00:00 Value: 10/12/2026 3:02 AM +00:00
+						912 text 10/12/2026 3:02 AM +00:00
+					913 data grid cell partial Value: partial
+						914 text partial
+					915 data grid cell 7 Value: 7
+						916 text 7
+					917 data grid cell word-quality Value: word-quality
+						918 text word-quality
+				919 dataitem (selectable) CatalogRecording { Id = 20261011-061417-winword-fc338d13, StartedUtc = 10/11/2026 6:15:43 AM +00:00, Outcome = partial, ProcessName = WINWORD, FrameCount = 53, MapId = 20261011-061417-winword-fc338d13 }
+					920 header item
+						921 thumb ID: PART_TopHeaderGripper
+						922 thumb ID: PART_BottomHeaderGripper
+					923 data grid cell WINWORD Value: WINWORD
+						924 text WINWORD
+					925 data grid cell 10/11/2026 6:15 AM +00:00 Value: 10/11/2026 6:15 AM +00:00
+						926 text 10/11/2026 6:15 AM +00:00
+					927 data grid cell partial Value: partial
+						928 text partial
+					929 data grid cell 53 Value: 53
+						930 text 53
+					931 data grid cell 20261011-061417-winword-fc338d13 Value: 20261011-061417-winword-fc338d13
+						932 text 20261011-061417-winword-fc338d13
+				933 dataitem (selectable) CatalogRecording { Id = 20261008-232533-winword-79add407, StartedUtc = 10/8/2026 11:25:33 PM +00:00, Outcome = partial, ProcessName = WINWORD, FrameCount = 9, MapId = }
+					934 header item
+						935 thumb ID: PART_TopHeaderGripper
+						936 thumb ID: PART_BottomHeaderGripper
+					937 data grid cell WINWORD Value: WINWORD
+						938 text WINWORD
+					939 data grid cell 10/8/2026 11:25 PM +00:00 Value: 10/8/2026 11:25 PM +00:00
+						940 text 10/8/2026 11:25 PM +00:00
+					941 data grid cell partial Value: partial
+						942 text partial
+					943 data grid cell 9 Value: 9
+						944 text 9
+					945 data grid cell 20261008-232533-winword-79add407 Value: 20261008-232533-winword-79add407
+						946 text 20261008-232533-winword-79add407
+				947 dataitem (selectable) CatalogRecording { Id = 20261008-230838-winword-fca9bbb7, StartedUtc = 10/8/2026 11:08:38 PM +00:00, Outcome = partial, ProcessName = WINWORD, FrameCount = 10, MapId = }
+					948 header item
+						949 thumb ID: PART_TopHeaderGripper
+						950 thumb ID: PART_BottomHeaderGripper
+					951 data grid cell WINWORD Value: WINWORD
+						952 text WINWORD
+					953 data grid cell 10/8/2026 11:08 PM +00:00 Value: 10/8/2026 11:08 PM +00:00
+						954 text 10/8/2026 11:08 PM +00:00
+					955 data grid cell partial Value: partial
+						956 text partial
+					957 data grid cell 10 Value: 10
+						958 text 10
+					959 data grid cell 20261008-230838-winword-fca9bbb7 Value: 20261008-230838-winword-fca9bbb7
+						960 text 20261008-230838-winword-fca9bbb7
+				961 dataitem (selectable) CatalogRecording { Id = 20260919-235840-ahms-426893d1, StartedUtc = 9/19/2026 11:58:41 PM +00:00, Outcome = cancelled, ProcessName = ahms, FrameCount = 6, MapId = }
+					962 header item
+						963 thumb ID: PART_TopHeaderGripper
+						964 thumb ID: PART_BottomHeaderGripper
+					965 data grid cell ahms Value: ahms
+						966 text ahms
+					967 data grid cell 9/19/2026 11:58 PM +00:00 Value: 9/19/2026 11:58 PM +00:00
+						968 text 9/19/2026 11:58 PM +00:00
+					969 data grid cell cancelled Value: cancelled
+						970 text cancelled
+					971 data grid cell 6 Value: 6
+						972 text 6
+					973 data grid cell 20260919-235840-ahms-426893d1 Value: 20260919-235840-ahms-426893d1
+						974 text 20260919-235840-ahms-426893d1
+				975 dataitem (selectable) CatalogRecording { Id = 20260919-234317-ahms-12a321c8, StartedUtc = 9/19/2026 11:43:18 PM +00:00, Outcome = cancelled, ProcessName = ahms, FrameCount = 2, MapId = }
+					976 header item
+						977 thumb ID: PART_TopHeaderGripper
+						978 thumb ID: PART_BottomHeaderGripper
+					979 data grid cell ahms Value: ahms
+						980 text ahms
+					981 data grid cell 9/19/2026 11:43 PM +00:00 Value: 9/19/2026 11:43 PM +00:00
+						982 text 9/19/2026 11:43 PM +00:00
+					983 data grid cell cancelled Value: cancelled
+						984 text cancelled
+					985 data grid cell 2 Value: 2
+						986 text 2
+					987 data grid cell 20260919-234317-ahms-12a321c8 Value: 20260919-234317-ahms-12a321c8
+						988 text 20260919-234317-ahms-12a321c8
+
+Document text: ```
+UI ATLAS
+```

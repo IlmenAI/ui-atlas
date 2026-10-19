@@ -9,6 +9,7 @@
     "sequence": { "type": "integer", "minimum": 1 },
     "timestampUtc": { "type": "string", "format": "date-time" },
     "frameEntry": { "type": "string", "maxLength": 240 },
+    "nativeEpisodeEntry": { "type": ["string", "null"], "pattern": "^raw/native/frame-[0-9]{6,}\\.episode\\.pb$", "description": "Retained UI Maps native sensor episode; other frame fields are its Atlas presentation." },
     "window": { "$ref": "#/$defs/window" },
     "automation": { "type": "array", "maxItems": 20000, "items": { "$ref": "#/$defs/control" } },
     "automationTimedOut": { "type": "boolean" },

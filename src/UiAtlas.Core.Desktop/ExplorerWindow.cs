@@ -62,7 +62,11 @@ public sealed class ExplorerWindow : Window
     private readonly Grid _appMapViewport = new() { Background = Brush("#F4F5F9"), ClipToBounds = true };
     private readonly ContentControl _traceBannerHost = new() { Visibility = Visibility.Collapsed };
     private bool _updatingRawStreams;
+    private bool _rawDetailsExpanded;
     private string? _rawStreamSurfaceId;
+    private readonly StackPanel _rawSources = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(10, 0, 0, 0) };
+    private readonly ToggleButton _showRawUia = new() { Content = "UIA", IsChecked = true };
+    private readonly ToggleButton _showRawMsaa = new() { Content = "MSAA", IsChecked = false };
     private readonly Button _frameStreamsButton = new() { Content = "Frame streams", Margin = new Thickness(8, 0, 0, 0) };
     private readonly ComboBox _rawStreamFilter = new() { MinWidth = 150, MaxWidth = 280,
         Margin = new Thickness(6, 0, 0, 0), Visibility = Visibility.Collapsed };
@@ -87,9 +91,11 @@ public sealed class ExplorerWindow : Window
         ToolTip = "Include background and evidence-empty observations for diagnosis. All records remain in Frame streams." };
     private readonly Dictionary<string, string?> _rawExclusionReasons = new(StringComparer.Ordinal);
     private readonly CheckBox _showSupplementaryRaw = new() { Content = "Supplementary", Margin = new Thickness(8, 0, 0, 0) };
-    private readonly CheckBox _showRawLabels = new() { Content = "Show labels", IsChecked = false,
-        Margin = new Thickness(8, 0, 0, 0), ToolTip = "Draw provider names on the raw canvas. Tooltips and properties are always available." };
+    private readonly CheckBox _showRawLabels = new() { Content = "Show annotations", IsChecked = false,
+        Margin = new Thickness(8, 0, 0, 0), ToolTip = "Draw accessibility names over the recorded content. Visible text in control images is always retained." };
     private readonly CheckBox _showOffscreenRaw = new() { Content = "Show offscreen", Margin = new Thickness(8, 0, 0, 0) };
+    private readonly CheckBox _showRawReportedCoordinates = new() { Content = "Reported coordinates", Margin = new Thickness(0, 6, 0, 6),
+        ToolTip = "Draw the original provider rectangles instead of coordinates registered to this frame's pixels. Stored records never change." };
     private readonly List<FrameworkElement> _derivedViewControls = [];
     private readonly TextBlock _topologyLevel = Text("Semantic World", 11, FontWeights.SemiBold, Green);
     private bool _rawWindowProperties;
@@ -107,7 +113,6 @@ public sealed class ExplorerWindow : Window
     private readonly Dictionary<string, Button> _viewModeButtons = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Border> _topologyShapes = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string?> _rawCaptureWarnings = new(StringComparer.Ordinal);
-    private readonly Dictionary<(string Bundle, long Frame, long Hwnd), string> _popupAttempts = new();
     private readonly Dictionary<string, Button> _variantCardButtons = new(StringComparer.Ordinal);
     private readonly Dictionary<string, TextBlock> _variantCardSummaries = new(StringComparer.Ordinal);
     private readonly Dictionary<string, TreeViewItem> _hierarchyItems = new(StringComparer.Ordinal);
@@ -450,6 +455,12 @@ public sealed class ExplorerWindow : Window
         export.Click += (_, _) => ShowExportMenu(export);
         actions.Children.Add(export);
 
+        var settings = new Button { Content = "Settings", Padding = new Thickness(10, 7, 10, 7), Margin = new Thickness(6, 0, 0, 0),
+            ToolTip = "Edit recording profiles and UI Map build limits." };
+        System.Windows.Automation.AutomationProperties.SetName(settings, "Settings");
+        settings.Click += (_, _) => new AtlasSettingsWindow { Owner = this }.ShowDialog();
+        actions.Children.Add(settings);
+
         Grid.SetColumn(actions, 2);
         grid.Children.Add(actions);
 
@@ -580,7 +591,15 @@ public sealed class ExplorerWindow : Window
         _editMapButton.ToolTip = "Edit controls directly on this map";
         _editMapButton.Template = RoundedButtonTemplate(8);
         System.Windows.Automation.AutomationProperties.SetName(_editMapButton, "Edit map");
-        _editMapButton.Click += (_, _) => SetMapEditingMode(true);
+        _editMapButton.Click += async (_, _) =>
+        {
+            if (_graphPath is { } path && UiAtlas.Core.Mapping.Atlas.AtlasMapWorkspace.Exists(path))
+            {
+                new MapReviewWindow(path) { Owner = this }.ShowDialog();
+                await LoadGraphAsync(path);
+            }
+            else SetMapEditingMode(true);
+        };
         Grid.SetColumn(_editMapButton, 1);
         headerRow.Children.Add(_editMapButton);
 
@@ -652,13 +671,29 @@ public sealed class ExplorerWindow : Window
         {
             if (!_updatingRawStreams) RenderAppMap();
         };
-        modes.Children.Add(_rawStreamFilter);
+        _rawStreamFilter.ToolTip = "Inspect one recorded attempt within the enabled sources, or show all without merging.";
+        _rawSources.Children.Add(Text("Sources", 11, FontWeights.SemiBold, Muted,
+            verticalAlignment: VerticalAlignment.Center));
+        foreach (var source in new[] { _showRawUia, _showRawMsaa })
+        {
+            source.Padding = new Thickness(10, 4, 10, 4);
+            source.Margin = new Thickness(4, 0, 0, 0);
+            source.Template = RoundedToggleButtonTemplate(8);
+            source.ToolTip = source == _showRawUia ? "Show UI Automation records for this surface." :
+                "Show Microsoft Active Accessibility records for this surface.";
+            System.Windows.Automation.AutomationProperties.SetName(source, source.Content.ToString());
+            source.Checked += (_, _) => RawSourceSelectionChanged();
+            source.Unchecked += (_, _) => RawSourceSelectionChanged();
+            _rawSources.Children.Add(source);
+        }
+        modes.Children.Add(_rawSources);
         _frameStreamsButton.Click += (_, _) =>
         {
             if (_model is not null)
                 new RawStreamInspectorWindow(_model, _evidence, _selectedVariant) { Owner = this }.Show();
         };
         modes.Children.Add(_frameStreamsButton);
+        _showRawReportedCoordinates.Click += (_, _) => RenderAppMap();
         foreach (var filter in new[] { _showExcludedRaw, _showSupplementaryRaw, _showOffscreenRaw, _showRawLabels })
         {
             filter.VerticalAlignment = VerticalAlignment.Center;
@@ -1960,7 +1995,10 @@ public sealed class ExplorerWindow : Window
         SetGraphLoadingState(true, $"Opening map: {IOPath.GetFileName(fullPath)}...");
         try
         {
-            var model = await Task.Run(() => new UiMappingReadModel(new UiGraphReader().Load(fullPath)));
+            var model = await Task.Run(() => new UiMappingReadModel(
+                UiAtlas.Core.Mapping.Atlas.AtlasMapWorkspace.Exists(fullPath)
+                    ? UiAtlas.Core.Mapping.Atlas.AtlasMapWorkspace.Open(fullPath).Project()
+                    : new UiGraphReader().Load(fullPath)));
             if (loadVersion != Volatile.Read(ref _graphLoadVersion))
                 return;
 
@@ -1979,9 +2017,24 @@ public sealed class ExplorerWindow : Window
             SetLevel(UiUnderstandingLevel.SemanticWorld);
             UpdateCaptureSummary(fullPath);
             TryAutoAttachEvidence(fullPath);
+            if (UiAtlas.Core.Mapping.Atlas.AtlasMapWorkspace.Exists(fullPath))
+            {
+                var workspace = UiAtlas.Core.Mapping.Atlas.AtlasMapWorkspace.Open(fullPath);
+                foreach (var bundle in workspace.Index.BundleFiles) AttachEvidence(workspace.Resolve(bundle));
+                _editMapButton.Content = "✎  Review map";
+                _editMapButton.IsEnabled = true;
+                _editMapButton.ToolTip = "Review the authoritative UI Maps draft and publish a revision";
+            }
+            else
+            {
+                var projectionOnly = _model.Graph.Nodes.Any(node => node.Properties.Any(property => property is { Name: "mappingEngine", Value: "UIMaps" }));
+                _editMapButton.Content = projectionOnly ? "Projection only" : "✎  Edit map";
+                _editMapButton.IsEnabled = !projectionOnly;
+                _editMapButton.ToolTip = projectionOnly ? "Import the complete .atlas-map workspace to review or edit this map." : "Edit controls directly on this map";
+            }
             _status.Text = $"Opened map: {IOPath.GetFileName(fullPath)}";
         }
-        catch (Exception ex) when (ex is IOException or InvalidDataException or NotSupportedException)
+        catch (Exception ex) when (ex is IOException or InvalidDataException or NotSupportedException or InvalidOperationException or UIMaps.Map.Core.UiMapException or System.Text.Json.JsonException)
         {
             if (loadVersion != Volatile.Read(ref _graphLoadVersion))
                 return;
@@ -2367,6 +2420,8 @@ public sealed class ExplorerWindow : Window
             PlacementTarget = anchor,
             Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom
         };
+        if (_graphPath is { } mapPath && UiAtlas.Core.Mapping.Atlas.AtlasMapWorkspace.Exists(mapPath))
+            menu.Items.Add(ExportMenuItem("Complete map workspace…", "Includes the editable map, screenshots, and raw provider records.", ExportMappingWorkspace));
         menu.Items.Add(ExportMenuItem(
             "Training JSON...",
             "Exports a human-readable map JSON for model training and offline analysis.",
@@ -2390,6 +2445,28 @@ public sealed class ExplorerWindow : Window
 
         anchor.ContextMenu = menu;
         menu.IsOpen = true;
+    }
+
+    private void ExportMappingWorkspace()
+    {
+        if (_graphPath is null) return;
+        var dialog = new SaveFileDialog
+        {
+            Title = "Export complete map workspace",
+            Filter = "UI Atlas map workspace (*.atlas-map)|*.atlas-map",
+            FileName = IOPath.GetFileNameWithoutExtension(_graphPath) + ".atlas-map",
+            OverwritePrompt = true
+        };
+        if (dialog.ShowDialog(this) != true) return;
+        if (MessageBox.Show(this, "This export includes screenshots and raw provider text from every retained recording. Include this evidence?",
+            "Export map workspace", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+        try
+        {
+            UiAtlas.Core.Mapping.Atlas.AtlasMapPackage.Export(_graphPath, dialog.FileName, true);
+            _status.Text = "Complete editable map workspace exported.";
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or UIMaps.Map.Core.UiMapException)
+        { MessageBox.Show(this, ex.Message, "Export failed", MessageBoxButton.OK, MessageBoxImage.Error); }
     }
 
     private void ShowImportMenu(Button anchor)
@@ -2429,13 +2506,22 @@ public sealed class ExplorerWindow : Window
         var dialog = new OpenFileDialog
         {
             Title = "Import map into catalog",
-            Filter = "UI KG map|*.db;*.sqlite;*.json|All files|*.*"
+            Filter = "UI KG map or workspace|*.atlas-map;*.db;*.sqlite;*.json|All files|*.*"
         };
         if (dialog.ShowDialog(this) != true) return;
 
         try
         {
-            var imported = ImportMapToCatalog(dialog.FileName);
+            var sourcePath = dialog.FileName;
+            if (IOPath.GetExtension(sourcePath).Equals(".atlas-map", StringComparison.OrdinalIgnoreCase))
+            {
+                if (MessageBox.Show(this, "This workspace includes retained screenshots and raw text. Import that evidence into the local catalog?",
+                    "Import map workspace", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+                var catalogRoot = new LocalArtifactCatalog().Root;
+                sourcePath = UiAtlas.Core.Mapping.Atlas.AtlasMapPackage.Import(sourcePath,
+                    IOPath.Combine(catalogRoot, "imports", Guid.NewGuid().ToString("N")), true);
+            }
+            var imported = ImportMapToCatalog(sourcePath);
             if (imported is null) return;
 
             _evidence?.Dispose();
@@ -2474,10 +2560,12 @@ public sealed class ExplorerWindow : Window
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
             if (replace != MessageBoxResult.Yes) return null;
+            catalog.ArchiveMap(mapId);
         }
 
         var curation = MapCurationStore.ResolveForImport(sourceFullPath, graph, targetMapPath);
         SqliteGraphStore.SaveImported(graph, targetMapPath, curation);
+        if (!sameMapPath) MapBackendCompanion.Copy(sourceFullPath, targetMapPath, graph.Metadata.EffectiveLogicalMapId);
 
         var importedRecordingPaths = new List<string>();
         var skippedRecordingCount = 0;
@@ -2485,7 +2573,11 @@ public sealed class ExplorerWindow : Window
             .Where(LocalArtifactCatalog.IsValidId)
             .ToHashSet(StringComparer.Ordinal);
 
-        foreach (var candidate in MatchingEvidenceCandidates(sourceFullPath, graph.Metadata.EffectiveSourceBundleIds)
+        var backendEvidence = UiAtlas.Core.Mapping.Atlas.AtlasMapWorkspace.Exists(sourceFullPath)
+            ? UiAtlas.Core.Mapping.Atlas.AtlasMapWorkspace.Open(sourceFullPath) : null;
+        foreach (var candidate in (backendEvidence is null
+                     ? MatchingEvidenceCandidates(sourceFullPath, graph.Metadata.EffectiveSourceBundleIds)
+                     : backendEvidence.Index.BundleFiles.Select(backendEvidence.Resolve))
                      .Where(File.Exists)
                      .Distinct(StringComparer.OrdinalIgnoreCase))
         {
@@ -2499,7 +2591,16 @@ public sealed class ExplorerWindow : Window
                 var targetRecordingPath = catalog.RecordingPath(manifest.SessionId);
                 var candidateFullPath = IOPath.GetFullPath(candidate);
                 if (!string.Equals(candidateFullPath, targetRecordingPath, StringComparison.OrdinalIgnoreCase))
-                    File.Copy(candidateFullPath, targetRecordingPath, overwrite: true);
+                {
+                    if (File.Exists(targetRecordingPath))
+                    {
+                        using var original = File.OpenRead(targetRecordingPath);
+                        using var incoming = File.OpenRead(candidateFullPath);
+                        if (!System.Security.Cryptography.SHA256.HashData(original).AsSpan().SequenceEqual(System.Security.Cryptography.SHA256.HashData(incoming)))
+                            throw new IOException("A different recording already uses this catalog identity. Its original bytes were preserved.");
+                    }
+                    else File.Copy(candidateFullPath, targetRecordingPath);
+                }
                 importedRecordingPaths.Add(targetRecordingPath);
             }
             catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or System.Text.Json.JsonException)
@@ -2829,10 +2930,14 @@ public sealed class ExplorerWindow : Window
                          Matches(surface, query,
                              level == _level ? _surfaceKindFilter.SelectedItem as string : null)))
             {
-                var item = TreeItem(surface.DisplayName, new SelectionRef(surface.Id, null), level == _level, LevelBrush(level), FontWeights.SemiBold);
+                var expandControls = !string.IsNullOrWhiteSpace(query) || revealedControl?.OwnerSurfaceId == surface.Id;
+                var item = TreeItem(surface.DisplayName, new SelectionRef(surface.Id, null), expandControls, LevelBrush(level), FontWeights.SemiBold);
                 var visibleVariantCount = surface.Variants.Count(variant => variant.IsVisibleByDefault);
                 item.ToolTip = $"{surface.SurfaceKind} | {surface.ControlCount} controls | {visibleVariantCount} variants";
                 _hierarchyItems[surface.Id] = item;
+                void PopulateControls()
+                {
+                item.Items.Clear();
                 foreach (var control in _model.LayerFor(level).ControlsForSurface(surface.Id)
                              .Where(control => control.Id == revealedControlId ||
                                                string.IsNullOrWhiteSpace(query) ||
@@ -2863,6 +2968,15 @@ public sealed class ExplorerWindow : Window
                         : $"{control.CanonicalKind} | observed";
                     item.Items.Add(controlItem);
                     _hierarchyItems[control.Id] = controlItem;
+                }
+                }
+                if (expandControls) PopulateControls();
+                else if (surface.ControlCount > 0)
+                {
+                    item.Items.Add("Expand to inspect controls");
+                    RoutedEventHandler? expand = null;
+                    expand = (_, args) => { if (args.OriginalSource != item) return; item.Expanded -= expand; PopulateControls(); };
+                    item.Expanded += expand;
                 }
                 group.Items.Add(item);
             }
@@ -3047,7 +3161,9 @@ public sealed class ExplorerWindow : Window
         if (_model is null) return;
         var control = _model.Layers.SelectMany(layer => layer.Controls).FirstOrDefault(candidate => candidate.Id == id);
         if (control is null) return;
-        var surface = _model.LayerFor(control.Level).Surfaces.FirstOrDefault(candidate => candidate.Id == control.OwnerSurfaceId);
+        var surface = control.Level == UiUnderstandingLevel.RawWorld && _selectedSurface?.Level == control.Level &&
+            RawWorldPresentation.IsAvailableOnSurface(control, _selectedSurface.Id) && _selectedVariant?.ControlIds.Contains(control.Id) == true
+                ? _selectedSurface : _model.LayerFor(control.Level).Surfaces.FirstOrDefault(candidate => candidate.Id == control.OwnerSurfaceId);
         if (surface is null) return;
         _inspectionLevel = surface.Level;
         _statusLevel.Text = _inspectionLevel.DisplayName();
@@ -3372,7 +3488,7 @@ public sealed class ExplorerWindow : Window
     }
 
     private static string VariantCardTitle(UiMapVariantView variant) =>
-        string.IsNullOrWhiteSpace(variant.DisplayName)
+        variant.SemanticVariantName.Length > 0 ? $"{variant.SemanticVariantName} • frame {variant.FrameSequence}" : string.IsNullOrWhiteSpace(variant.DisplayName)
             ? $"Observed frame {variant.FrameSequence}"
             : variant.DisplayName;
 
@@ -3506,6 +3622,9 @@ public sealed class ExplorerWindow : Window
         _traceBannerHost.Visibility = Visibility.Collapsed;
         if (_selectedSurface is null || _model is null) return;
         var isRaw = _inspectionLevel == UiUnderstandingLevel.RawDataStreams;
+        var isSemanticScene = _inspectionLevel == UiUnderstandingLevel.SemanticWorld &&
+            PropertyValue(_selectedSurface.Source, "semanticProjection") is not null;
+        var isWorld = _inspectionLevel == UiUnderstandingLevel.RawWorld || isSemanticScene;
         _editMapButton.Visibility = isRaw ? Visibility.Collapsed : Visibility.Visible;
         foreach (var control in _derivedViewControls) control.Visibility = isRaw ? Visibility.Collapsed : Visibility.Visible;
         foreach (var filter in new[] { _showExcludedRaw, _showSupplementaryRaw, _showOffscreenRaw, _showRawLabels })
@@ -3514,6 +3633,14 @@ public sealed class ExplorerWindow : Window
             if (_viewModeButtons.TryGetValue(mode, out var button)) button.Visibility = isRaw ? Visibility.Collapsed : Visibility.Visible;
         _includeRetainedControls.Visibility = isRaw ? Visibility.Collapsed : Visibility.Visible;
         _rawStreamFilter.Visibility = isRaw ? Visibility.Visible : Visibility.Collapsed;
+        _rawSources.Visibility = isRaw ? Visibility.Visible : Visibility.Collapsed;
+        foreach (var source in new[] { _showRawUia, _showRawMsaa })
+        {
+            var color = source == _showRawUia ? Blue : Green;
+            source.Background = source.IsChecked == true ? color : Brushes.White;
+            source.Foreground = source.IsChecked == true ? Brushes.White : Ink;
+            source.BorderBrush = color;
+        }
         _frameStreamsButton.Visibility = isRaw ? Visibility.Visible : Visibility.Collapsed;
         if (isRaw)
         {
@@ -3526,6 +3653,62 @@ public sealed class ExplorerWindow : Window
                 return;
             }
         }
+        var frameSequence = _selectedVariant?.FrameSequence;
+        var frameBundleId = _selectedVariant?.BundleId;
+        var activeSurfaceIds = _selectedVariant is not null
+            ? new[] { _selectedSurface.Id }.ToHashSet(StringComparer.Ordinal)
+            : _selectedSurfaceScope.Select(surface => surface.Id).ToHashSet(StringComparer.Ordinal);
+        var scopedSurfaceById = _selectedSurfaceScope
+            .Where(surface => activeSurfaceIds.Contains(surface.Id))
+            .ToDictionary(surface => surface.Id, StringComparer.Ordinal);
+        var scopedControls = _model.LayerFor(_inspectionLevel).Controls
+            .Where(control => activeSurfaceIds.Any(id => RawWorldPresentation.IsAvailableOnSurface(control, id)))
+            .Where(control => _selectedVariant is null || _selectedVariant.ControlIds.Contains(control.Id))
+            .Select(control => UiMapPresentation.ForVariant(control, _selectedVariant))
+            .Where(control => !isRaw || RawVariantPresentation.IsAccessibilitySource(PropertyValue(control.Source, "rawStreamSource")))
+            .ToArray();
+        var rawVisibleIds = isRaw ? RawVariantPresentation.VisibleControlIds(scopedControls) : null;
+        var selectedHwnd = long.TryParse(PropertyValue(_selectedSurface.Source, "hwnd")?.Replace("0x", ""),
+            System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out var parsedHwnd) ? parsedHwnd : 0;
+        if (isWorld) selectedHwnd = _selectedVariant?.NativeWindowHwnd ?? RawWorldPresentation.WindowHandle(_selectedSurface.Source) ?? 0;
+        var recordedStreams = (isRaw || isWorld) && _selectedVariant is { } rawVariant && _evidence is not null &&
+            _evidence.SessionIds.Contains(rawVariant.BundleId)
+                ? RawVariantPresentation.StreamsForWindow(_evidence.ReadObservation(rawVariant.BundleId, rawVariant.FrameSequence), selectedHwnd)
+                : Array.Empty<RawDataStreamObservation>();
+        var enabledStreams = recordedStreams.Where(stream => RawVariantPresentation.IsSourceEnabled(
+            stream.Source, _showRawUia.IsChecked == true, _showRawMsaa.IsChecked == true)).ToArray();
+        var streamChoices = enabledStreams.ToDictionary(stream =>
+            $"{stream.Source} [{stream.StreamId}] · {stream.Status} · {stream.Controls.Count} records", stream => stream.StreamId);
+        foreach (var control in scopedControls.Where(control => RawVariantPresentation.IsSourceEnabled(
+                     PropertyValue(control.Source, "rawStreamSource"), _showRawUia.IsChecked == true, _showRawMsaa.IsChecked == true)))
+        {
+            var id = PropertyValue(control.Source, "rawStreamId") ?? "legacy";
+            if (!streamChoices.ContainsValue(id)) streamChoices[$"{PropertyValue(control.Source, "rawStreamSource") ?? "legacy"} [{id}]"] = id;
+        }
+        var streamNames = new[] { "All enabled attempts (unmerged)" }.Concat(streamChoices.Keys).ToArray();
+        // Derived views have no raw attempts. Do not let their synthetic "all"
+        // selection override the useful provider default on first entering raw.
+        if (isRaw && (_rawStreamSurfaceId != _selectedSurface.Id ||
+            !streamNames.SequenceEqual(_rawStreamFilter.Items.Cast<string>())))
+        {
+            var selectedStream = _rawStreamSurfaceId == _selectedSurface.Id ? _rawStreamFilter.SelectedItem as string : null;
+            _rawStreamSurfaceId = _selectedSurface.Id;
+            _updatingRawStreams = true;
+            try
+            {
+                _rawStreamFilter.ItemsSource = streamNames;
+                _rawStreamFilter.SelectedItem = selectedStream is not null && streamNames.Contains(selectedStream)
+                    ? selectedStream : streamNames[0];
+            }
+            finally { _updatingRawStreams = false; }
+        }
+        var rawStream = _rawStreamFilter.SelectedItem as string;
+        var selectedStreamId = rawStream is null ? null : streamChoices.GetValueOrDefault(rawStream);
+        var selectedControls = scopedControls
+            .Where(control => !isRaw || RawVariantPresentation.IsSourceEnabled(PropertyValue(control.Source, "rawStreamSource"),
+                _showRawUia.IsChecked == true, _showRawMsaa.IsChecked == true) && (selectedStreamId is null ||
+                (PropertyValue(control.Source, "rawStreamId") ?? "legacy") == selectedStreamId)).ToList();
+
         var evidence = ResolveSelectedEvidence();
         UiEvidenceImage? evidenceImage = null;
         FrameObservation? rawFrame = null;
@@ -3541,9 +3724,14 @@ public sealed class ExplorerWindow : Window
                 var nativeWindow = isRaw && hwndText is not null && long.TryParse(hwndText.Replace("0x", ""),
                     System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out _);
                 if (isRaw) rawFrame = _evidence.ReadObservation(evidence.BundleId, evidence.FrameSequence);
-                var frame = nativeWindow
-                    ? _evidence.ReadWindow(evidence, Convert.ToInt64(hwndText, 16))
-                    : _evidence.Read(evidence, allowInheritedPixels: !isRaw);
+                // Raw World uses the physical window from this observation, not the
+                // overview's first HWND or the composite screen image used by raw streams.
+                var worldHwnd = _selectedVariant?.NativeWindowHwnd ?? RawWorldPresentation.WindowHandle(_selectedSurface.Source);
+                if (isWorld && worldHwnd is null)
+                    throw new InvalidDataException("This observation has no window identity for isolated surface pixels.");
+                var frame = isWorld ? _evidence.ReadWindow(evidence, worldHwnd!.Value) : nativeWindow
+                    ? _evidence.ReadRawSurface(evidence, Convert.ToInt64(hwndText, 16))
+                    : _evidence.Read(evidence, allowInheritedPixels: !isRaw && !isWorld);
                 if (frame is not null)
                 {
                     evidenceImage = frame;
@@ -3556,11 +3744,18 @@ public sealed class ExplorerWindow : Window
                     bitmap = sourceBitmap;
                     if (_inspectionLevel == UiUnderstandingLevel.RawDataStreams)
                     {
-                        var displayBounds = frame.DisplayBounds ?? _selectedSurface.Bounds;
-                        bitmap = RenderRawWindowImage(sourceBitmap, displayBounds, frame.ScreenshotBounds,
-                            frame.OccludedRegions, frame.VisibleRegions);
+                        var displayBounds = frame.DisplayBounds ?? RawSurfaceImageLayout.QueryViewport(_selectedSurface.Bounds, frame.ScreenshotBounds,
+                            selectedControls.Where(control => _showOffscreenRaw.IsChecked == true || rawVisibleIds!.Contains(control.Id))
+                                .Select(control => control.Bounds));
+                        bitmap = RenderRawWindowImage(sourceBitmap, displayBounds, frame.ScreenshotBounds, frame.OccludedRegions);
                         contentOriginX = displayBounds.X;
                         contentOriginY = displayBounds.Y;
+                    }
+                    else if (isWorld && evidence.Bounds is { } worldBounds)
+                    {
+                        bitmap = RenderRawWindowImage(sourceBitmap, worldBounds, frame.ScreenshotBounds, frame.OccludedRegions);
+                        contentOriginX = worldBounds.X;
+                        contentOriginY = worldBounds.Y;
                     }
                     else if (UiMapPresentation.ShouldCropSceneToSurface(ParseProjectionMode(_viewMode)) &&
                         frame.Highlight is { } surfaceCrop && evidence.Bounds is { } absolute &&
@@ -3586,6 +3781,11 @@ public sealed class ExplorerWindow : Window
                 $"Recording evidence is not attached for session {evidence.BundleId}. The screenshot may exist in that bundle."; }
         }
         var projectionMode = ParseProjectionMode(_viewMode);
+        var rawCoordinates = RawOfficeCoordinates.Resolve(isRaw && _showRawReportedCoordinates.IsChecked != true ? rawFrame : null, selectedHwnd);
+        var registeredStreams = rawCoordinates.Keys.Select(key => key.Stream).ToHashSet(StringComparer.Ordinal);
+        var suspectStreams = isRaw ? enabledStreams.Where(stream => !registeredStreams.Contains(stream.StreamId) &&
+                RawVariantPresentation.HasOutOfSurfaceGeometry(rawFrame, selectedHwnd, stream.Source))
+            .Select(stream => stream.StreamId).ToHashSet(StringComparer.Ordinal) : [];
         _appMapViewport.Background = projectionMode == UiMapProjectionMode.Routes
             ? Brush("#F8F7F4")
             : Brush("#F4F5F9");
@@ -3612,131 +3812,36 @@ public sealed class ExplorerWindow : Window
             empty.MaxWidth = Math.Max(280, width - 60);
             Canvas.SetLeft(empty, 30); Canvas.SetTop(empty, 30); _appMapOverlay.Children.Add(empty);
         }
-        var frameSequence = _selectedVariant?.FrameSequence;
-        var frameBundleId = _selectedVariant?.BundleId;
-        var activeSurfaceIds = _selectedVariant is not null
-            ? new[] { _selectedSurface.Id }.ToHashSet(StringComparer.Ordinal)
-            : _selectedSurfaceScope.Select(surface => surface.Id).ToHashSet(StringComparer.Ordinal);
-        var scopedSurfaceById = _selectedSurfaceScope
-            .Where(surface => activeSurfaceIds.Contains(surface.Id))
-            .ToDictionary(surface => surface.Id, StringComparer.Ordinal);
-        var scopedControls = _model.LayerFor(_inspectionLevel).Controls
-            .Where(control => activeSurfaceIds.Contains(control.OwnerSurfaceId))
-            .Where(control => _selectedVariant is null || _selectedVariant.ControlIds.Contains(control.Id))
-            .Select(control => UiMapPresentation.ForVariant(control, _selectedVariant))
-            .ToArray();
-        var rawVisibleIds = isRaw ? RawVariantPresentation.VisibleControlIds(scopedControls) : null;
-        var selectedHwnd = long.TryParse(PropertyValue(_selectedSurface.Source, "hwnd")?.Replace("0x", ""),
-            System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out var parsedHwnd) ? parsedHwnd : 0;
-        var recordedStreams = isRaw && _selectedVariant is { } rawVariant && _evidence is not null &&
-            _evidence.SessionIds.Contains(rawVariant.BundleId)
-                ? RawVariantPresentation.StreamsForWindow(_evidence.ReadObservation(rawVariant.BundleId, rawVariant.FrameSequence), selectedHwnd)
-                : Array.Empty<RawDataStreamObservation>();
-        var streamChoices = recordedStreams.ToDictionary(stream =>
-            $"{stream.Source} [{stream.StreamId}] · {stream.Status} · {stream.Controls.Count} records", stream => stream.StreamId);
-        foreach (var control in scopedControls)
-        {
-            var id = PropertyValue(control.Source, "rawStreamId") ?? "legacy";
-            if (!streamChoices.ContainsValue(id)) streamChoices[$"{PropertyValue(control.Source, "rawStreamSource") ?? "legacy"} [{id}]"] = id;
-        }
-        var streamNames = new[] { "All attempts (unmerged)" }.Concat(streamChoices.Keys).ToArray();
-        // Derived views have no raw attempts. Do not let their synthetic "all"
-        // selection override the useful provider default on first entering raw.
-        if (isRaw && (_rawStreamSurfaceId != _selectedSurface.Id ||
-            !streamNames.SequenceEqual(_rawStreamFilter.Items.Cast<string>())))
-        {
-            var selectedStream = _rawStreamSurfaceId == _selectedSurface.Id ? _rawStreamFilter.SelectedItem as string : null;
-            _rawStreamSurfaceId = _selectedSurface.Id;
-            _updatingRawStreams = true;
-            try
-            {
-                _rawStreamFilter.ItemsSource = streamNames;
-                var preferred = recordedStreams.Where(stream => scopedControls.Any(control =>
-                        PropertyValue(control.Source, "rawStreamId") == stream.StreamId))
-                    .OrderByDescending(stream => scopedControls.Any(control => rawVisibleIds?.Contains(control.Id) == true &&
-                        PropertyValue(control.Source, "rawStreamId") == stream.StreamId &&
-                        !string.IsNullOrEmpty(PropertyValue(control.Source, "parentRuntimeId"))))
-                    .ThenBy(stream => stream.Status == "ok" ? 0 : 1)
-                    .ThenBy(stream => stream.Controls.Any(control => control.ScopeStatus is "outside-target" or "unverified") ? 1 : 0)
-                    .ThenBy(stream => stream.Source.StartsWith("uia.raw/", StringComparison.Ordinal) ? 0 :
-                        stream.Source.StartsWith("msaa/", StringComparison.Ordinal) ? 1 : 2)
-                    .ThenByDescending(stream => scopedControls.Count(control =>
-                        PropertyValue(control.Source, "rawStreamId") == stream.StreamId &&
-                        PropertyValue(control.Source, "offscreen") != "True" && ControlGeometry.IsRenderable(control.Bounds)))
-                    .ThenByDescending(stream => stream.Controls.Count).FirstOrDefault();
-                _rawStreamFilter.SelectedItem = selectedStream is not null && streamNames.Contains(selectedStream) ? selectedStream :
-                    preferred is not null ? streamChoices.First(choice => choice.Value == preferred.StreamId).Key : streamNames[0];
-            }
-            finally { _updatingRawStreams = false; }
-        }
-        var rawStream = _rawStreamFilter.SelectedItem as string;
-        var selectedStreamId = rawStream is null ? null : streamChoices.GetValueOrDefault(rawStream);
-        var selectedControls = scopedControls
-            .Where(control => !isRaw || selectedStreamId is null ||
-                (PropertyValue(control.Source, "rawStreamId") ?? "legacy") == selectedStreamId).ToList();
-        var popupPanel = new StackPanel();
-        var popupLayers = isRaw && rawFrame is not null && _selectedVariant is { } contextVariant
-            ? RawPopupLayer.ForContext(_model.LayerFor(_inspectionLevel), rawFrame, contextVariant.BundleId, selectedHwnd)
-            : [];
-        var popupSurfaceIds = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var layer in popupLayers)
-        {
-            var key = (_selectedVariant!.BundleId, _selectedVariant.FrameSequence, layer.Window.Hwnd);
-            var choices = new Dictionary<string, string> { ["Hidden"] = "hidden" };
-            foreach (var stream in layer.Streams)
-                choices[$"{stream.Source} [{stream.StreamId}] · {stream.Status} · {stream.Controls.Count} records"] = stream.StreamId;
-            var attempt = _popupAttempts.GetValueOrDefault(key) ?? RawPopupLayer.PreferredAttempt(layer.Streams, layer.Controls)?.StreamId;
-            var row = new WrapPanel { Margin = new Thickness(0, 3, 0, 3) };
-            var label = $"Popup 0x{layer.Window.Hwnd:X} · {layer.Window.Title} · separate source";
-            row.Children.Add(Text(label, 11, FontWeights.SemiBold, Green, verticalAlignment: VerticalAlignment.Center));
-            var selector = new ComboBox { ItemsSource = choices.Keys, MinWidth = 180, MaxWidth = 470,
-                Margin = new Thickness(8, 0, 0, 0), SelectedItem = choices.FirstOrDefault(choice => choice.Value == attempt).Key ?? "Hidden" };
-            System.Windows.Automation.AutomationProperties.SetName(selector, label + " provider");
-            selector.SelectionChanged += (_, _) =>
-            {
-                if (selector.SelectedItem is string choice)
-                { _popupAttempts[key] = choices[choice]; RenderAppMap(); }
-            };
-            row.Children.Add(selector);
-            popupPanel.Children.Add(row);
-            var selectedAttempt = layer.Streams.FirstOrDefault(stream => stream.StreamId == attempt);
-            popupPanel.Children.Add(Text(selectedAttempt is null
-                ? layer.Streams.Count == 0 ? "No native provider attempt was recorded for this popup." : "Popup geometry hidden; captured context pixels remain visible."
-                : RawVariantPresentation.ScopeSummary(selectedAttempt.Controls, layer.Window.Hwnd),
-                10, FontWeights.Normal, Muted, textWrapping: TextWrapping.Wrap));
-            if (layer.Surface is null || selectedAttempt is null) continue;
-            scopedSurfaceById[layer.Surface.Id] = layer.Surface;
-            popupSurfaceIds.Add(layer.Surface.Id);
-            selectedControls.AddRange(layer.Controls.Where(control => PropertyValue(control.Source, "rawStreamId") == attempt));
-        }
-        if (isRaw) rawVisibleIds = RawVariantPresentation.VisibleControlIds(selectedControls);
         var controls = selectedControls
             .Where(control => isRaw || _includeRetainedControls.IsChecked == true || PropertyValue(control.Source, "sceneStatus") != "retained")
-            .Where(control => isRaw || !UiMapPresentation.IsStaleCachedControlForFrame(
+            .Where(control => isRaw || isWorld || !UiMapPresentation.IsStaleCachedControlForFrame(
                 control, frameSequence, frameBundleId, scopedControls))
-            .Where(control => isRaw || !UiMapPresentation.IsRedundantCaptionButton(
+            .Where(control => isRaw || isWorld || !UiMapPresentation.IsRedundantCaptionButton(
                 control, frameSequence, frameBundleId, scopedControls))
-            .Where(control => isRaw || !UiMapPresentation.IsRedundantCompositeBoundary(
+            .Where(control => isRaw || isWorld || !UiMapPresentation.IsRedundantCompositeBoundary(
                 control, frameSequence, frameBundleId, scopedControls))
             .Select(control => new
             {
                 Control = control,
-                Surface = scopedSurfaceById.GetValueOrDefault(control.OwnerSurfaceId),
-                Bounds = UiMapPresentation.ResolveControlBounds(
+                Surface = scopedSurfaceById.GetValueOrDefault(control.OwnerSurfaceId) ??
+                    (isWorld && RawWorldPresentation.IsAvailableOnSurface(control, _selectedSurface.Id) ? _selectedSurface : null),
+                Bounds = RawOfficeCoordinates.ForControl(rawCoordinates, control)?.Display ?? UiMapPresentation.ResolveControlBounds(
                     control, frameSequence, frameBundleId, scopedControls)
             })
             .Where(item => item.Surface is not null)
-            .Where(item => isRaw || !UiMapPresentation.IsRedundantPopupEditor(
+            .Where(item => isRaw || isWorld || !UiMapPresentation.IsRedundantPopupEditor(
                 item.Control,
                 item.Surface!,
                 frameSequence,
                 frameBundleId,
                 scopedControls))
-            .Where(item => isRaw || UiMapPresentation.ShouldRenderControl(
+            .Where(item => isRaw || isWorld || UiMapPresentation.ShouldRenderControl(
                 item.Control,
                 item.Surface!,
                 projectionMode,
                 item.Control.Id == _selectedControl?.Id))
+            .SelectMany(item => (isWorld ? RawWorldPresentation.VisibleRegions(item.Control) : [item.Bounds])
+                .Select(bounds => new { item.Control, item.Surface, Bounds = bounds }))
             .OrderBy(item => item.Control.Id == _selectedControl?.Id ? 1 : 0)
             .ThenBy(item => UiMapPresentation.ControlRenderPriority(item.Control, item.Surface!))
             .ThenByDescending(item => (long)item.Bounds.Width * item.Bounds.Height)
@@ -3745,32 +3850,9 @@ public sealed class ExplorerWindow : Window
             .ToArray();
         var viewportBounds = new RectI(contentOriginX, contentOriginY, width, height);
         _renderedViewportBounds = viewportBounds;
-        var controlImages = new Dictionary<string, (UiEvidenceImage? Evidence, BitmapSource? Bitmap)>();
-        var cropErrors = new HashSet<string>(StringComparer.Ordinal);
-        (UiEvidenceImage? Evidence, BitmapSource? Bitmap) ControlImage(UiMapSurfaceView owner)
-        {
-            if (controlImages.TryGetValue(owner.Id, out var cached)) return cached;
-            UiEvidenceImage? image = null;
-            BitmapSource? source = null;
-            try
-            {
-                if (_evidence is not null && evidence is not null && long.TryParse(PropertyValue(owner.Source, "hwnd")?.Replace("0x", ""),
-                    System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out var hwnd))
-                {
-                    image = _evidence.ReadWindow(evidence, hwnd, includeOwnedPopups: false);
-                    if (image is not null)
-                        source = RenderRawWindowImage(WindowSnapshotCapture.DecodeOpaquePng(image.Png), viewportBounds,
-                            image.ScreenshotBounds, image.OccludedRegions);
-                }
-            }
-            catch (Exception ex) when (ex is IOException or InvalidDataException or NotSupportedException or
-                FileFormatException or System.Runtime.InteropServices.COMException or ArgumentException)
-            { cropErrors.Add($"Control image unavailable for {owner.DisplayName}: {ex.Message}"); }
-            return controlImages[owner.Id] = (image, source);
-        }
-        var overlayBlocked = isRaw && projection.ShowsScene && projection.ShowsControlGeometry &&
-            !RawVariantPresentation.AllowsOverlay(rawFrame);
-        if (projection.ShowsControlGeometry && !overlayBlocked)
+        // Register only qualified coordinates to this frame's pixels. Membership,
+        // raw records, and provider identities remain those of the selected query.
+        if (projection.ShowsControlGeometry)
         {
             foreach (var item in controls)
             {
@@ -3779,23 +3861,12 @@ public sealed class ExplorerWindow : Window
                 var ownerSurface = item.Surface!;
                 var local = UiMapPresentation.ProjectToSurface(item.Bounds, viewportBounds);
                 if (local is null) continue;
-                Geometry? visibleClip = null;
-                if (isRaw && rawFrame is not null && long.TryParse(PropertyValue(ownerSurface.Source, "hwnd")?.Replace("0x", ""),
-                    System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out var ownerHwnd) &&
-                    (rawFrame.ScopedWindows ?? [rawFrame.Window]).FirstOrDefault(window => window.Hwnd == ownerHwnd) is { } ownerWindow)
-                {
-                    var regions = RawSurfaceImageLayout.VisibleControlRegions(rawFrame, ownerWindow, item.Bounds);
-                    if (regions.Count == 0) continue;
-                    var clip = new GeometryGroup { FillRule = FillRule.Nonzero };
-                    foreach (var region in regions)
-                        clip.Children.Add(new RectangleGeometry(new Rect(region.X - viewportBounds.X - local.X,
-                            region.Y - viewportBounds.Y - local.Y, region.Width, region.Height)));
-                    visibleClip = clip;
-                }
                 ImageBrush? controlCrop = null;
-                if (projection.ShowsControlCrops && UiMapPresentation.ShouldUseControlCrop(control, ownerSurface))
+                if (projection.ShowsControlCrops && (!isRaw || !suspectStreams.Contains(PropertyValue(control.Source, "rawStreamId") ?? "")) && (isRaw || isWorld
+                    ? RawVariantPresentation.ShouldUseControlCrop(control, ownerSurface)
+                    : UiMapPresentation.ShouldUseControlCrop(control, ownerSurface)))
                 {
-                    var image = isRaw ? ControlImage(ownerSurface) : (Evidence: evidenceImage, Bitmap: bitmap);
+                    var image = (Evidence: evidenceImage, Bitmap: bitmap);
                     if (image.Bitmap is not null && (!isRaw || image.Evidence is not null &&
                         RawSurfaceImageLayout.CanCropControl(image.Evidence, item.Bounds)) &&
                         TryClipBitmapRect(local, image.Bitmap, out var cropRect))
@@ -3812,21 +3883,23 @@ public sealed class ExplorerWindow : Window
                 var rectangle = new Rectangle { Width = Math.Max(1, local.Width), Height = Math.Max(1, local.Height),
                     Stroke = isSelected || isButtonCandidate || isCompactPopupAction
                         ? new SolidColorBrush(highlightColor)
-                        : popupSurfaceIds.Contains(ownerSurface.Id) ? Green : LevelBrush(_inspectionLevel),
-                    Clip = visibleClip,
+                        : isRaw && PropertyValue(control.Source, "rawStreamSource")?.StartsWith("msaa", StringComparison.Ordinal) == true
+                            ? Green : LevelBrush(_inspectionLevel),
                     StrokeThickness = isSelected ? 4 : isButtonCandidate || isCompactPopupAction ? 2 : 1.2,
                     StrokeDashArray = !isSelected && isButtonCandidate && !isCompactPopupAction ? [4, 2] : null,
-                    Fill = isSelected
+                    Fill = (Brush?)controlCrop ?? (isSelected
                         ? new SolidColorBrush(Color.FromArgb(92, highlightColor.R, highlightColor.G, highlightColor.B))
                         : isButtonCandidate || isCompactPopupAction
                             ? new SolidColorBrush(Color.FromArgb(28, highlightColor.R, highlightColor.G, highlightColor.B))
-                        : (Brush?)controlCrop ?? ResolveBlueprintFill(control, ownerSurface, _inspectionLevel, projection.BlueprintFillOpacity),
+                        : ResolveBlueprintFill(control, ownerSurface, _inspectionLevel, projection.BlueprintFillOpacity)),
                     Effect = isSelected
                         ? new DropShadowEffect { Color = highlightColor, BlurRadius = 14, ShadowDepth = 0, Opacity = 0.8 }
                         : null,
                     Cursor = canMove ? Cursors.SizeAll : Cursors.Hand,
                     ToolTip = canMove ? "Drag to move button" : isRaw
-                        ? $"{control.DisplayName} • {PropertyValue(control.Source, "rawStreamSource")} [{PropertyValue(control.Source, "rawStreamId")}] • window {PropertyValue(ownerSurface.Source, "hwnd")} • frame {frameSequence}"
+                        ? $"{control.DisplayName} • {PropertyValue(control.Source, "rawStreamSource")} [{PropertyValue(control.Source, "rawStreamId")}] • query window {PropertyValue(ownerSurface.Source, "hwnd")} • frame {frameSequence}" +
+                            (RawOfficeCoordinates.ForControl(rawCoordinates, control) is { } registration
+                                ? $" • Reported: {registration.Reported} • Display: {registration.Display} • Scale: {registration.Scale:0.###} • {registration.Evidence}" : "")
                         :
                         $"{control.DisplayName} • {PropertyValue(control.Source, "sceneStatus")} from frame {PropertyValue(control.Source, "sourceFrame")}" };
                 rectangle.MouseLeftButtonDown += (_, args) =>
@@ -3847,7 +3920,7 @@ public sealed class ExplorerWindow : Window
                     args.Handled = true;
                 };
                 Canvas.SetLeft(rectangle, local.X); Canvas.SetTop(rectangle, local.Y); _appMapOverlay.Children.Add(rectangle);
-                if ((projection.ShowsControlLabels || !isRaw && projection.ShowsControlCrops && controlCrop is null) &&
+                if ((projection.ShowsControlLabels || !isRaw && !isWorld && projection.ShowsControlCrops && controlCrop is null) &&
                     !(ownerSurface.SurfaceKind.Contains("Popup", StringComparison.OrdinalIgnoreCase) &&
                       (control.CanonicalKind is "Window" or "Menu" or "Pane" or "List" ||
                        control.CanonicalKind == "Group" && string.IsNullOrWhiteSpace(PropertyValue(control.Source, "name")))))
@@ -3855,11 +3928,6 @@ public sealed class ExplorerWindow : Window
                     var label = Text(control.DisplayName, 9, FontWeights.Normal, Ink, textTrimming: TextTrimming.CharacterEllipsis);
                     label.MaxWidth = Math.Max(30, local.Width - 4);
                     label.IsHitTestVisible = false;
-                    if (visibleClip is not null)
-                    {
-                        label.Clip = visibleClip.Clone();
-                        label.Clip.Transform = new TranslateTransform(-2, -1);
-                    }
                     Canvas.SetLeft(label, local.X + 2); Canvas.SetTop(label, local.Y + 1); _appMapOverlay.Children.Add(label);
                 }
                 if (isSelected && _mapEditing && _inspectionLevel == UiUnderstandingLevel.SemanticWorld)
@@ -3884,39 +3952,83 @@ public sealed class ExplorerWindow : Window
             var candidates = controls.Count(item => GraphControlConfirmation.IsConfirmableButtonCandidate(item.Control.Source));
             var legend = candidates > 0 ? $" Orange dashes: {candidates} unverified candidates." : "";
             var unavailableGeometry = controls.Count(item => !ControlGeometry.IsRenderable(item.Bounds));
-            var selectedAttempts = recordedStreams.Where(stream => selectedStreamId is null || stream.StreamId == selectedStreamId);
-            var summary = isRaw
+            var selectedAttempts = enabledStreams.Where(stream => selectedStreamId is null || stream.StreamId == selectedStreamId).ToArray();
+            var summary = isSemanticScene
+                ? $"{selectedControls.Count} semantic controls in this observation • {controls.Length} visible regions. " +
+                    SemanticWorldPresentation.EvidenceStatus(_selectedSurface, _selectedVariant) + ". " +
+                    $"{evidenceError ?? evidenceImage?.PixelProvenance ?? "Image unavailable"}. " +
+                    "Offscreen controls and unresolved ownership remain inspectable; they are not painted as visible controls."
+                : isRaw
                 ? (_selectedVariant is { } chosen && _rawExclusionReasons.GetValueOrDefault(chosen.Id) is { } exclusion
                     ? $"Excluded observation: {exclusion} " : "") +
                     $"{_rawExclusionReasons.Count(pair => pair.Value is not null)} excluded observations in this selection • " +
                     $"{scopedControls.Length} selected-window source entries • {controls.Count(item => item.Surface!.Id == _selectedSurface.Id)} in selected window attempt(s) • " +
-                    $"{controls.Count(item => popupSurfaceIds.Contains(item.Surface!.Id))} in separate popup layers • {unavailableGeometry} without usable geometry • " +
+                    $"{unavailableGeometry} without usable geometry • " +
                     RawVariantPresentation.ScopeSummary(selectedAttempts.SelectMany(stream => stream.Controls), selectedHwnd) + " • " +
                     $"{evidenceError ?? evidenceImage?.PixelProvenance ?? "Image unavailable"} • {pixelStatus}. " +
                     $"Capture: {evidenceImage?.Observation.Acquisition?.Status ?? _selectedVariant?.CaptureStatus ?? "unknown"}. " +
-                    (isRaw && !RawVariantPresentation.AllowsOverlay(evidenceImage?.Observation)
+                    (isRaw && !RawVariantPresentation.HasVerifiedAlignment(evidenceImage?.Observation)
                         ? "Timing uncertain: image and provider records may describe different moments. " : "") +
                     (evidenceImage?.OccludedRegions?.Count > 0 ? "Known covering windows masked; obscured pixels are unavailable. " : "") +
-                    (overlayBlocked ? "Overlay withheld: frame stability is not established. Inspect provider records in Controls or Frame streams. " : "") +
-                    (projectionMode == UiMapProjectionMode.Controls && !projection.ShowsControlCrops
-                        ? "Control crops withheld: frame stability is not established. Showing provider geometry. " : "") +
+                    (projection.ShowsControlCrops ? "Control crops use this observation's recorded screenshot at the displayed bounds. " : "") +
+                    "Only this surface's UIA/MSAA query responses are shown. " +
                     $"Offscreen records and hidden descendants {(_showOffscreenRaw.IsChecked == true ? "shown" : "hidden on canvas")}; all records remain in Frame streams."
+                : isWorld ? $"{selectedControls.Count} observed controls • {controls.Length} visible regions • {pixelStatus}. " +
+                    $"{evidenceError ?? evidenceImage?.PixelProvenance ?? "Image unavailable"}. " +
+                    (evidenceImage?.OccludedRegions?.Count > 0 ? "Known covering windows masked; obscured pixels are unavailable. " : "") +
+                    "Ownership, popup presentation, clipping and occlusion are reconstructed from this observation. " +
+                    (RawVariantPresentation.HasVerifiedAlignment(evidenceImage?.Observation) ? "" : "Capture timing was not verified; alignment remains uncertain. ") +
+                    "Inspect control properties for source ownership and reconstruction evidence."
                 : $"{coverage} • {controls.Length - retainedCount} current + {retainedCount} retained controls • {pixelStatus}.{legend}";
             var banner = new StackPanel();
+            if (isRaw)
+                banner.Children.Add(Text($"Selected surface query 0x{selectedHwnd:X} · UIA: blue · MSAA: green",
+                    11, FontWeights.SemiBold, Muted));
+            if (isRaw || isWorld)
+            {
+                banner.Children.Add(Text(RawVariantPresentation.ProviderSummary(recordedStreams),
+                    11, FontWeights.SemiBold, Muted, textWrapping: TextWrapping.Wrap));
+                if (suspectStreams.Count > 0)
+                    banner.Children.Add(Text("Provider coordinates extend outside this dialog. Original rectangles are clipped to its canvas; " +
+                        "control pixel crops are disabled for the affected source. No checked display registration is active for that source. " +
+                        "All original records remain in Frame streams.", 12, FontWeights.SemiBold, Brush("#92400E"), textWrapping: TextWrapping.Wrap));
+                var registered = selectedControls.Select(control => RawOfficeCoordinates.ForControl(rawCoordinates, control))
+                    .Where(value => value is not null).ToArray();
+                if (registered.Length > 0)
+                    banner.Children.Add(Text($"{registered.Length} control rectangles aligned to this frame's pixels using recorded native control bounds and DPI " +
+                        $"(scale {string.Join(", ", registered.Select(value => value!.Scale.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)).Distinct())}). " +
+                        "Original records are unchanged. Use Reported coordinates in Capture and source details to inspect the original rectangles.",
+                        12, FontWeights.SemiBold, Muted, textWrapping: TextWrapping.Wrap));
+                var corrected = selectedControls.Count(control => PropertyValue(control.Source, "sceneCoordinateCorrection") is not null);
+                if (isWorld && corrected > 0)
+                    banner.Children.Add(Text("MSAA client coordinates corrected using this observation's native window controls and DPI evidence. " +
+                        "Original provider coordinates remain in Raw Data Streams.", 11, FontWeights.Normal, Muted, textWrapping: TextWrapping.Wrap));
+            }
             if (isRaw && RawVariantPresentation.CaptureWarning(rawFrame) is { } warning)
                 banner.Children.Add(new Border { Background = Brush("#FFF4DE"), BorderBrush = Brush("#B45309"),
                     BorderThickness = new Thickness(0, 0, 0, 2), Padding = new Thickness(10, 8, 10, 8),
                     Child = Text(warning, 13, FontWeights.SemiBold, Brush("#92400E"), textWrapping: TextWrapping.Wrap) });
-            if (popupLayers.Count > 0)
-            {
-                popupPanel.Children.Insert(0, Text("Owned popup layers · same frame · green outlines · each source stays separate",
-                    11, FontWeights.SemiBold, Green));
-                banner.Children.Add(popupPanel);
-            }
-            foreach (var error in cropErrors)
-                banner.Children.Add(Text(error, 11, FontWeights.Normal, Brush("#92400E"), textWrapping: TextWrapping.Wrap));
             var details = Text(summary, 11, FontWeights.Normal, Muted, textWrapping: TextWrapping.Wrap);
-            if (isRaw) banner.Children.Add(new Expander { Header = "Capture and source details", Content = details });
+            if (isRaw)
+            {
+                if (selectedControls.Count == 0)
+                    banner.Children.Add(Text(_showRawUia.IsChecked != true && _showRawMsaa.IsChecked != true
+                        ? "No accessibility sources enabled. The recorded screenshot is unchanged."
+                        : "No control records for the enabled sources in this observation. Other sources can be enabled above.",
+                        11, FontWeights.Normal, Muted, textWrapping: TextWrapping.Wrap));
+                // Keep detailed attempt selection available without replacing the source toggles.
+                if (_rawStreamFilter.Parent is Panel previous) previous.Children.Remove(_rawStreamFilter);
+                if (_showRawReportedCoordinates.Parent is Panel previousCoordinates) previousCoordinates.Children.Remove(_showRawReportedCoordinates);
+                var detailPanel = new StackPanel();
+                detailPanel.Children.Add(_rawStreamFilter);
+                detailPanel.Children.Add(_showRawReportedCoordinates);
+                detailPanel.Children.Add(details);
+                var expander = new Expander { Header = "Capture and source details", Content = detailPanel,
+                    IsExpanded = _rawDetailsExpanded };
+                expander.Expanded += (_, _) => _rawDetailsExpanded = true;
+                expander.Collapsed += (_, _) => _rawDetailsExpanded = false;
+                banner.Children.Add(expander);
+            }
             else banner.Children.Add(details);
             _traceBannerHost.Content = banner;
             _traceBannerHost.Visibility = Visibility.Visible;
@@ -4544,6 +4656,15 @@ public sealed class ExplorerWindow : Window
         RenderAppMap();
     }
 
+    private void RawSourceSelectionChanged()
+    {
+        // Source choices persist while navigating frames/surfaces. An old attempt
+        // selection must not silently hide a newly enabled provider.
+        _rawStreamSurfaceId = null;
+        _resetAppMapZoomOnNextRender = true;
+        RenderAppMap();
+    }
+
     private void SetViewMode(string mode)
     {
         _viewMode = mode;
@@ -4633,7 +4754,51 @@ public sealed class ExplorerWindow : Window
         var sourceFrame = _selectedVariant?.ControlSourceFrames is { } sources && sources.TryGetValue(node.Id, out var recordedFrame)
             ? recordedFrame : _selectedVariant?.FrameSequence;
         node = UiMapPresentation.ForObservation(node, _selectedVariant?.BundleId, sourceFrame);
+        if (_inspectionLevel == UiUnderstandingLevel.SemanticWorld && node.Kind == GraphNodeKind.Control &&
+            _model?.LayerFor(_inspectionLevel).Controls.FirstOrDefault(c => c.Id == node.Id) is { } semanticControl)
+            node = UiMapPresentation.ForVariant(semanticControl, _selectedVariant).Source;
         _properties.Children.Clear();
+        if (_inspectionLevel == UiUnderstandingLevel.SemanticWorld && PropertyValue(node, "semanticProjection") is not null)
+        {
+            var surface = _selectedSurface;
+            _properties.Children.Add(Section("Semantic interpretation"));
+            _properties.Children.Add(PropertyLabel("Meaning", node.Label));
+            _properties.Children.Add(PropertyLabel("Type", node.Kind == GraphNodeKind.Surface ? surface?.SurfaceKind ?? "Surface" : PropertyValue(node, "controlType") ?? "Control"));
+            _properties.Children.Add(PropertyLabel("Materialization", PropertyValue(node, "semanticMaterialization") ?? "reproducible"));
+            _properties.Children.Add(PropertyLabel("Review", PropertyValue(node, "reviewState") ?? "Unreviewed"));
+            _properties.Children.Add(PropertyLabel("Authority", "Interpretation of retained Raw World evidence. Review/publication is separate."));
+            var sourceIds = node.Properties.Where(p => p.Name is "sourceRawSurfaceId" or "sourceRawControlId").Select(p => p.Value).Distinct().ToArray();
+            _properties.Children.Add(PropertyLabel("Lineage", $"{sourceIds.Length} Raw World source(s) → {node.Id}"));
+            if (surface is not null)
+                _properties.Children.Add(PropertyLabel("Visual/data evidence", SemanticWorldPresentation.EvidenceStatus(surface, _selectedVariant)));
+            if (node.Kind == GraphNodeKind.Surface && variantCount > 1)
+            {
+                var tabs = new StackPanel { Orientation = Orientation.Horizontal };
+                foreach (var name in new[] { "Window", "Variant" })
+                {
+                    var tab = new Button { Content = name, Margin = new Thickness(0, 0, 6, 8), Padding = new Thickness(10, 4, 10, 4) };
+                    tab.Click += (_, _) => { _rawWindowProperties = name == "Window"; ShowProperties(node, controlCount, variantCount); };
+                    tabs.Children.Add(tab);
+                }
+                _properties.Children.Add(tabs);
+            }
+            if (_selectedVariant is { } observation)
+            {
+                _properties.Children.Add(PropertyLabel("Semantic variant", observation.SemanticVariantName.Length > 0
+                    ? observation.SemanticVariantName + " • " + observation.SemanticVariantId : "No uniquely resolved persisted variant"));
+                if (_model?.Graph.Nodes.FirstOrDefault(n => n.Id == observation.SemanticVariantId) is { } variantNode)
+                    foreach (var signature in variantNode.Properties.Where(p => p.Name == "semanticContentSignature"))
+                        _properties.Children.Add(PropertyLabel("Content signature", signature.Value));
+                _properties.Children.Add(PropertyLabel("Source observation", $"{observation.BundleId} • frame {observation.FrameSequence} • HWND " +
+                    (observation.NativeWindowHwnd is { } handle ? $"0x{handle:X}" : "unresolved")));
+                var upstream = new Button { Content = "Inspect this observation in Raw World", Margin = new Thickness(0, 8, 0, 8) };
+                upstream.Click += (_, _) => SelectSemanticSource(node, observation);
+                _properties.Children.Add(upstream);
+            }
+            foreach (var diagnostic in node.Properties.Where(p => p.Name is "semanticDiagnostic" or "semanticObservationDiagnostic" or "semanticAnchorStatus" or "sceneReviewNote"))
+                _properties.Children.Add(PropertyLabel("Diagnostic", diagnostic.Value));
+            if (node.Kind == GraphNodeKind.Surface && variantCount > 1 && _rawWindowProperties) return;
+        }
         if (_inspectionLevel == UiUnderstandingLevel.RawDataStreams)
         {
             var tabs = new StackPanel { Orientation = Orientation.Horizontal };
@@ -4672,10 +4837,14 @@ public sealed class ExplorerWindow : Window
         if (_evidence is not null && _selectedVariant is { } providerVariant && _evidence.SessionIds.Contains(providerVariant.BundleId))
         {
             var attempts = _evidence.ReadProviderObservations(providerVariant.BundleId);
-            var providerButton = new Button { Content = $"Session provider attempts ({attempts.Count})", Margin = new Thickness(0, 6, 0, 6) };
+            var nativeBytes = _evidence.ReadNativeEpisode(providerVariant.BundleId, providerVariant.FrameSequence);
+            var nativeEpisode = nativeBytes is null ? null : UIMaps.Protocol.V1.SensorEpisodeBundle.Parser.ParseFrom(nativeBytes);
+            var nativeAttempts = nativeEpisode?.CoverageReport?.WindowOutcomes.Sum(window => window.ProviderAttempts.Count) ?? 0;
+            var providerButton = new Button { Content = nativeEpisode is null ? $"Session provider attempts ({attempts.Count})" : $"Native frame provider attempts ({nativeAttempts})", Margin = new Thickness(0, 6, 0, 6) };
             providerButton.Click += (_, _) =>
             {
-                var payload = attempts.Count == 0 ? "This recording has no retained provider-attempt stream. Historical rejected payloads cannot be recovered."
+                var payload = nativeEpisode?.CoverageReport is { } coverage ? Google.Protobuf.JsonFormatter.Default.Format(coverage)
+                    : attempts.Count == 0 ? "This recording has no retained provider-attempt stream. Historical rejected payloads cannot be recovered."
                     : System.Text.Json.JsonSerializer.Serialize(attempts, UiAtlas.Core.Recording.JsonDefaults.Options);
                 new Window { Owner = this, Title = "Retained provider observations", Width = 900, Height = 650,
                     Content = new TextBox { Text = payload, IsReadOnly = true, AcceptsReturn = true,
@@ -4693,6 +4862,22 @@ public sealed class ExplorerWindow : Window
                 var rawButton = new Button { Content = "Inspect this frame's raw streams", Margin = new Thickness(0, 6, 0, 6) };
                 rawButton.Click += (_, _) => new RawStreamInspectorWindow(_model!, _evidence, providerVariant) { Owner = this }.Show();
                 _properties.Children.Add(rawButton);
+                if (nativeEpisode is not null)
+                {
+                    var packetButton = new Button { Content = "Original native sensor packets", Margin = new Thickness(0, 6, 0, 6) };
+                    packetButton.Click += (_, _) =>
+                    {
+                        var preview = nativeEpisode.Clone();
+                        foreach (var packet in preview.SensorPackets.Where(packet => packet.Screenshot is not null))
+                            packet.Screenshot.ImageBlob = Google.Protobuf.ByteString.Empty;
+                        var text = Google.Protobuf.JsonFormatter.Default.Format(preview);
+                        if (text.Length > 256_000) text = text[..256_000] + "\n[Preview truncated; complete packets are retained in the recording.]";
+                        new Window { Owner = this, Title = "Original native sensor packets", Width = 1000, Height = 700,
+                            Content = new TextBox { Text = text, IsReadOnly = true, AcceptsReturn = true,
+                                VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto } }.Show();
+                    };
+                    _properties.Children.Add(packetButton);
+                }
                 var imageButton = new Button { Content = "Original frame image (supporting evidence)", Margin = new Thickness(0, 6, 0, 6) };
                 imageButton.Click += (_, _) =>
                 {
@@ -4731,6 +4916,24 @@ public sealed class ExplorerWindow : Window
         _properties.Children.Add(PropertyLabel("Evidence records", node.Evidence.Count.ToString()));
         foreach (var evidence in node.Evidence.Take(20))
             _properties.Children.Add(PropertyLabel("Frame", $"{evidence.FrameSequence}  •  {evidence.ObservationEntry}"));
+    }
+
+    private void SelectSemanticSource(GraphNode node, UiMapVariantView observation)
+    {
+        if (_model is null) return;
+        var raw = _model.LayerFor(UiUnderstandingLevel.RawWorld);
+        var controlId = PropertyValue(node, "semanticObservationSource");
+        var control = raw.Controls.FirstOrDefault(c => c.Id == controlId);
+        var ids = node.Properties.Where(p => p.Name == "sourceRawSurfaceId").Select(p => p.Value).ToHashSet(StringComparer.Ordinal);
+        var surfaces = raw.Surfaces.Where(s => control is not null ? s.Id == control.OwnerSurfaceId : ids.Contains(s.Id))
+            .Where(s => s.Variants.Any(v => v.BundleId == observation.BundleId && v.FrameSequence == observation.FrameSequence &&
+                v.NativeWindowHwnd == observation.NativeWindowHwnd)).ToArray();
+        if (surfaces.Length != 1) return; // never substitute a representative source
+        var surface = surfaces[0];
+        SetLevel(UiUnderstandingLevel.RawWorld);
+        SelectSurface(surface);
+        SelectVariant(surface.Variants.Single(v => v.BundleId == observation.BundleId && v.FrameSequence == observation.FrameSequence));
+        if (control is not null) SelectControlById(control.Id);
     }
 
     private UIElement BuildManualControlPropertyEditor(string annotationId, string label)

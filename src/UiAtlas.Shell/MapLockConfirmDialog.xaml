@@ -1,0 +1,70 @@
+<Window x:Class="UIMaps.Application.MapLockConfirmDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="MapLock" Width="510" SizeToContent="Height" MinHeight="280"
+        WindowStyle="None" ResizeMode="NoResize" WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False" Background="Transparent"
+        FontFamily="Segoe UI Variable Text, Segoe UI" TextOptions.TextFormattingMode="Display">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="44" ResizeBorderThickness="0" GlassFrameThickness="0"
+                            CornerRadius="10" UseAeroCaptionButtons="False" />
+    </shell:WindowChrome.WindowChrome>
+
+    <Border Background="White" BorderBrush="#D5DCE5" BorderThickness="1" CornerRadius="10">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="44" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Background="#FBFCFE">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="44"/></Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" Margin="17,0,0,0" VerticalAlignment="Center">
+                    <Border Width="17" Height="17" CornerRadius="4" Background="#4C3BDC">
+                        <TextBlock Text="M" Foreground="White" FontSize="10" FontWeight="Bold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock x:Name="DialogTitle" Margin="9,0,0,0" FontSize="12.5" FontWeight="SemiBold"
+                               Foreground="{StaticResource InkBrush}" VerticalAlignment="Center" />
+                </StackPanel>
+                <Button Grid.Column="1" Content="&#xE711;" FontFamily="Segoe Fluent Icons" FontSize="11"
+                        Background="Transparent" BorderThickness="0" Cursor="Hand"
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True" Click="Close_Click"
+                        AutomationProperties.Name="Close dialog" />
+            </Grid>
+
+            <Grid Grid.Row="1" Margin="28,25,28,22">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="48"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Border Width="38" Height="38" CornerRadius="19" Background="#FFF1DF"
+                        HorizontalAlignment="Left" VerticalAlignment="Top">
+                    <TextBlock Text="&#xE7B8;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="#A95400"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <StackPanel Grid.Column="1">
+                    <TextBlock x:Name="HeadingText" FontSize="21" FontWeight="SemiBold"
+                               Foreground="{StaticResource InkBrush}" TextWrapping="Wrap" />
+                    <TextBlock x:Name="MessageText" Margin="0,9,0,0" FontSize="14" LineHeight="21"
+                               Foreground="{StaticResource MutedInkBrush}" TextWrapping="Wrap" />
+                    <Border Margin="0,18,0,0" Padding="13,11" Background="#F7F9FC"
+                            BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="7">
+                        <TextBlock x:Name="DetailText" FontSize="12.5" LineHeight="19"
+                                   Foreground="{StaticResource MutedInkBrush}" TextWrapping="Wrap" />
+                    </Border>
+                </StackPanel>
+            </Grid>
+
+            <Border Grid.Row="2" Padding="22,16" Background="#F7F9FC"
+                    BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1,0,0" CornerRadius="0,0,10,10">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="Cancel" MinWidth="108" Height="42" Margin="0,0,10,0"
+                            Style="{StaticResource RecorderSecondaryButtonStyle}" IsCancel="True" />
+                    <Button x:Name="ConfirmButton" MinWidth="152" Height="42"
+                            Style="{StaticResource PrimaryActionButtonStyle}"
+                            IsDefault="True" Click="Confirm_Click" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

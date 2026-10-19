@@ -20,7 +20,7 @@ public sealed partial class ManualRecordingSession : IAsyncDisposable
     private readonly ManualTargetInputWaiter _manualInput;
     private readonly Func<CancellationToken, Task>? _beforeScreenshotCapture;
     private readonly Action? _afterScreenshotCapture;
-    private readonly UiaWorkerClient _automation = new();
+    private readonly UiaWorkerClient _automation;
     private readonly SemaphoreSlim _captureGate = new(1, 1);
     // Office exposes one UIA provider for the whole window. Concurrent tree walks
     // do not make it faster: Excel serializes them on its UI thread and the
@@ -71,8 +71,12 @@ public sealed partial class ManualRecordingSession : IAsyncDisposable
         WindowTarget target,
         string outputPath,
         Func<CancellationToken, Task>? beforeScreenshotCapture = null,
-        Action? afterScreenshotCapture = null)
+        Action? afterScreenshotCapture = null,
+        UiaWorkerClient? automation = null,
+        string? nativeProviderPath = null,
+        bool useNativeRecorder = true)
     {
+        _nativeCapture = useNativeRecorder ? new NativeRecorderCapture(nativeProviderPath) : null;
         RecordingBundleWriter.CleanupAbandonedStaging(TimeSpan.FromDays(1));
         _target = target;
         _outputPath = Path.GetFullPath(outputPath);
@@ -83,6 +87,7 @@ public sealed partial class ManualRecordingSession : IAsyncDisposable
         _manualInput = new ManualTargetInputWaiter(target);
         _beforeScreenshotCapture = beforeScreenshotCapture;
         _afterScreenshotCapture = afterScreenshotCapture;
+        _automation = automation ?? new UiaWorkerClient();
     }
 
     public void Start(bool explicitConsent)
@@ -1090,7 +1095,8 @@ public sealed partial class ManualRecordingSession : IAsyncDisposable
             var started = DateTimeOffset.UtcNow;
             try
             {
-                var result = await collect().ConfigureAwait(false);
+                var result = _nativeCapture is null ? await collect().ConfigureAwait(false)
+                    : await CollectNativeAutomationAsync(cancellationToken).ConfigureAwait(false);
                 _rawCapture.Value?.Add(source, started, DateTimeOffset.UtcNow,
                     result.TimedOut ? "timeout" : result.Status, result.Items, queued);
                 return result;
@@ -1769,6 +1775,8 @@ public sealed partial class ManualRecordingSession : IAsyncDisposable
         bool captureScreenshot,
         TimeSpan automationTimeout)
     {
+        if (_nativeCapture is not null)
+            return await ObserveNativeFrameAsync(trigger, options, persistFrame, cancellationToken).ConfigureAwait(false);
         var captureStarted = DateTimeOffset.UtcNow;
         RevalidateTarget();
         if (persistFrame)

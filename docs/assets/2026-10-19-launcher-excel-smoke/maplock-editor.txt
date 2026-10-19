@@ -1,0 +1,237 @@
+Window: "UiAtlas Core — 20261019-131419-excel-afa718e8.db", App: UiAtlas.Core.Desktop.exe.
+	0 window UiAtlas Core — 20261019-131419-excel-afa718e8.db Secondary Actions: Raise
+		1 title bar (settable, string) Value: UiAtlas Core — 20261019-131419-excel-afa718e8.db
+			2 menu bar System ID: MenuBar
+				261 menu item System
+			4 button Minimize
+			5 button Maximize
+			6 button Close
+		7 text M
+		8 text EXCEL: UI Knowledge Graph Editor
+		9 text EXCEL › Window › Control
+		10 text Pipeline depth
+		11 button Raw Data Streams Description: Raw Data Streams
+			12 text ▤
+			13 text Raw Data Streams
+		14 button Raw World Description: Raw World
+			15 text ▧
+			16 text Raw World
+		17 button Semantic World Description: Semantic World
+			18 text ▱
+			19 text Semantic World
+		20 button Predicted Description: Show or hide calculated next states. Predictions never create screenshot overlays.
+			21 text Predicted
+		22 combo box (disabled)
+		23 combo box
+		24 edit (settable, string) Description: Search surfaces or controls
+		25 button Description: Toggle between stacked and side-by-side center panels.
+		26 button Description: Resume recording on the currently opened map.
+		27 button Description: Import a map into the local catalog or open a managed maps or recordings folder.
+		28 button Description: Export the current map or reveal its attached recording bundle.
+		29 button Settings Description: Edit recording profiles and UI Map build limits.
+			30 text Settings
+		31 text Environment Hierarchy
+		32 text Select a surface or control
+		33 tree view
+			100 tree view item (selectable) System.Windows.Controls.TreeViewItem Header: Items.Count:1 Description: Application
+				101 button ID: Expander
+				102 text Application
+				103 tree view item (selectable) System.Windows.Controls.TreeViewItem Header: Items.Count:0 Description: EXCEL
+					104 text EXCEL
+			105 tree view item (selectable) System.Windows.Controls.TreeViewItem Header: Items.Count:2 Description: Raw Data Streams
+				106 button ID: Expander
+				107 text Raw Data Streams
+				108 tree view item (selectable) System.Windows.Controls.TreeViewItem Header: Items.Count:0 Description: Normal window | XLMAIN | 5 raw variants
+					109 text Main Window
+				110 tree view item (selectable) System.Windows.Controls.TreeViewItem Header: Items.Count:0 Description: Dialog window | bosa_sdm_XL9 | 1 raw variants
+					111 text Dialog Window
+			112 tree view item (selectable) System.Windows.Controls.TreeViewItem Header: Items.Count:2 Description: Raw World
+				113 button ID: Expander
+				114 text Raw World
+				115 tree view item (selectable) System.Windows.Controls.TreeViewItem Header: Items.Count:1 Description: RawDialogWindow | 6 controls | 1 variants
+					116 button ID: Expander
+					117 text Format Cells
+				118 tree view item (selectable) System.Windows.Controls.TreeViewItem Header: Items.Count:1 Description: RawWindow | 826 controls | 3 variants
+					119 button ID: Expander
+					120 text Warehouse inventory1 - Excel
+			121 tree view item (selectable) System.Windows.Controls.TreeViewItem Header: Items.Count:2 Description: Semantic World
+				122 button ID: Expander
+				123 text Semantic World
+				124 tree view item (selectable) System.Windows.Controls.TreeViewItem Header: Items.Count:1 Description: SemanticDialogWindow | 6 controls | 1 variants
+					125 button ID: Expander
+					126 text Format Cells
+				127 tree view item (selectable) System.Windows.Controls.TreeViewItem Header: Items.Count:1 Description: SemanticWindow | 451 controls | 4 variants
+					128 button ID: Expander
+					129 text Warehouse inventory1 - Excel
+		34 text EXCEL - Understanding Pipeline
+		35 text Semantic World | 2 surfaces | 457 controls
+		36 text Semantic World ID: TopologyLevel
+		37 pane
+			130 text Application
+			131 text Process
+			132 text Raw Data Streams
+			133 text Raw World
+			134 text Semantic World
+			135 text process
+			136 text raw data stream
+			137 text raw data stream
+			138 text Raw World
+			139 text Raw World
+			140 text Semantic World
+			141 text Semantic World
+			142 text EXCEL
+			143 text Application identity | atlas-app:ad9b28c11e26b22a11d3bd231d7267cc
+			144 text EXCEL
+			145 text Process | 6 native window observations
+			146 text Main Window
+			147 text Normal window | XLMAIN | 5 raw variants
+			148 text Dialog Window
+			149 text Dialog window | bosa_sdm_XL9 | 1 raw variants
+			150 text Warehouse inventory1 - Excel
+			151 text RawWindow | 826 controls | 3 observed variants
+			152 text Format Cells
+			153 text RawDialogWindow | 6 controls | 1 observed variants
+			154 text Warehouse inventory1 - Excel
+			155 text SemanticWindow | 451 controls
+			156 text Format Cells
+			157 text SemanticDialogWindow | 6 controls
+		38 thumb
+		39 text AppMap
+		40 text Semantic World | Structure
+		41 button Edit map Description: Review the authoritative UI Maps draft and publish a revision
+			42 text ✎ Review map
+		43 pane
+			44 button Window Description: Window
+				45 text Window
+			46 button Controls Description: Controls
+				47 text Controls
+			48 button Overlay Description: Overlay
+				49 text Overlay
+			50 button Structure Description: Structure
+				51 text Structure
+			52 button Structure Overlay Description: Structure Overlay
+				53 text Structure Overlay
+			54 button Trace Description: Trace
+				55 text Trace
+			56 button Routes Description: Routes
+				57 text Routes
+			58 check box Scene context Description: Include earlier controls from this recording in the reconstructed scene. Clear to inspect only this capture's controls.
+				59 text Scene context
+			75 combo box Description: Filter interaction actor
+			76 combo box Description: Filter interaction outcome
+		83 text Observations
+		84 pane Observed variant cards Description: Scroll horizontally to browse observed variants
+			158 button Default observed variant • frame 4, Frame 4 • 6 source entries • 1006 × 1104, capture 20261019-131419-excel-afa718e8, evidence 1006 by 1104 pixels, selected Description: Select this observed variant. Use Left and Right to move between cards, or Home and End for the first and last card.
+				159 text Default observed variant • frame 4
+				160 text Frame 4 • 6 source entries • 1006 × 1104
+				161 text snapshot • 20261019-131419-excel-afa718e8
+		85 text Variant position
+		162 text UIA: timeout, 0 records · MSAA: timeout, 0 records
+		163 text 6 semantic controls in this observation • 6 visible regions. Same-observation Raw World evidence; capture coverage and timing still apply. independent HWND image (windows-graphics-capture). Offscreen controls and unresolved ownership remain inspectable; they are not painted as visible controls.
+		86 pane
+			164 text Unnamed pane
+			165 text Unnamed pane
+			166 text Unnamed pane
+			167 text Unnamed scroll bar
+			168 text Unnamed scroll bar
+			169 text Unnamed scroll bar
+		88 text Properties
+		89 pane
+			170 text Semantic interpretation
+			171 text Meaning
+			172 text Format Cells
+			173 text Type
+			174 text SemanticDialogWindow
+			175 text Materialization
+			176 text reproducible
+			177 text Review
+			178 text ReviewUnreviewed
+			179 text Authority
+			180 text Interpretation of retained Raw World evidence. Review/publication is separate.
+			181 text Lineage
+			182 text 1 Raw World source(s) → uimaps:surface:1f54c804b14c440bb985d05586f5dca9
+			183 text Visual/data evidence
+			184 text Same-observation Raw World evidence; capture coverage and timing still apply
+			185 text Semantic variant
+			186 text Default observed variant • uimaps:surface-variant:6a1e99fe7bcc4cb3b77a5ef5ce84d10d
+			187 text Content signature
+			188 text b898928d6a77029b3940d6bb27bf11a5fb8de687341aedac48fce743accc279c
+			189 text Source observation
+			190 text 20261019-131419-excel-afa718e8 • frame 4 • HWND 0x910E06
+			191 button Inspect this observation in Raw World
+				192 text Inspect this observation in Raw World
+			193 text Selected observation
+			194 text Frame 4 • 20261019-131419-excel-afa718e8
+			195 text Source entries
+			196 text 6
+			197 text Projection scope
+			198 text recorded frame
+			199 text Format Cells
+			200 text Level
+			201 text Semantic World
+			202 text Type
+			203 text Surface
+			204 text Controls across observations
+			205 text 6
+			206 text Observations
+			207 text 1
+			208 text Identity
+			209 text ID
+			210 text uimaps:surface:1f54c804b14c440bb985d05586f5dca9
+			211 text layer
+			212 text semantic-world
+			213 text map Draft Ref
+			214 text uimaps:map-draft:ce3736aeea9441ad87f4a9f782229814
+			215 text review State
+			216 text ReviewUnreviewed
+			217 text control Type
+			218 text window
+			219 text mapping Engine
+			220 text UIMaps
+			221 text curation Hidden
+			222 text False
+			223 text acquisition Status
+			224 text snapshot
+			225 text record Kind
+			226 text observation
+			227 text control Path
+			228 text uimaps:app:44d45f2a3fbd459caf88bee8c3a3a17b/uimaps:surface:1f54c804b14c440bb985d05586f5dca9
+			229 text source Raw Surface Id
+			230 text world-surface:5bfd3f37a65a8a7f2acef2dce364454a1fc8b0fc4289c33799d0ba786f3d5c99
+			231 text semantic Projection
+			232 text map-interpretation/1
+			233 text semantic Lineage
+			234 text semantic_interpreted_from
+			235 text semantic Materialization
+			236 text reproducible
+			237 text semantic Authority
+			238 text Map draft; interpretation is not publication or action authority
+			239 text semantic Entity Kind
+			240 text MapSurface
+			241 text map Role
+			242 text window
+			243 text semantic Class
+			244 text SemanticDialogWindow
+			245 text semantic Source Type
+			246 text RawDialogWindow
+			247 text semantic Surface Kind
+			248 text Window
+			249 text Evidence and lineage
+			250 text Evidence records
+			251 text 1
+			252 text Frame
+			253 text 4 • raw/observations/frame-000004.json
+			254 scroll bar (settable, float) Value: 0 ID: PART_VerticalScrollBar
+				255 button Scroll Up ID: PART_ButtonScrollUp
+				256 button ID: PageUp
+				257 thumb
+				258 button ID: PageDown
+				259 button Scroll Down ID: PART_ButtonScrollDown
+		91 button Show or hide the Environment Hierarchy pane. Description: Show or hide the Environment Hierarchy pane.
+		92 button Show or hide the Properties pane. Description: Show or hide the Properties pane.
+		93 text Inspecting:
+		94 text Semantic World
+		95 text Visible: 457 Unverified: 0 Prepared: 12 Reused: 0 Matched: 0 Rejected: 0
+		96 text Opened map: 20261019-131419-excel-afa718e8.db
+
+The focused UI element is 24 edit (settable, string) Description: Search surfaces or controls.
