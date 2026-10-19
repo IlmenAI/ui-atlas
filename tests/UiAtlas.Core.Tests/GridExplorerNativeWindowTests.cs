@@ -23,7 +23,10 @@ public sealed class GridExplorerNativeWindowTests
         Sta(() =>
         {
             var window = new Window { Title = "Opaque table exploration fixture", Left = 80, Top = 550,
-                Width = 440, Height = 240, Background = Brushes.White, Topmost = true };
+                // The native child uses physical pixel geometry. It must fit even
+                // on a 100% display, rather than relying on the primary display's DPI.
+                Width = 640, Height = 360, Background = Brushes.White, Topmost = true };
+            NativeDesktopFixture.Place(window);
             RecordingHighlightOverlay? overlay = null;
             try
             {
@@ -179,7 +182,11 @@ public sealed class GridExplorerNativeWindowTests
             {
                 var x = column * 160 - X;
                 dc.DrawRectangle(null, new Pen(Brushes.Gray, 1), new Rect(x + .5, .5, 160, 23));
-                Text($"Header {column + 1}", x + 6, 4);
+                // This fixture exercises successful traversal. Distinct field names
+                // avoid the near-identical glyphs of Header 1/2/3/4 at 100% scaling;
+                // repeated-content rejection has its own registration tests.
+                string[] headers = ["Reference", "Product description", "Stock quantity", "Warehouse", "Status", "Supplier", "Unit price", "Location", "Last received"];
+                Text(headers[column], x + 6, 4);
             }
             dc.Pop(); dc.Pop();
             void Text(string text, int x, int y) => dc.DrawText(new FormattedText(text, CultureInfo.InvariantCulture,

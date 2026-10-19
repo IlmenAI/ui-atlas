@@ -49,8 +49,14 @@ public sealed class LiveMappingTests
         {
             var recording = Path.Combine(directory, "live.mlrec");
             var cli = Environment.GetEnvironmentVariable("UI_ATLAS_MAPPING_CLI_PATH") ?? typeof(UiAtlas.Core.Cli.UiMapsImportCommand).Assembly.Location;
-            await using (var session = new ManualRecordingSession(WindowCatalog.Resolve(target.Hwnd), recording, automation: new UiaWorkerClient(cli),
-                nativeProviderPath: Path.Combine(Path.GetDirectoryName(cli)!, "native-recorder", "UIMaps.Recorder.ProviderProbe.dll")))
+            // This test asserts snapshot semantics. Select the shared checkpoint
+            // profile explicitly, independently of the user's survey settings.
+            var profiles = new RecordingProfileSettingsStore(Path.Combine(directory, "recording-profiles.json"));
+            profiles.Save(new("mapping-checkpoint"));
+            await using (var session = new ManualRecordingSession(WindowCatalog.Resolve(target.Hwnd), recording,
+                beforeScreenshotCapture: null, afterScreenshotCapture: null, automation: new UiaWorkerClient(cli),
+                nativeProviderPath: Path.Combine(Path.GetDirectoryName(cli)!, "native-recorder", "UIMaps.Recorder.ProviderProbe.dll"),
+                useNativeRecorder: true, recordingProfileSettings: profiles))
             {
                 session.Start(true);
                 using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(90));
@@ -77,6 +83,9 @@ public sealed class LiveMappingTests
                 var native = UIMaps.Protocol.V1.SensorEpisodeBundle.Parser.ParseFrom(retained.ReadBytes("raw/native/frame-000001.episode.pb"));
                 Assert.Equal("uimaps-recorder", native.Producer);
                 Assert.Equal("recorder-stopwatch-v1", native.ClockMetadata.ClockId);
+                Assert.Equal("mapping-checkpoint", native.RequestedPolicy.RequestedProfileId);
+                Assert.False(native.RequestedPolicy.UseCustomLimits);
+                Assert.Equal("mapping-checkpoint", native.EffectiveCapturePolicy.ResolvedProfileRef.ProfileId);
                 var longText = native.Clone();
                 var longNode = longText.SensorPackets.First(packet => packet.Accessibility?.Nodes.Count > 0).Accessibility.Nodes[0];
                 longNode.Name = new string('n', 5000); longNode.AutomationId = new string('a', 800);

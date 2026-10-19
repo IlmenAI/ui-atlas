@@ -177,6 +177,7 @@ public sealed class MapperOverlayWindowTests
                     .Select(i => new { Order = $"Order {i:D3}", Name = $"Guest {i * 17:D3}", Total = $"{i * 13}.45" }).ToArray() };
             var window = new Window { Title = "Table explorer UIA fixture", Width = 650, Height = 310,
                 Left = 100, Top = 550, Content = table, Background = Brushes.White, Topmost = true };
+            NativeDesktopFixture.Place(window);
             TextOptions.SetTextFormattingMode(table, TextFormattingMode.Display);
             TextOptions.SetTextRenderingMode(table, TextRenderingMode.Aliased);
             System.Windows.Automation.AutomationProperties.SetName(table, "Fixture table");

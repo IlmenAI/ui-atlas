@@ -75,8 +75,19 @@ public sealed partial class ManualRecordingSession : IAsyncDisposable
         UiaWorkerClient? automation = null,
         string? nativeProviderPath = null,
         bool useNativeRecorder = true)
+        : this(target, outputPath, beforeScreenshotCapture, afterScreenshotCapture, automation, nativeProviderPath, useNativeRecorder, null) { }
+
+    public ManualRecordingSession(
+        WindowTarget target,
+        string outputPath,
+        Func<CancellationToken, Task>? beforeScreenshotCapture,
+        Action? afterScreenshotCapture,
+        UiaWorkerClient? automation,
+        string? nativeProviderPath,
+        bool useNativeRecorder,
+        RecordingProfileSettingsStore? recordingProfileSettings)
     {
-        _nativeCapture = useNativeRecorder ? new NativeRecorderCapture(nativeProviderPath) : null;
+        _nativeCapture = useNativeRecorder ? new NativeRecorderCapture(nativeProviderPath, recordingProfileSettings) : null;
         RecordingBundleWriter.CleanupAbandonedStaging(TimeSpan.FromDays(1));
         _target = target;
         _outputPath = Path.GetFullPath(outputPath);
