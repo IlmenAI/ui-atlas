@@ -55,18 +55,23 @@
                         <TextBlock Text="&#xE74E;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{StaticResource AccentBrush}" />
                         <TextBlock Grid.Column="1" Text="Publish immutable map revisions" FontSize="14.5" />
                     </Grid>
+                    <Grid x:Name="AvailableWorkSessions" Margin="0,18,0,0" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <TextBlock Text="&#xE7C3;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Grid.Column="1" Text="Record work and review workflow drafts" FontSize="14.5" TextWrapping="Wrap" />
+                    </Grid>
                 </StackPanel>
 
                 <Border Grid.Column="1" Width="1" Background="{StaticResource LineBrush}" HorizontalAlignment="Center" />
 
                 <StackPanel Grid.Column="2">
                     <TextBlock Text="Coming next" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,24" />
-                    <Grid Margin="0,0,0,22">
+                    <Grid x:Name="FutureWorkSessions" Margin="0,0,0,22">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <TextBlock Text="&#xE7C3;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{StaticResource AccentBrush}" />
                         <StackPanel Grid.Column="1">
                             <TextBlock Text="Work Sessions" FontSize="14.5" />
-                            <TextBlock Text="Record work and reproduce it autonomously." Margin="0,4,0,0"
+                            <TextBlock Text="Record work and review mapped workflow drafts." Margin="0,4,0,0" TextWrapping="Wrap"
                                        FontSize="12.5" Foreground="{StaticResource MutedInkBrush}" />
                         </StackPanel>
                     </Grid>

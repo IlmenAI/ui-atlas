@@ -5,10 +5,12 @@ namespace UIMaps.Application.Views;
 
 public partial class HomeView : UserControl
 {
-    public HomeView(string heading)
+    public HomeView(string heading, bool workSessionsAvailable = false)
     {
         InitializeComponent();
         HeadingText.Text = heading;
+        AvailableWorkSessions.Visibility = workSessionsAvailable ? Visibility.Visible : Visibility.Collapsed;
+        FutureWorkSessions.Visibility = workSessionsAvailable ? Visibility.Collapsed : Visibility.Visible;
     }
 
     public event EventHandler? OpenUiMapRequested;

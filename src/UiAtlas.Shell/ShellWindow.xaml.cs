@@ -206,7 +206,7 @@ public partial class ShellWindow : Window
 
     private void ShowHome(string heading)
     {
-        var home = new HomeView(heading);
+        var home = new HomeView(heading, _host is IShellWorkSessionsHost);
         home.OpenUiMapRequested += (_, _) => NavigateToMaps();
         ShowPage(home);
     }
