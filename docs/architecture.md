@@ -4,12 +4,17 @@ New Atlas recordings and builds use the [UI Maps foundation](2026-10-13-uimaps-f
 Its durable Map database is authoritative; the graph formats described below are
 compatibility projections. Legacy maps retain their original reader and curation behavior.
 
+The implemented combined-platform specification is [Phase 4.1: UI Atlas and MapLock integration](../../UIMaps.Core/docs/UIMaps%20-%20Phase%204.1%20-%20Atlas%20and%20MapLock%20Integration.md).
+The proposed private Workflow Recorder is specified in [Phase 4.2](../../UIMaps.Core/docs/UIMaps%20-%20Phase%204.2%20-%20Workflow%20Recorder.md).
+Those cross-repository links resolve in the combined checkout; the [shared-library implementation record](2026-10-19-shared-atlas-library.md) is also available within standalone Atlas.
+
 The native path retains Atlas target selection, attended controls, bundle sealing,
 catalog and KG editor. `NativeRecorderCapture` invokes UI Maps' isolated native
 recorder. `AtlasMapWorkspace` passes its original episodes through Perception and
 Map; `AtlasMapProjection` feeds the existing three observed layers. Predicted
-state remains a separate editor session overlay. MapLock launches the public CLI
-and imports an explicit draft snapshot through its private Map host.
+state remains a separate editor session overlay. MapLock hosts the shared Maps and
+Recordings experience and uses the Atlas catalog process for the same authoritative
+library. Its active desktop mapping path no longer imports snapshots through a private Map host.
 
 New UI mapping recordings default to `deep-survey` (including mapping launched
 from MapLock). Its exhaustive pass retains UIA, MSAA and native HWND evidence,

@@ -1,5 +1,7 @@
 # UI Atlas on the UI Maps native foundation
 
+> **Current consolidation, 2026-10-19:** [Phase 4.1: UI Atlas and MapLock integration](../../UIMaps.Core/docs/UIMaps%20-%20Phase%204.1%20-%20Atlas%20and%20MapLock%20Integration.md) documents the implemented baseline. In particular, the later [shared Atlas library](2026-10-19-shared-atlas-library.md) replaces this rollout's separate-catalog/snapshot-import design. [Phase 4.2: Workflow Recorder](../../UIMaps.Core/docs/UIMaps%20-%20Phase%204.2%20-%20Workflow%20Recorder.md) specifies the private recorder to build on that baseline. These cross-repository specification links resolve in the combined checkout; standalone Atlas remains independent of private source.
+
 Local rollout: 2026-10-14. UI Atlas remains the existing repository, on
 `codex/atlas-uimaps-foundation`, descended from
 `3735554abfb5979420e5b6acf07e95a84b66e8eb`. No remote push, tag, release, or
