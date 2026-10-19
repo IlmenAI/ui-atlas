@@ -55,9 +55,9 @@ public sealed class ExperienceProfileCatalog
 {
     private readonly IReadOnlyDictionary<ExperienceProfileId, ExperienceProfileDefinition> _definitions;
 
-    public ExperienceProfileCatalog(bool diagnosticsAvailable)
+    public ExperienceProfileCatalog(bool diagnosticsAvailable, bool workSessionsAvailable = false)
     {
-        var work = new ExperienceProfileOption(ExperienceProfileId.Work, "Work", ExperienceAvailability.InDevelopment);
+        var work = new ExperienceProfileOption(ExperienceProfileId.Work, "Work", workSessionsAvailable ? ExperienceAvailability.Available : ExperienceAvailability.InDevelopment);
         var maps = new ExperienceProfileOption(ExperienceProfileId.Maps, "Maps", ExperienceAvailability.Available);
         var integrations = new ExperienceProfileOption(ExperienceProfileId.Integrations, "Integrations", ExperienceAvailability.InDevelopment);
         var diagnostics = new ExperienceProfileOption(
@@ -70,7 +70,7 @@ public sealed class ExperienceProfileCatalog
         var mapsNavigation = Array.AsReadOnly(new[]
         {
             new ExperienceNavigationItem("home", "Home", "\uE80F"),
-            new ExperienceNavigationItem("work-sessions", "Work Sessions", "\uE7C3", false, "In development"),
+            new ExperienceNavigationItem("work-sessions", "Work Sessions", "\uE7C3", workSessionsAvailable, workSessionsAvailable ? "" : "In development"),
             new ExperienceNavigationItem("runs", "Runs & Insights", "\uE9D9", false, "In development"),
             new ExperienceNavigationItem("maps", "Maps", "\uE81E"),
             new ExperienceNavigationItem("recordings", "Recordings", "\uE714"),
@@ -80,7 +80,7 @@ public sealed class ExperienceProfileCatalog
         var diagnosticsNavigation = Array.AsReadOnly(new[]
         {
             new ExperienceNavigationItem("home", "Home", "\uE80F"),
-            new ExperienceNavigationItem("work-sessions", "Work Sessions", "\uE7C3", false, "In development"),
+            new ExperienceNavigationItem("work-sessions", "Work Sessions", "\uE7C3", workSessionsAvailable, workSessionsAvailable ? "" : "In development"),
             new ExperienceNavigationItem("runs", "Runs & Insights", "\uE9D9", false, "In development"),
             new ExperienceNavigationItem("maps", "Maps", "\uE81E"),
             new ExperienceNavigationItem("recordings", "Recordings", "\uE714"),
@@ -92,17 +92,17 @@ public sealed class ExperienceProfileCatalog
         });
         var mapsNew = Array.AsReadOnly(new[]
         {
-            new ExperienceCommand("new.work-session", "Work Session", "\uE7C3", false, "In development"),
+            new ExperienceCommand("new.work-session", "Work Session", "\uE7C3", workSessionsAvailable, workSessionsAvailable ? "" : "In development"),
             new ExperienceCommand("new.map", "UI Map", "\uE81E"),
         });
         var mapsHud = Array.AsReadOnly(new[]
         {
-            new ExperienceCommand("hud.record-work-session", "Record Work Session", "\uE7C3", false, "In development"),
+            new ExperienceCommand("hud.record-work-session", "Record Work Session", "\uE7C3", workSessionsAvailable, workSessionsAvailable ? "" : "In development"),
             new ExperienceCommand("hud.record-map", "Record UI Map", "\uE81E"),
         });
         var diagnosticsNew = Array.AsReadOnly(new[]
         {
-            new ExperienceCommand("new.work-session", "Work Session", "\uE7C3", false, "In development"),
+            new ExperienceCommand("new.work-session", "Work Session", "\uE7C3", workSessionsAvailable, workSessionsAvailable ? "" : "In development"),
             new ExperienceCommand("new.map", "UI Map", "\uE81E"),
             new ExperienceCommand("new.integration", "Integration", "\uE774", false, "In development"),
             new ExperienceCommand("new.diagnostics", "Diagnostics", "\uE9D2", diagnosticsAvailable, diagnosticsAvailable ? "" : "Not installed"),

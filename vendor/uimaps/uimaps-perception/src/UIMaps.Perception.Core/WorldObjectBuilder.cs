@@ -37,27 +37,29 @@ public sealed class WorldObjectBuilder(PerceptionPolicy policy)
     }
 
     public IReadOnlyList<WorldObject> Build(SensorEpisodeBundle bundle, IReadOnlyList<Observation> observations)
+        => Build(bundle, observations, CancellationToken.None);
+
+    public IReadOnlyList<WorldObject> Build(SensorEpisodeBundle bundle, IReadOnlyList<Observation> observations, CancellationToken cancellationToken)
     {
         if (observations.Count + 2 > policy.MaximumObjectCount)
             throw new PerceptionException("PERCEPTION_EPISODE_REJECTED", "The episode would exceed the configured object limit.");
 
         var objects = new List<WorldObject>();
-        var visualObservation = observations.Single(x => x.ObservationKind == ObservationKind.VisualSurfaceObservation);
-        var displayObject = FromObservation(visualObservation, WorldObjectKind.Display, "display", string.Empty);
-        displayObject.Name = bundle.DisplayDescriptor.DisplayId;
-        objects.Add(displayObject);
-
-        var visualObject = FromObservation(visualObservation, WorldObjectKind.VisualSurface, "visual_surface", displayObject.WorldObjectId);
-        objects.Add(visualObject);
-
-        var evidenceToObject = new Dictionary<string, string>(StringComparer.Ordinal)
+        var visualObservation = observations.SingleOrDefault(x => x.ObservationKind == ObservationKind.VisualSurfaceObservation);
+        var root = string.Empty;
+        var evidenceToObject = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (visualObservation is not null)
         {
-            [visualObservation.SourceEvidenceId] = visualObject.WorldObjectId,
-        };
+            var displayObject = FromObservation(visualObservation, WorldObjectKind.Display, "display", string.Empty);
+            displayObject.Name = bundle.DisplayDescriptor.DisplayId; objects.Add(displayObject); root = displayObject.WorldObjectId;
+            var visualObject = FromObservation(visualObservation, WorldObjectKind.VisualSurface, "visual_surface", root);
+            objects.Add(visualObject); evidenceToObject[visualObservation.SourceEvidenceId] = visualObject.WorldObjectId;
+        }
 
         foreach (var observation in observations.Where(x => x.ObservationKind == ObservationKind.Window))
         {
-            var window = FromObservation(observation, WorldObjectKind.WindowObject, observation.Role, displayObject.WorldObjectId);
+            cancellationToken.ThrowIfCancellationRequested();
+            var window = FromObservation(observation, WorldObjectKind.WindowObject, observation.Role, root);
             foreach (var property in observation.Properties.Where(x => x.Key is "processId" or "processName" or "executablePath" or "applicationUserModelId" or "packageFamilyName" or "windowHandleEvidence"))
                 window.ProcessEvidence.Add(property.Clone());
             objects.Add(window);
@@ -71,6 +73,7 @@ public sealed class WorldObjectBuilder(PerceptionPolicy policy)
             var progress = false;
             for (var index = pending.Count - 1; index >= 0; index--)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var observation = pending[index];
                 var parentEvidence = string.IsNullOrWhiteSpace(observation.ParentEvidenceId) ? observation.WindowEvidenceId : observation.ParentEvidenceId;
                 if (!evidenceToObject.TryGetValue(parentEvidence, out var parentObjectId)) continue;
@@ -85,7 +88,8 @@ public sealed class WorldObjectBuilder(PerceptionPolicy policy)
 
         foreach (var orphan in pending)
         {
-            var parent = evidenceToObject.TryGetValue(orphan.WindowEvidenceId, out var windowId) ? windowId : displayObject.WorldObjectId;
+            cancellationToken.ThrowIfCancellationRequested();
+            var parent = evidenceToObject.TryGetValue(orphan.WindowEvidenceId, out var windowId) ? windowId : root;
             var element = FromObservation(orphan, WorldObjectKind.AccessibilityElement, orphan.Role, parent);
             element.Health.State = HealthState.Partial;
             element.Health.Issues.Add(new HealthIssue
@@ -99,6 +103,7 @@ public sealed class WorldObjectBuilder(PerceptionPolicy policy)
         }
         foreach (var observation in observations.Where(x => x.ObservationKind == ObservationKind.VisualTextObservation))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var parentEvidence = string.IsNullOrWhiteSpace(observation.ParentEvidenceId)
                 ? observation.WindowEvidenceId
                 : observation.ParentEvidenceId;
@@ -106,7 +111,7 @@ public sealed class WorldObjectBuilder(PerceptionPolicy policy)
             if (!resolved)
                 parentObjectId = evidenceToObject.TryGetValue(observation.WindowEvidenceId, out var windowId)
                     ? windowId
-                    : displayObject.WorldObjectId;
+                    : root;
             var visualText = FromObservation(observation, WorldObjectKind.VisualText, "visual text", parentObjectId!);
             if (!resolved)
             {

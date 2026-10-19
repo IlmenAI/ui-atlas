@@ -138,4 +138,6 @@ message WorldStateSnapshot {
   repeated string source_packet_ids = 12;
   repeated Observation observations = 13;
   Frame frame = 14;
+  // Historical snapshots carry no live grounding authority.
+  bool historical_only = 15;
 }

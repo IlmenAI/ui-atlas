@@ -54,7 +54,11 @@
     <Copy SourceFiles="@(_NativeRecorderFiles)" DestinationFiles="@(_NativeRecorderFiles->'$(OutDir)native-recorder/%(NativeRecorderRelativePath)')" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="PublishNativeRecorder" AfterTargets="Publish">
-    <MSBuild Projects="$(MSBuildThisFileDirectory)../../vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.ProviderProbe/UIMaps.Recorder.ProviderProbe.csproj" Targets="Publish" Properties="Configuration=$(Configuration);PublishDir=$(PublishDir)native-recorder/;UseAppHost=false" />
+    <PropertyGroup>
+      <_NativeRecorderUseAppHost>false</_NativeRecorderUseAppHost>
+      <_NativeRecorderUseAppHost Condition="'$(SelfContained)' == 'true'">true</_NativeRecorderUseAppHost>
+    </PropertyGroup>
+    <MSBuild Projects="$(MSBuildThisFileDirectory)../../vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.ProviderProbe/UIMaps.Recorder.ProviderProbe.csproj" Targets="Publish" Properties="Configuration=$(Configuration);PublishDir=$(PublishDir)native-recorder/;UseAppHost=$(_NativeRecorderUseAppHost)" />
   </Target>
   <Target Name="StageDesktopExplorer" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true'">
     <!-- Ask the dependency for its actual output, including isolated build roots. -->

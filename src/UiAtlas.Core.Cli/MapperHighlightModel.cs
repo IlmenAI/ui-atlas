@@ -28,13 +28,15 @@ internal static class MapperHighlightModel
 {
     // Native evidence IDs are opaque. Use the recorded provider response, not
     // an ID prefix, to distinguish UIA, MSAA and bare HWND geometry.
-    internal static IReadOnlyList<AutomationObservation> FrameControls(FrameObservation frame, long hwnd)
+    internal static IReadOnlyList<AutomationObservation> FrameControls(FrameObservation frame, long hwnd,
+        Func<long, bool>? isLiveChildOfSurface = null)
     {
         var providers = (frame.RawStreams ?? []).SelectMany(stream => stream.Controls
             .Select(control => (Key: (control.WindowHwnd, control.RuntimeId), stream.Source)))
             .GroupBy(item => item.Key).ToDictionary(group => group.Key, group => group.First().Source);
         return frame.Automation.Where(control => control.WindowHwnd == hwnd ||
-                control.WindowHwnd == 0 && hwnd == frame.Window.Hwnd)
+                control.WindowHwnd == 0 && hwnd == frame.Window.Hwnd ||
+                control.WindowHwnd != 0 && isLiveChildOfSurface?.Invoke(control.WindowHwnd) == true)
             .Select(control => providers.TryGetValue((control.WindowHwnd, control.RuntimeId), out var provider)
                 ? provider switch
                 {

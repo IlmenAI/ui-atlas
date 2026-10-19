@@ -17,7 +17,9 @@ public sealed record ProbeRequest(
     string WindowEvidenceId,
     int MaxNodes,
     int MaxDepth,
-    int MaxWindows);
+    int MaxWindows,
+    long DeadlineTimestamp = 0,
+    string InteractionRequest = "");
 
 public interface IProviderProcessRunner
 {
@@ -30,27 +32,35 @@ public sealed class ProviderProcessRunner(string executablePath) : IProviderProc
     public async Task<T> RunAsync<T>(ProbeRequest request, MessageParser<T> parser, TimeSpan timeout, CancellationToken cancellationToken)
         where T : class, IMessage<T>
     {
-        var json = JsonSerializer.Serialize(request);
-        var argument = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
-        var start = new ProcessStartInfo
-        {
-            FileName = Path.GetExtension(executablePath).Equals(".dll", StringComparison.OrdinalIgnoreCase) ? "dotnet" : executablePath,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true,
-        };
-        if (Path.GetExtension(executablePath).Equals(".dll", StringComparison.OrdinalIgnoreCase)) start.ArgumentList.Add(executablePath);
-        start.ArgumentList.Add(argument);
-
-        using var process = Process.Start(start) ?? throw new RecorderException("RECORDER_PROVIDER_FAILED", "Unable to start isolated provider worker.");
-        using var containment = WorkerJob.Attach(process);
+        cancellationToken.ThrowIfCancellationRequested();
+        var startedTimestamp = Stopwatch.GetTimestamp();
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(timeout);
+        Process? process = null;
+        WorkerJob? containment = null;
+        Task<string>? outputTask = null;
+        Task<string>? errorTask = null;
         try
         {
-            var outputTask = process.StandardOutput.ReadToEndAsync(timeoutCts.Token);
-            var errorTask = process.StandardError.ReadToEndAsync(timeoutCts.Token);
+            request = WithCooperativeDeadline(request, timeout, startedTimestamp);
+            var json = JsonSerializer.Serialize(request);
+            var argument = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
+            var start = new ProcessStartInfo
+            {
+                FileName = Path.GetExtension(executablePath).Equals(".dll", StringComparison.OrdinalIgnoreCase) ? "dotnet" : executablePath,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+            };
+            if (Path.GetExtension(executablePath).Equals(".dll", StringComparison.OrdinalIgnoreCase)) start.ArgumentList.Add(executablePath);
+            start.ArgumentList.Add(argument);
+            timeoutCts.Token.ThrowIfCancellationRequested();
+            process = Process.Start(start) ?? throw new RecorderException("RECORDER_PROVIDER_FAILED", "Unable to start isolated provider worker.");
+            containment = WorkerJob.Attach(process);
+            timeoutCts.Token.ThrowIfCancellationRequested();
+            outputTask = process.StandardOutput.ReadToEndAsync(timeoutCts.Token);
+            errorTask = process.StandardError.ReadToEndAsync(timeoutCts.Token);
             await process.WaitForExitAsync(timeoutCts.Token).ConfigureAwait(false);
             var output = await outputTask.ConfigureAwait(false);
             var error = await errorTask.ConfigureAwait(false);
@@ -60,30 +70,65 @@ public sealed class ProviderProcessRunner(string executablePath) : IProviderProc
             }
 
             var bytes = Convert.FromBase64String(output.Trim());
-            return parser.ParseFrom(bytes);
+            var result = parser.ParseFrom(bytes);
+            timeoutCts.Token.ThrowIfCancellationRequested();
+            return result;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            containment.Terminate();
-            TryKill(process);
+            await TerminateAndReapAsync(process, containment).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
             throw new RecorderException("RECORDER_PROVIDER_TIMEOUT", "Isolated provider exceeded its deadline.", true);
         }
         catch (OperationCanceledException)
         {
-            containment.Terminate();
-            TryKill(process);
+            await TerminateAndReapAsync(process, containment).ConfigureAwait(false);
             throw;
         }
-        catch (FormatException ex)
+        catch (Exception ex) when (ex is FormatException or InvalidProtocolBufferException)
         {
-            TryKill(process);
+            await TerminateAndReapAsync(process, containment).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
             throw new RecorderException("RECORDER_PROVIDER_FAILED", "Isolated provider returned an invalid response.", false) { Source = ex.Source };
+        }
+        catch
+        {
+            await TerminateAndReapAsync(process, containment).ConfigureAwait(false);
+            throw;
+        }
+        finally
+        {
+            // Observe both readers even when cancellation interrupted the first
+            // await. Reaping has already closed their worker-side pipe handles.
+            if (outputTask is not null && errorTask is not null)
+                try { await Task.WhenAll(outputTask, errorTask).ConfigureAwait(false); } catch { }
+            containment?.Dispose();
+            process?.Dispose();
         }
     }
 
-    private static void TryKill(Process process)
+    internal static ProbeRequest WithCooperativeDeadline(ProbeRequest request, TimeSpan timeout, long startedTimestamp)
     {
+        if (request.Operation is not ("uia" or "uia-interaction") || timeout == Timeout.InfiniteTimeSpan) return request;
+        // Leave time to serialize and return a partial packet before containment's
+        // hard deadline. The same monotonic clock is shared by parent and worker.
+        var reserveMs = Math.Min(100d, timeout.TotalMilliseconds * .2d);
+        var workTicks = Math.Max(1L, (long)((timeout.TotalMilliseconds - reserveMs) * Stopwatch.Frequency / 1_000d));
+        var deadline = startedTimestamp + workTicks;
+        if (request.DeadlineTimestamp > 0) deadline = Math.Min(deadline, request.DeadlineTimestamp);
+        return request with { DeadlineTimestamp = deadline };
+    }
+
+    private static async Task TerminateAndReapAsync(Process? process, WorkerJob? containment)
+    {
+        if (process is null) return;
+        containment?.Terminate();
         try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch { }
+        // Do not let caller cancellation return while its isolated worker is still
+        // running. A bounded exception here would look like a recoverable provider
+        // failure and could permit overlap. Keep the task pending until OS exit so
+        // the recording manager retains its existing quiescence/ownership lease.
+        await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
     }
 
     private static string Sanitize(string value) => value.Replace('\r', ' ').Replace('\n', ' ').Trim() is { Length: > 512 } longValue ? longValue[..512] : value.Replace('\r', ' ').Replace('\n', ' ').Trim();
@@ -228,15 +273,15 @@ public sealed class IsolatedAccessibilityProbe(IProviderProcessRunner runner) : 
 {
     public async Task<AccessibilityPacket> CaptureAsync(IReadOnlyList<WindowObservationRecord> windows, RecorderPolicy policy, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var aggregate = new AccessibilityPacket { Health = ProtocolHealth.Complete() };
         using var aggregateCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         if (!policy.ExhaustiveCoverage)
             aggregateCts.CancelAfter(policy.UiaAggregateDeadline);
         using var gate = new SemaphoreSlim(policy.MaxConcurrentUiaWorkers);
-        var processGates = windows.Select(x => x.ProcessInstanceEvidence).Distinct(StringComparer.Ordinal)
-            .ToDictionary(x => x, _ => new SemaphoreSlim(policy.PerProcessConcurrency), StringComparer.Ordinal);
         var episodeNodesRemaining = policy.MaxNodesPerEpisode;
         var nodeBudgetLock = new object();
+        var aggregateTimedOut = 0;
         var eligible = windows
             .Where(x => string.IsNullOrEmpty(x.SelectionEligibility) || x.SelectionEligibility == "eligible")
             .OrderByDescending(x => policy.TargetWindowHandleEvidence.Contains(x.WindowHandleEvidence))
@@ -246,29 +291,35 @@ public sealed class IsolatedAccessibilityProbe(IProviderProcessRunner runner) : 
             .ThenByDescending(x => x.IsVisible && !x.IsCloakedOrUnavailable)
             .ThenByDescending(x => (long)x.IntersectionWithDisplayPx.Width * x.IntersectionWithDisplayPx.Height)
             .ToList();
+        // Build once before starting tasks: blank instance evidence still shares a
+        // PID gate, and no task reads a dictionary another task may be mutating.
+        var processGates = eligible.Select(ProcessKey).Distinct(StringComparer.Ordinal)
+            .ToDictionary(x => x, _ => new SemaphoreSlim(policy.PerProcessConcurrency), StringComparer.Ordinal);
 
-        var tasks = eligible.Select(async window =>
+        async Task<Health> CaptureWindowAsync(WindowObservationRecord window)
         {
-            await gate.WaitAsync(aggregateCts.Token).ConfigureAwait(false);
-            var processKey = string.IsNullOrWhiteSpace(window.ProcessInstanceEvidence) ? $"pid:{window.ProcessId}" : window.ProcessInstanceEvidence;
-            if (!processGates.TryGetValue(processKey, out var processGate))
-            {
-                lock (processGates)
-                {
-                    if (!processGates.TryGetValue(processKey, out processGate)) processGates[processKey] = processGate = new SemaphoreSlim(policy.PerProcessConcurrency);
-                }
-            }
-            await processGate.WaitAsync(aggregateCts.Token).ConfigureAwait(false);
+            var processGate = processGates[ProcessKey(window)];
+            var processAcquired = false;
+            var globalAcquired = false;
+            var reservedNodes = 0;
+            AccessibilityPacket? finalPacket = null;
+            var healthValues = new List<Health>();
+            var rawResponses = new List<RawProviderResponse>();
             try
             {
+                // A second window from the same process must not occupy a global
+                // slot while it is waiting for that process's first window.
+                await processGate.WaitAsync(aggregateCts.Token).ConfigureAwait(false);
+                processAcquired = true;
+                await gate.WaitAsync(aggregateCts.Token).ConfigureAwait(false);
+                globalAcquired = true;
+                aggregateCts.Token.ThrowIfCancellationRequested();
                 if (!long.TryParse(window.WindowHandleEvidence, out var hwnd))
                 {
                     return ProtocolHealth.Single(HealthState.Invalid, "RECORDER_UIA_INVALID_WINDOW", "Window identity was not valid for accessibility capture.", "accessibility");
                 }
 
                 var captureWindowId = WindowId(window);
-                var healthValues = new List<Health>();
-                var reservedNodes = 0;
                 lock (nodeBudgetLock)
                 {
                     reservedNodes = policy.ExhaustiveCoverage
@@ -287,16 +338,20 @@ public sealed class IsolatedAccessibilityProbe(IProviderProcessRunner runner) : 
                     hwnd,
                     reservedNodes,
                     policy,
-                    aggregateCts.Token).ConfigureAwait(false);
+                    aggregateCts.Token,
+                    cancellationToken).ConfigureAwait(false);
+                // Keep the independent native result even if the aggregate clock
+                // expires during the UIA call that follows it.
+                finalPacket = nativePacket;
                 healthValues.Add(nativePacket.Health.Clone());
-
-                AccessibilityPacket? finalPacket = null;
-                var rawResponses = new List<RawProviderResponse>();
                 foreach (var nativeAttempt in nativePacket.ProviderAttempts)
                     rawResponses.Add(new() { Attempt = nativeAttempt.Clone(), WindowEvidenceId = window.WindowEvidenceId,
                         Packet = nativePacket.Clone() });
+                aggregateCts.Token.ThrowIfCancellationRequested();
+
                 for (var attemptNumber = 1; attemptNumber <= policy.MaxAttempts; attemptNumber++)
                 {
+                    aggregateCts.Token.ThrowIfCancellationRequested();
                     var started = DateTimeOffset.UtcNow;
                     var attempt = new ProviderAttemptOutcome
                     {
@@ -309,6 +364,7 @@ public sealed class IsolatedAccessibilityProbe(IProviderProcessRunner runner) : 
                         var packet = await runner.RunAsync(
                             new ProbeRequest("uia", 0, 0, 0, 0, hwnd, window.WindowEvidenceId, reservedNodes, policy.MaxUiaDepth, 0),
                             AccessibilityPacket.Parser, policy.UiaPerWindowDeadline, aggregateCts.Token).ConfigureAwait(false);
+                        cancellationToken.ThrowIfCancellationRequested();
                         attempt.EndedAt = DateTimeOffset.UtcNow.ToString("O"); attempt.Status = packet.Health.State == HealthState.Complete ? "completed" : "partial";
                         attempt.NodesObserved = packet.NodesObserved; attempt.NodesIncluded = packet.NodesIncluded;
                         attempt.PropertiesAttempted = packet.Nodes.Sum(x => x.PropertyCoverage?.Attempted ?? 0);
@@ -322,8 +378,24 @@ public sealed class IsolatedAccessibilityProbe(IProviderProcessRunner runner) : 
                         healthValues.Add(packet.Health.Clone());
                         break;
                     }
+                    catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                    {
+                        Interlocked.Exchange(ref aggregateTimedOut, 1);
+                        attempt.EndedAt = DateTimeOffset.UtcNow.ToString("O");
+                        attempt.Status = "timed_out";
+                        attempt.FailureClass = "aggregate_timeout";
+                        attempt.Retryable = true;
+                        nativePacket.ProviderAttempts.Add(attempt);
+                        nativePacket.TimeLimited = true;
+                        nativePacket.TraversalFrontier.Add(Frontier(window, "uia_aggregate_timeout"));
+                        rawResponses.Add(new() { Attempt = attempt.Clone(), WindowEvidenceId = window.WindowEvidenceId,
+                            Packet = new AccessibilityPacket { Health = AggregateTimeoutHealth(), TimeLimited = true } });
+                        healthValues.Add(AggregateTimeoutHealth());
+                        break;
+                    }
                     catch (RecorderException ex)
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         attempt.EndedAt = DateTimeOffset.UtcNow.ToString("O"); attempt.Retryable = ex.Retryable;
                         attempt.Status = ex.Code.Contains("TIMEOUT", StringComparison.Ordinal) ? "timed_out" : "provider_failed";
                         attempt.FailureClass = ex.Code.Contains("TIMEOUT", StringComparison.Ordinal) ? "timeout" : "provider_failure";
@@ -345,9 +417,9 @@ public sealed class IsolatedAccessibilityProbe(IProviderProcessRunner runner) : 
                     }
                 }
 
-                finalPacket ??= nativePacket;
                 if (policy.CaptureMsaa || policy.MappingCheckpoint)
                 {
+                    aggregateCts.Token.ThrowIfCancellationRequested();
                     var attempt = new ProviderAttemptOutcome { AttemptId = Guid.NewGuid().ToString("N"),
                         CaptureWindowId = captureWindowId, ProviderId = "msaa", StartedAt = DateTimeOffset.UtcNow.ToString("O"),
                         WorkerVersion = "1.0.0", WorkerArchitecture = RuntimeInformation.ProcessArchitecture.ToString() };
@@ -357,13 +429,21 @@ public sealed class IsolatedAccessibilityProbe(IProviderProcessRunner runner) : 
                         response = await runner.RunAsync(new ProbeRequest("msaa", 0, 0, 0, 0, hwnd,
                             window.WindowEvidenceId, reservedNodes, policy.MaxUiaDepth, 0), AccessibilityPacket.Parser,
                             policy.UiaPerWindowDeadline, aggregateCts.Token).ConfigureAwait(false);
+                        cancellationToken.ThrowIfCancellationRequested();
                         attempt.Status = response.Health.State == HealthState.Complete ? "completed" : "partial";
                         attempt.NodesObserved = response.NodesObserved; attempt.NodesIncluded = response.NodesIncluded;
                     }
+                    catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                    {
+                        Interlocked.Exchange(ref aggregateTimedOut, 1);
+                        attempt.Status = "timed_out"; attempt.FailureClass = "aggregate_timeout"; attempt.Retryable = true;
+                        response = new AccessibilityPacket { Health = AggregateTimeoutHealth(), TimeLimited = true };
+                    }
                     catch (RecorderException ex)
                     {
+                        cancellationToken.ThrowIfCancellationRequested();
                         attempt.Status = ex.Code.Contains("TIMEOUT", StringComparison.Ordinal) ? "timed_out" : "provider_failed";
-                        attempt.FailureClass = ex.Code;
+                        attempt.FailureClass = ex.Code; attempt.Retryable = ex.Retryable;
                         response = new AccessibilityPacket { Health = ProtocolHealth.Single(HealthState.Partial,
                             "RECORDER_MSAA_FAILED", "MSAA attempt could not complete; other provider evidence was retained.", "msaa"),
                             TimeLimited = attempt.Status == "timed_out" };
@@ -371,8 +451,9 @@ public sealed class IsolatedAccessibilityProbe(IProviderProcessRunner runner) : 
                     attempt.EndedAt = DateTimeOffset.UtcNow.ToString("O");
                     rawResponses.Add(new() { Attempt = attempt.Clone(), WindowEvidenceId = window.WindowEvidenceId, Packet = response.Clone() });
                     finalPacket.ProviderAttempts.Add(attempt);
-                    // Supplement the derived view only when UIA could not supply a tree.
-                    // Both full responses remain independently inspectable in raw evidence.
+                    finalPacket.TimeLimited |= response.TimeLimited;
+                    // Keep full provider responses independently inspectable. MSAA
+                    // supplements the derived view only when UIA supplied no tree.
                     if (!finalPacket.Nodes.Any(node => node.ProviderId == "uia"))
                     {
                         var remaining = Math.Max(0, reservedNodes - finalPacket.Nodes.Count);
@@ -383,42 +464,60 @@ public sealed class IsolatedAccessibilityProbe(IProviderProcessRunner runner) : 
                     }
                     healthValues.Add(response.Health);
                 }
-                if (!policy.ExhaustiveCoverage)
-                    lock (nodeBudgetLock) episodeNodesRemaining += Math.Max(0, reservedNodes - finalPacket.NodesIncluded);
-                lock (aggregate)
-                {
-                    aggregate.RawProviderResponses.AddRange(rawResponses);
-                    aggregate.Nodes.AddRange(finalPacket.Nodes.Select(x => x.Clone()));
-                    aggregate.NodesObserved += finalPacket.NodesObserved;
-                    aggregate.NodesIncluded += finalPacket.NodesIncluded;
-                    aggregate.NodeLimited |= finalPacket.NodeLimited;
-                    aggregate.DepthLimited |= finalPacket.DepthLimited;
-                    aggregate.TimeLimited |= finalPacket.TimeLimited;
-                    aggregate.TraversalFrontier.AddRange(finalPacket.TraversalFrontier.Select(x => x.Clone()));
-                    aggregate.ProviderAttempts.AddRange(finalPacket.ProviderAttempts.Select(x => x.Clone()));
-                }
                 return ProtocolHealth.Aggregate(healthValues);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                Interlocked.Exchange(ref aggregateTimedOut, 1);
+                if (finalPacket is not null) finalPacket.TimeLimited = true;
+                lock (aggregate) aggregate.TraversalFrontier.Add(Frontier(window, "uia_aggregate_timeout"));
+                return ProtocolHealth.Aggregate(healthValues.Append(AggregateTimeoutHealth()));
             }
             finally
             {
-                processGate.Release();
-                gate.Release();
+                if (!policy.ExhaustiveCoverage && reservedNodes > 0)
+                    lock (nodeBudgetLock) episodeNodesRemaining += Math.Max(0, reservedNodes - (finalPacket?.NodesIncluded ?? 0));
+                if (finalPacket is not null)
+                    lock (aggregate)
+                    {
+                        aggregate.RawProviderResponses.AddRange(rawResponses);
+                        aggregate.Nodes.AddRange(finalPacket.Nodes.Select(x => x.Clone()));
+                        aggregate.NodesObserved += finalPacket.NodesObserved;
+                        aggregate.NodesIncluded += finalPacket.NodesIncluded;
+                        aggregate.NodeLimited |= finalPacket.NodeLimited;
+                        aggregate.DepthLimited |= finalPacket.DepthLimited;
+                        aggregate.TimeLimited |= finalPacket.TimeLimited;
+                        aggregate.TraversalFrontier.AddRange(finalPacket.TraversalFrontier.Select(x => x.Clone()));
+                        aggregate.ProviderAttempts.AddRange(finalPacket.ProviderAttempts.Select(x => x.Clone()));
+                    }
+                if (globalAcquired) gate.Release();
+                if (processAcquired) processGate.Release();
             }
-        }).ToList();
+        }
 
+        var tasks = eligible.Select(CaptureWindowAsync).ToList();
         try
         {
             var health = await Task.WhenAll(tasks).ConfigureAwait(false);
             aggregate.Health = ProtocolHealth.Aggregate(health.Append(aggregate.Health));
+            if (aggregateTimedOut != 0) aggregate.TimeLimited = true;
+            // Even a runner that finishes concurrently with scope cancellation
+            // cannot turn the caller's cancellation into a partial success.
+            cancellationToken.ThrowIfCancellationRequested();
+            return aggregate;
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        finally
         {
-            aggregate.TimeLimited = true;
-            aggregate.Health = ProtocolHealth.Single(HealthState.TimedOut, "RECORDER_UIA_TIMEOUT", "Accessibility capture exceeded its aggregate deadline.", "accessibility", true);
+            // WhenAll settles every waiter/worker before any semaphore is disposed.
+            foreach (var processGate in processGates.Values) processGate.Dispose();
         }
-
-        return aggregate;
     }
+
+    private static string ProcessKey(WindowObservationRecord window) => string.IsNullOrWhiteSpace(window.ProcessInstanceEvidence)
+        ? $"pid:{window.ProcessId}" : window.ProcessInstanceEvidence;
+
+    private static Health AggregateTimeoutHealth() => ProtocolHealth.Single(HealthState.TimedOut,
+        "RECORDER_UIA_TIMEOUT", "Accessibility capture exceeded its aggregate deadline.", "accessibility", true);
 
     private static string WindowId(WindowObservationRecord value) => string.IsNullOrWhiteSpace(value.CaptureWindowId) ? value.WindowEvidenceId : value.CaptureWindowId;
 
@@ -427,8 +526,10 @@ public sealed class IsolatedAccessibilityProbe(IProviderProcessRunner runner) : 
         long hwnd,
         int maxNodes,
         RecorderPolicy policy,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        CancellationToken callerCancellationToken)
     {
+        var started = DateTimeOffset.UtcNow;
         try
         {
             var packet = await runner.RunAsync(
@@ -436,56 +537,75 @@ public sealed class IsolatedAccessibilityProbe(IProviderProcessRunner runner) : 
                 AccessibilityPacket.Parser,
                 NativeDeadline(policy),
                 cancellationToken).ConfigureAwait(false);
-            foreach (var attempt in packet.ProviderAttempts) attempt.CaptureWindowId = WindowId(window);
+            callerCancellationToken.ThrowIfCancellationRequested();
+            var ended = DateTimeOffset.UtcNow;
+            foreach (var attempt in packet.ProviderAttempts)
+            {
+                attempt.CaptureWindowId = WindowId(window);
+                attempt.StartedAt = started.ToString("O");
+                attempt.EndedAt = ended.ToString("O");
+            }
             return packet;
+        }
+        catch (OperationCanceledException) when (!callerCancellationToken.IsCancellationRequested)
+        {
+            return FailedNativePacket(window, started, true, true, "aggregate_timeout");
         }
         catch (RecorderException ex)
         {
+            callerCancellationToken.ThrowIfCancellationRequested();
             var timedOut = ex.Code.Contains("TIMEOUT", StringComparison.Ordinal);
-            var packet = new AccessibilityPacket
-            {
-                Health = ProtocolHealth.Single(
-                    timedOut ? HealthState.TimedOut : HealthState.ProviderFailed,
-                    timedOut ? "RECORDER_NATIVE_ACCESSIBILITY_TIMEOUT" : "RECORDER_NATIVE_ACCESSIBILITY_FAILED",
-                    timedOut ? "Native accessibility capture exceeded its deadline." : "Native accessibility capture failed for a window.",
-                    "accessibility",
-                    ex.Retryable),
-                TimeLimited = timedOut,
-                ProviderAttempts =
-                {
-                    new ProviderAttemptOutcome
-                    {
-                        AttemptId = Guid.NewGuid().ToString("N"),
-                        CaptureWindowId = WindowId(window),
-                        ProviderId = "native-hwnd",
-                        WorkerVersion = "0.9.0",
-                        WorkerArchitecture = RuntimeInformation.ProcessArchitecture.ToString(),
-                        StartedAt = DateTimeOffset.UtcNow.ToString("O"),
-                        EndedAt = DateTimeOffset.UtcNow.ToString("O"),
-                        Status = timedOut ? "timed_out" : "provider_failed",
-                        FailureClass = timedOut ? "timeout" : "native_window_enumeration",
-                        Retryable = ex.Retryable,
-                    },
-                },
-            };
-            packet.TraversalFrontier.Add(new TraversalFrontier
-            {
-                FrontierId = Guid.NewGuid().ToString("N"),
-                CaptureWindowId = WindowId(window),
-                ProviderId = "native-hwnd",
-                SourceElementEvidence = window.WindowEvidenceId,
-                ReasonKnown = true,
-                StopReason = timedOut ? "native_worker_timeout" : "native_worker_failure",
-                CreatedAt = DateTimeOffset.UtcNow.ToString("O"),
-                TerminalState = "remaining",
-            });
-            return packet;
+            return FailedNativePacket(window, started, timedOut, ex.Retryable,
+                timedOut ? "timeout" : "native_window_enumeration");
         }
+    }
+
+    private static AccessibilityPacket FailedNativePacket(WindowObservationRecord window, DateTimeOffset started,
+        bool timedOut, bool retryable, string failureClass)
+    {
+        var packet = new AccessibilityPacket
+        {
+            Health = ProtocolHealth.Single(
+                timedOut ? HealthState.TimedOut : HealthState.ProviderFailed,
+                timedOut ? "RECORDER_NATIVE_ACCESSIBILITY_TIMEOUT" : "RECORDER_NATIVE_ACCESSIBILITY_FAILED",
+                timedOut ? "Native accessibility capture exceeded its deadline." : "Native accessibility capture failed for a window.",
+                "accessibility",
+                retryable),
+            TimeLimited = timedOut,
+            ProviderAttempts =
+            {
+                new ProviderAttemptOutcome
+                {
+                    AttemptId = Guid.NewGuid().ToString("N"),
+                    CaptureWindowId = WindowId(window),
+                    ProviderId = "native-hwnd",
+                    WorkerVersion = "0.9.0",
+                    WorkerArchitecture = RuntimeInformation.ProcessArchitecture.ToString(),
+                    StartedAt = started.ToString("O"),
+                    EndedAt = DateTimeOffset.UtcNow.ToString("O"),
+                    Status = timedOut ? "timed_out" : "provider_failed",
+                    FailureClass = failureClass,
+                    Retryable = retryable,
+                },
+            },
+        };
+        packet.TraversalFrontier.Add(new TraversalFrontier
+        {
+            FrontierId = Guid.NewGuid().ToString("N"),
+            CaptureWindowId = WindowId(window),
+            ProviderId = "native-hwnd",
+            SourceElementEvidence = window.WindowEvidenceId,
+            ReasonKnown = true,
+            StopReason = timedOut ? "native_worker_timeout" : "native_worker_failure",
+            CreatedAt = DateTimeOffset.UtcNow.ToString("O"),
+            TerminalState = "remaining",
+        });
+        return packet;
     }
 
     private static TimeSpan NativeDeadline(RecorderPolicy policy) =>
         policy.UiaPerWindowDeadline == Timeout.InfiniteTimeSpan ? Timeout.InfiniteTimeSpan : TimeSpan.FromMilliseconds(
-            Math.Clamp(policy.UiaPerWindowDeadline.TotalMilliseconds / 4d, 250d, 2_000d));
+        Math.Clamp(policy.UiaPerWindowDeadline.TotalMilliseconds / 4d, 250d, 2_000d));
 
     private static TraversalFrontier Frontier(WindowObservationRecord window, string reason) => new()
     {

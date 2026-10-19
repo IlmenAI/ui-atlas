@@ -18,6 +18,7 @@ public partial class MicroHudWindow : Window
     private bool _positioned;
 
     internal event EventHandler? RecordUiMapRequested;
+    internal event EventHandler? RecordWorkSessionRequested;
 
     internal MicroHudWindow(
         Rectangle displayBounds,
@@ -60,6 +61,7 @@ public partial class MicroHudWindow : Window
             RecordUiMapRequested?.Invoke(this, EventArgs.Empty);
             return;
         }
+        if (commandId == "hud.record-work-session") { RecordWorkSessionRequested?.Invoke(this, EventArgs.Empty); return; }
 
         MessageBox.Show(this, "This capability is still in development.", "Micro HUD",
             MessageBoxButton.OK, MessageBoxImage.Information);

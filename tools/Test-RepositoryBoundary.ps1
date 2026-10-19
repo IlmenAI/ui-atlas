@@ -21,7 +21,7 @@ $allowedPackages = @(
 )
 
 $approvedAssetPaths = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-$ignoredSubtreePattern = '\\(artifacts|bin|obj|dist|\.codex-[^\\]+|\.tmp)\\'
+$ignoredSubtreePattern = '\\(artifacts|bin|obj|dist|output|tmp|\.codex-[^\\]+|\.tmp)\\'
 $imageExtensions = @('.png','.jpg','.jpeg','.gif','.ico','.bmp','.webp','.svg')
 
 $provenancePath = Join-Path $root 'provenance/files.csv'

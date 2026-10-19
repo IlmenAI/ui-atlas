@@ -6,6 +6,18 @@ namespace UiAtlas.Core.Tests;
 public sealed class MapperHighlightTests
 {
     [Fact]
+    public void FrameControlsIncludeVerifiedNativeChildrenAndExcludeOtherSurfaces()
+    {
+        var surface = new WindowObservation(10, 10, 1, "fixture", "Fixture", new(0, 0, 500, 400), true, false, false, false, 96);
+        var direct = Control("direct", "Button", new(10, 10, 50, 30)) with { WindowHwnd = 10 };
+        var child = Control("child", "Table", new(20, 80, 200, 100), "UiAtlas.Visual.Ocr", ["Grid"]) with { WindowHwnd = 11 };
+        var foreign = child with { RuntimeId = "other-surface", WindowHwnd = 20 };
+        var frame = new FrameObservation(1, DateTimeOffset.UtcNow, "", surface, [direct, child, foreign], false, "ok", "fixture");
+        Assert.Equal(new[] { "direct", "child" }, MapperHighlightModel.FrameControls(frame, 10, hwnd => hwnd == 11).Select(c => c.RuntimeId));
+        Assert.Equal("direct", Assert.Single(MapperHighlightModel.FrameControls(frame, 10)).RuntimeId);
+    }
+
+    [Fact]
     public void OfficeMsaaClientCoordinatesUseMeasuredDpiSpacesWithoutRescalingChromeOrUia()
     {
         var client = new RectI(2887, 410, 501, 522);

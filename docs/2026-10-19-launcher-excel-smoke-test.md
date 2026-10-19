@@ -8,9 +8,9 @@ Executed on 2026-10-19 using the existing Debug launcher deployments and native 
 
 Launchers were closed and freshly opened one after another, with the UI Atlas workflow completed before the MapLock workflow:
 
-- UI Atlas: `C:\stuff\dev\successors\ui-atlas\src\Launcher\bin\Debug\net10.0-windows10.0.19041.0\UiAtlas.exe`
-- MapLock: `C:\stuff\dev\successors\UIMaps.Core\uimaps-application\src\Launcher\bin\Debug\net10.0-windows10.0.19041.0\MapLock.exe`
-- Shared catalog: `C:\Users\danie\AppData\Local\UiAtlas\Core`.
+- UI Atlas: `<ui-atlas>\src\Launcher\bin\Debug\net10.0-windows10.0.19041.0\UiAtlas.exe`
+- MapLock: `<UIMaps.Core>\uimaps-application\src\Launcher\bin\Debug\net10.0-windows10.0.19041.0\MapLock.exe`
+- Shared catalog: `%LOCALAPPDATA%\UiAtlas\Core`.
 - Target: the existing Excel workbook window, Excel version `16.0.20430.20182`.
 
 Both recordings used the same short manual sequence: initial Home ribbon, select Insert, return to Home, open Format Cells on its Font tab, then Cancel. No workbook data or formatting was intentionally changed. Recording and finalization were driven through the launcher/Atlas recorder UI; the CLI was used afterward for read-only validation.

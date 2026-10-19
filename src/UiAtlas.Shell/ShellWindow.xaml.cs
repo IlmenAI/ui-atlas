@@ -30,6 +30,7 @@ public partial class ShellWindow : Window
     private WindowState _windowStateBeforeHud;
     private Rect _normalBoundsBeforeHud;
     private FrameworkElement? _settingsView;
+    private bool _workClosing, _workCloseApproved;
     private MapsView? _mapsView;
     private DiagnosticsHubView? _diagnosticsHubView;
     private HwndSource? _windowSource;
@@ -55,6 +56,18 @@ public partial class ShellWindow : Window
         Closing += (_, args) =>
         {
             if (_settingsView is IShellNavigationGuard guard && !guard.CanLeave(this)) args.Cancel = true;
+        };
+        Closing += async (_, args) =>
+        {
+            if (args.Cancel || _workCloseApproved || _host is not IShellWorkSessionsHost work) return;
+            args.Cancel = true;
+            if (_workClosing) return;
+            _workClosing = true;
+            try
+            {
+                if (await work.TryCloseWorkSessionsAsync(this)) { _workCloseApproved = true; Close(); }
+            }
+            finally { _workClosing = false; }
         };
     }
 
@@ -164,6 +177,9 @@ public partial class ShellWindow : Window
         _activeRoute = item.Route;
         switch (item.Route)
         {
+            case "work-sessions" when _host is IShellWorkSessionsHost work:
+                ShowPage(work.CreateWorkSessionsView(this));
+                break;
             case "recordings":
                 ShowPage(_host.CreateRecordingsView());
                 break;
@@ -314,6 +330,8 @@ public partial class ShellWindow : Window
             hud = new MicroHudWindow(scope.HudBounds, _activeProfile) { Title = _host.ProductName + " Micro HUD" };
             _microHud = hud;
             hud.RecordUiMapRequested += MicroHud_RecordUiMapRequested;
+            if (_host is IShellWorkSessionsHost work)
+                hud.RecordWorkSessionRequested += async (_, _) => { hud.Close(); RestoreMainWindow(); await work.StartWorkSessionAsync(this); };
             hud.Closed += MicroHud_Closed;
             hud.Show();
             Hide();

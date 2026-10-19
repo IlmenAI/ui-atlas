@@ -86,7 +86,7 @@ The running `ui-atlas` process (PID 26480) locks the normal CLI output DLLs,
 so the normal-output build and initial Core-test build could not copy their
 outputs. Process termination was disabled. Both build and focused Core tests
 succeeded using isolated output paths. The repaired executable is at
-`C:\Users\danie\.codex\tmp\ui-atlas-word-manual-build\Debug\net10.0-windows10.0.19041.0\ui-atlas.exe`.
+`%USERPROFILE%\.codex\tmp\ui-atlas-word-manual-build\Debug\net10.0-windows10.0.19041.0\ui-atlas.exe`.
 The running recorder has not been restarted and still uses its loaded DLLs.
 
 Subsequent Visual Studio workflow validation refreshed the normal Debug outputs

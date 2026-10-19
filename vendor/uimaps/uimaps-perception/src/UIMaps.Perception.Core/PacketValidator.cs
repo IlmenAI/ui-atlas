@@ -7,10 +7,20 @@ namespace UIMaps.Perception.Core;
 public sealed class PacketValidator(PerceptionPolicy policy)
 {
     public void Validate(SensorEpisodeBundle bundle)
+        => Validate(bundle, requireScreenshot: true);
+
+    public void ValidateRecorded(SensorEpisodeBundle bundle)
+        => Validate(bundle, requireScreenshot: false);
+
+    public void ValidateInteraction(SensorEpisodeBundle bundle)
+        => Validate(bundle, requireScreenshot: false, interaction: true);
+
+    private void Validate(SensorEpisodeBundle bundle, bool requireScreenshot, bool interaction = false)
     {
         if (bundle is null) throw Invalid("Bundle is required.");
         if (bundle.CalculateSize() > policy.MaximumBundleBytes) throw Invalid("Bundle exceeds the configured size limit.");
-        if (bundle.FormatVersion is not ("1.0" or "1.1")) throw new PerceptionException("PROTOCOL_UNSUPPORTED_VERSION", "Bundle format version is not supported.");
+        if (interaction ? bundle.FormatVersion != "interaction/1.0" : bundle.FormatVersion is not ("1.0" or "1.1"))
+            throw new PerceptionException("PROTOCOL_UNSUPPORTED_VERSION", "Bundle format version is not supported.");
         if (string.IsNullOrWhiteSpace(bundle.EpisodeId)) throw Invalid("Episode identity is required.");
         if (bundle.SensorPackets.Count is 0 || bundle.SensorPackets.Count > policy.MaximumPacketCount) throw Invalid("Packet count is outside supported limits.");
         if (bundle.ClockMetadata is null || bundle.ClockMetadata.MonotonicFrequencyHz <= 0) throw Invalid("Recorder clock metadata is invalid.");
@@ -31,14 +41,31 @@ public sealed class PacketValidator(PerceptionPolicy policy)
                 _ => false,
             };
             if (!validPayload) throw Invalid("Packet kind and payload do not match.");
+            if (packet.Accessibility?.Nodes.Any(node => node.BoundsPx is null
+                && !AccessibilityGeometryEvidence.DeclaresUnavailable(node)) == true)
+                throw Invalid("Accessibility geometry is missing without an explicit source gap.");
         }
 
         var screenshots = bundle.SensorPackets.Where(x => x.StreamKind == SensorStreamKind.Screenshot).ToList();
-        if (screenshots.Count != 1 || screenshots[0].Screenshot is null || screenshots[0].Screenshot.ImageBlob.IsEmpty)
+        if (requireScreenshot && (screenshots.Count != 1 || screenshots[0].Screenshot is null || screenshots[0].Screenshot.ImageBlob.IsEmpty))
             throw new PerceptionException("PERCEPTION_MISSING_SCREEN", "A valid diagnostic visual frame requires screenshot evidence.");
-        var screenshot = screenshots[0];
-        if (screenshot.Screenshot.WidthPx != bundle.DisplayDescriptor.WidthPx || screenshot.Screenshot.HeightPx != bundle.DisplayDescriptor.HeightPx)
+        if (screenshots.Count > 1) throw Invalid("An episode can contain at most one screenshot stream.");
+        var screenshot = screenshots.FirstOrDefault();
+        if (screenshot?.Screenshot.ImageBlob.IsEmpty == false
+            && (screenshot.Screenshot.WidthPx != bundle.DisplayDescriptor.WidthPx || screenshot.Screenshot.HeightPx != bundle.DisplayDescriptor.HeightPx))
             throw Invalid("Screenshot geometry does not match the selected display.");
+
+        if (!requireScreenshot)
+        {
+            if (bundle.Health is null || bundle.SensorPackets.Any(packet => packet.Health is null)) throw Invalid("Recorded provider health is required.");
+            if (screenshot?.Screenshot.ImageBlob.IsEmpty == true && !DeclaresUnavailable(screenshot.Health))
+                throw Invalid("Missing recorded pixels require an explicit provider gap.");
+            foreach (var packet in bundle.SensorPackets)
+            {
+                if (packet.WindowTopology?.Windows.Any(window => window.BoundsPx is null || window.IntersectionWithDisplayPx is null) == true)
+                    throw Invalid("Recorded geometry is missing.");
+            }
+        }
 
         ValidateManifest(bundle);
         ValidateMappingEvidence(bundle);
@@ -95,9 +122,11 @@ public sealed class PacketValidator(PerceptionPolicy policy)
         if (bundle.SensorManifest is null || bundle.SensorManifest.PacketCount != bundle.SensorPackets.Count || bundle.SensorManifest.Entries.Count != bundle.SensorPackets.Count)
             throw Invalid("Sensor manifest does not match the packet set.");
         var packets = bundle.SensorPackets.ToDictionary(x => x.PacketId, StringComparer.Ordinal);
+        var manifestIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var entry in bundle.SensorManifest.Entries)
         {
-            if (!packets.TryGetValue(entry.PacketId, out var packet)) throw Invalid("Sensor manifest references an unknown packet.");
+            if (!manifestIds.Add(entry.PacketId) || !packets.TryGetValue(entry.PacketId, out var packet) || entry.StreamKind != packet.StreamKind)
+                throw Invalid("Sensor manifest packet identities and kinds do not match.");
             var bytes = packet.ToByteArray();
             var hash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
             if (entry.SerializedSize != bytes.LongLength || !CryptographicOperations.FixedTimeEquals(System.Text.Encoding.ASCII.GetBytes(hash), System.Text.Encoding.ASCII.GetBytes(entry.Sha256)))
@@ -109,4 +138,8 @@ public sealed class PacketValidator(PerceptionPolicy policy)
     }
 
     private static PerceptionException Invalid(string message) => new("PERCEPTION_INVALID_PACKET", message);
+
+    private static bool DeclaresUnavailable(Health health) => health.State is not (HealthState.Complete or HealthState.Unspecified)
+        && health.Issues.Any(issue => issue.State is HealthState.SensorUnavailable or HealthState.ProviderFailed or HealthState.TimedOut
+            or HealthState.CancelledPartial or HealthState.PermissionDenied or HealthState.WorkerCrashed or HealthState.Unsupported or HealthState.BudgetExhausted);
 }

@@ -134,6 +134,9 @@ enum SensorStreamKind {
   SCREENSHOT = 1;
   WINDOW_TOPOLOGY = 2;
   ACCESSIBILITY = 3;
+  POINTER = 4;
+  KEYBOARD = 5;
+  RECORDING_BOUNDARY = 6;
 }
 
 message SensorPacket {

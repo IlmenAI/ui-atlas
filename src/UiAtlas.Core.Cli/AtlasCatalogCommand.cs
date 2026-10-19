@@ -47,6 +47,15 @@ internal static class AtlasCatalogCommand
         {
             case "maps": return new() { Root = catalog.Root, Maps = LoadMaps(catalog, token) };
             case "maps-summary": return AtlasCatalogIndex.Read(catalog, request.KnownCatalogVersion, token);
+            case "revision-read": return ReadRevision(catalog, request, token);
+            case "profile-read":
+                if (request.ProfileId != "fast") throw new ArgumentException("This consumer supports the Fast profile.");
+                var settings = new UiAtlas.Core.Recording.Windows.RecordingProfileSettingsStore().Load();
+                var policy = UiAtlas.Core.Recording.Windows.RecordingProfileSettingsStore.Request(settings with { ActiveProfileId = "fast" });
+                var profiles = new UIMaps.Recorder.Windows.CaptureProfileCatalogService().GetCatalog();
+                policy.RequestedCatalogVersion = profiles.CatalogVersion;
+                policy.RequestedProfileVersion = profiles.Profiles.Single(value => value.ProfileId == "fast").ProfileVersion;
+                return new() { Root = catalog.Root, CaptureRequest = Encode(policy) };
             case "map-detail":
                 var details = LoadMap(catalog, request.MapId ?? throw new ArgumentException("Select a map."), false, token);
                 var selected = details.SingleOrDefault(map => map.Entry == request.Entry && map.Generation == request.Generation)
@@ -85,6 +94,45 @@ internal static class AtlasCatalogCommand
             foreach (var source in AtlasMapWorkspace.Open(path).Index.Sources) result.TryAdd(source.BundleId, map.Id);
         }
         return result;
+    }
+    private static CatalogReply ReadRevision(LocalArtifactCatalog catalog, CatalogRequest request, CancellationToken token)
+    {
+        const string prefix = "uimaps:map-revision:sha256:";
+        var reference = request.RevisionRef ?? "";
+        if (!reference.StartsWith(prefix, StringComparison.Ordinal) || reference.Length != prefix.Length + 64
+            || reference[prefix.Length..].Any(c => !char.IsAsciiHexDigit(c)))
+            throw new InvalidDataException("An exact Atlas revision identity is required.");
+        foreach (var path in catalog.ListMapPaths())
+        {
+            token.ThrowIfCancellationRequested();
+            if (request.MapId is { } id && Path.GetFileNameWithoutExtension(path) != id) continue;
+            if (!AtlasMapWorkspace.Exists(path)) continue;
+            var workspace = AtlasMapWorkspace.Open(path);
+            UiMapRevision revision;
+            try { revision = workspace.Service.GetRevision(reference); }
+            catch (UIMaps.Map.Core.UiMapException error) when (error.Code == "MAP_REVISION_NOT_FOUND") { continue; }
+            if (!revision.Immutable || !revision.NotAuthorization
+                || revision.CanonicalPayloadHash != UIMaps.Protocol.UiMapRevisionIntegrity.Hash(revision))
+                throw new InvalidDataException("Atlas revision failed its canonical integrity check.");
+            // An old revision remains readable; only the currently published Ready
+            // entry is eligible for new analysis. Completed work retains its own bytes.
+            MapLibraryEntry? entry = null;
+            var cursor = "";
+            do
+            {
+                token.ThrowIfCancellationRequested();
+                var page = workspace.Service.ListLibrary(new ListMapLibraryRequest { IncludeArchived = true, PageSize = 500, ContinuationToken = cursor });
+                entry = page.Entries.FirstOrDefault(value => value.LatestMapRevisionRef == reference) ?? entry;
+                cursor = page.ContinuationToken;
+            } while (cursor.Length > 0);
+            var ready = entry is { IsReady: true, Archived: false };
+            if (request.RequireReady && !ready)
+                throw new InvalidOperationException("This exact revision is no longer a Ready published Atlas entry. Select an eligible revision; completed drafts retain their original map.");
+            return new CatalogReply { Root = catalog.Root, ExactRevision = new(reference, revision.CanonicalPayloadHash,
+                Encode(revision)!, Path.GetFileNameWithoutExtension(path), Path.GetFileName(workspace.DirectoryPath),
+                Encode(entry) ?? "", ready, entry?.Archived ?? false, DateTimeOffset.UtcNow.ToString("O")) };
+        }
+        throw new FileNotFoundException("The exact published Atlas revision is unavailable in this catalog.");
     }
     internal static CatalogMap[] LoadMaps(LocalArtifactCatalog catalog, CancellationToken token)
     {

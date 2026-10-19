@@ -3,7 +3,7 @@ using UIMaps.Protocol.V1;
 
 namespace UIMaps.Perception.Core;
 
-public sealed class PerceptionEngine
+public sealed partial class PerceptionEngine
 {
     private readonly PerceptionPolicy _policy;
     private readonly PacketValidator _validator;
@@ -41,9 +41,7 @@ public sealed class PerceptionEngine
         try
         {
             var published = DateTimeOffset.UtcNow;
-            var screenshot = bundle.SensorPackets.Single(x => x.StreamKind == SensorStreamKind.Screenshot);
-            var anchor = screenshot.CaptureInterval.StartedAtMonotonicTicks + ((screenshot.CaptureInterval.EndedAtMonotonicTicks - screenshot.CaptureInterval.StartedAtMonotonicTicks) / 2);
-            var observations = _normalizer.Normalize(bundle, anchor, published).Select(value => value.Clone()).ToList();
+            var observations = NormalizeEvidence(bundle, published, recorded: false, cancellationToken);
             Health? visualTextHealth = null;
             if (ShouldCaptureVisualText(bundle))
             {
@@ -67,39 +65,10 @@ public sealed class PerceptionEngine
             {
                 return PublishSurvey(bundle, observations, published, visualTextHealth);
             }
-            var (frame, _) = _synchronizer.Synchronize(bundle, observations);
-            var objects = _objectBuilder.Build(bundle, observations).Select(x => x.Clone()).ToList();
-            _sceneReconstructor.Apply(bundle, objects);
             WorldStateSnapshot? previous;
             lock (_snapshots) previous = _snapshots.Count == 0 ? null : WorldStateSnapshot.Parser.ParseFrom(_snapshots.Last().Value);
-            var tracks = _associator.Associate(objects, previous);
             var version = checked(_version + 1);
-            var scene = new Scene
-            {
-                SceneId = Guid.NewGuid().ToString("N"),
-                EpisodeId = bundle.EpisodeId,
-                Kind = "diagnostic_display_capture",
-                DisplayId = bundle.DisplayDescriptor.DisplayId,
-                FrameId = frame.FrameId,
-                Health = frame.Health.Clone(),
-            };
-            var snapshot = new WorldStateSnapshot
-            {
-                PerceptionEpoch = Epoch,
-                WorldStateVersion = version,
-                EpisodeId = bundle.EpisodeId,
-                FrameId = frame.FrameId,
-                Scene = scene,
-                DisplayId = bundle.DisplayDescriptor.DisplayId,
-                Health = AggregateHealth(frame.Health, objects.Select(x => x.Health)),
-                CapturedAt = frame.CapturedAt,
-                PublishedAt = published.ToString("O"),
-                Frame = frame.Clone(),
-            };
-            snapshot.WorldObjects.AddRange(objects.Select(x => x.Clone()));
-            snapshot.Tracks.AddRange(tracks.Select(x => x.Clone()));
-            snapshot.Observations.AddRange(observations.Select(x => x.Clone()));
-            snapshot.SourcePacketIds.AddRange(bundle.SensorPackets.Select(x => x.PacketId));
+            var snapshot = BuildSnapshot(bundle, observations, published, Epoch, version, previous, historical: false, cancellationToken);
             lock (_snapshots)
             {
                 _snapshots[version] = snapshot.ToByteArray();
@@ -152,6 +121,7 @@ public sealed class PerceptionEngine
         var publicationId = Guid.NewGuid().ToString("N");
         var objectHealth = objects.Select(x => x.Health).ToList();
         if (visualTextHealth is not null) objectHealth.Add(visualTextHealth);
+        if (AccessibilityGeometryEvidence.NormalizationGap(bundle) is { } geometryGap) objectHealth.Add(geometryGap);
         var survey = new SurveyScenePublication
         {
             PublicationId = publicationId, PublicationKind = PublicationKind.Survey,
@@ -219,4 +189,44 @@ public sealed class PerceptionEngine
         && string.Equals(bundle.EffectiveCapturePolicy.ResolvedProfileRef?.ProfileId, "deep-survey", StringComparison.OrdinalIgnoreCase)
         && bundle.EffectiveCapturePolicy.VisualControlDetectionEnabled
         && bundle.EffectiveCapturePolicy.OcrOnVisualControlsEnabled;
+
+    private List<Observation> NormalizeEvidence(SensorEpisodeBundle bundle, DateTimeOffset at, bool recorded, CancellationToken cancellationToken)
+    {
+        var anchorPacket = bundle.SensorPackets.FirstOrDefault(packet => packet.Screenshot is not null) ?? bundle.SensorPackets[0];
+        var interval = anchorPacket.CaptureInterval;
+        var anchor = interval.StartedAtMonotonicTicks + ((interval.EndedAtMonotonicTicks - interval.StartedAtMonotonicTicks) / 2);
+        return (recorded ? _normalizer.NormalizeRecorded(bundle, anchor, at, cancellationToken)
+            : _normalizer.Normalize(bundle, anchor, at)).Select(value => value.Clone()).ToList();
+    }
+
+    private WorldStateSnapshot BuildSnapshot(SensorEpisodeBundle bundle, IReadOnlyList<Observation> observations, DateTimeOffset published,
+        string epoch, ulong version, WorldStateSnapshot? previous, bool historical, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var frame = bundle.SensorPackets.Any(packet => packet.Screenshot is not null)
+            ? _synchronizer.Synchronize(bundle, observations).Frame
+            : new Frame { FrameId = Guid.NewGuid().ToString("N"), EpisodeId = bundle.EpisodeId,
+                DisplayId = bundle.DisplayDescriptor.DisplayId, CapturedAt = bundle.EndedAtUtc, Health = bundle.Health.Clone() };
+        if (AccessibilityGeometryEvidence.NormalizationGap(bundle) is { } geometryGap)
+            frame.Health = AggregateHealth(frame.Health, [geometryGap]);
+        if (historical && !bundle.SensorPackets.Any(packet => packet.Screenshot?.ImageBlob.IsEmpty == false))
+        {
+            frame.Health.State = HealthState.Partial;
+            frame.Health.Issues.Add(new HealthIssue { State = HealthState.Partial, Code = "PERCEPTION_HISTORICAL_SCREEN_MISSING",
+                SafeMessage = "Original screenshot pixels are unavailable; no visual surface was inferred.", Source = "historical_evidence" });
+        }
+        var objects = _objectBuilder.Build(bundle, observations, cancellationToken).Select(value => value.Clone()).ToList();
+        _sceneReconstructor.Apply(bundle, objects);
+        var tracks = _associator.Associate(objects, previous);
+        var snapshot = new WorldStateSnapshot { PerceptionEpoch = epoch, WorldStateVersion = version,
+            EpisodeId = bundle.EpisodeId, FrameId = frame.FrameId, DisplayId = bundle.DisplayDescriptor.DisplayId,
+            HistoricalOnly = historical, CapturedAt = frame.CapturedAt, PublishedAt = published.ToString("O"), Frame = frame.Clone(),
+            Scene = new Scene { SceneId = Guid.NewGuid().ToString("N"), EpisodeId = bundle.EpisodeId,
+                Kind = historical ? "historical_recorded_capture" : "diagnostic_display_capture", DisplayId = bundle.DisplayDescriptor.DisplayId,
+                FrameId = frame.FrameId, Health = frame.Health.Clone() }, Health = AggregateHealth(frame.Health, objects.Select(value => value.Health)) };
+        snapshot.WorldObjects.AddRange(objects); snapshot.Tracks.AddRange(tracks);
+        snapshot.Observations.AddRange(observations.Select(value => value.Clone()));
+        snapshot.SourcePacketIds.AddRange(bundle.SensorPackets.Select(packet => packet.PacketId));
+        return snapshot;
+    }
 }

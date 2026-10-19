@@ -22,3 +22,11 @@ public interface IShellNavigationGuard
 {
     bool CanLeave(Window owner);
 }
+
+// Optional product capability. The standalone Atlas host does not implement it.
+public interface IShellWorkSessionsHost
+{
+    FrameworkElement CreateWorkSessionsView(Window owner);
+    Task StartWorkSessionAsync(Window owner);
+    Task<bool> TryCloseWorkSessionsAsync(Window owner);
+}

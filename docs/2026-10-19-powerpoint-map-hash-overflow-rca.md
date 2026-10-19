@@ -116,5 +116,5 @@ dotnet build src/UiAtlas.Core.Cli/UiAtlas.Core.Cli.csproj
 ```
 
 Tests and recovery used an isolated build under
-`C:\Users\danie\.codex\tmp\uiatlas-powerpoint-hash-20261019`; the normal build
+`%USERPROFILE%\.codex\tmp\uiatlas-powerpoint-hash-20261019`; the normal build
 was then deployed to the development CLI/viewer directory.

@@ -56,7 +56,9 @@ internal sealed partial class RecordingHighlightOverlay
         IReadOnlyList<AutomationObservation> hints = [];
         try { hints = NativeGridHostDiscovery.Collect(WindowCatalog.Resolve(surfaceHwnd)); }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception) { }
-        var automation = MapperMsaaGeometry.ProjectLive(surface, MapperHighlightModel.FrameControls(frame, surfaceHwnd));
+        var automation = MapperMsaaGeometry.ProjectLive(surface, MapperHighlightModel.FrameControls(frame, surfaceHwnd,
+            hwnd => WindowCatalog.IsSameProcessWindow(_target, hwnd)
+                && WindowCatalog.GetTopLevelHandle((nint)hwnd).ToInt64() == surfaceHwnd));
         var current = frame.Trigger == "mapped-resume-baseline" ? hints : automation.Concat(hints).ToArray();
         if (_dispatcher is null || _dispatcher.HasShutdownStarted) return;
         Post(() =>
@@ -251,6 +253,23 @@ internal sealed partial class RecordingHighlightOverlay
     private void PositionInspector()
     {
         if (_gridInspector is null || _gridInspector.UserPositioned || _window is null) return;
+        if (_gridInspector.IsVisible)
+        {
+            // SizeToContent is authoritative only after Show/layout. Each HWND can
+            // also have a different monitor DPI from the desktop-wide overlay.
+            _gridInspector.UpdateLayout();
+            var physical = ReadPhysicalBounds(_gridInspector);
+            var selected = CurrentBounds(_gridInspector.Selection);
+            var rootBounds = _currentRootBounds;
+            var physicalWidth = Math.Min(physical.Width, rootBounds.Width);
+            var physicalHeight = Math.Min(physical.Height, rootBounds.Height);
+            var x = Math.Clamp(selected.X + selected.Width - physicalWidth - 14,
+                rootBounds.X, rootBounds.X + rootBounds.Width - physicalWidth);
+            var y = Math.Clamp(selected.Y + selected.Height - physicalHeight - 14,
+                rootBounds.Y, rootBounds.Y + rootBounds.Height - physicalHeight);
+            PositionPhysicalGridWindow(_gridInspector, new(x, y, physicalWidth, physicalHeight));
+            return;
+        }
         if (!TryProjectToOverlayRect(CurrentBounds(_gridInspector.Selection), out var grid)) return;
         var width = _gridInspector.Width;
         _gridInspector.Measure(new Size(width, double.PositiveInfinity));
@@ -298,7 +317,10 @@ internal sealed partial class RecordingHighlightOverlay
         if (_gridInspector is not null)
         {
             if (visible && IsMapperKindVisible(_gridInspector.Selection.Kind) || _gridExplorationActive && _mapperTargetVisible)
-            { if (!_gridInspector.IsVisible) _gridInspector.Show(); }
+            {
+                if (!_gridInspector.IsVisible) _gridInspector.Show();
+                if (!_gridExplorationActive) PositionInspector();
+            }
             else _gridInspector.Hide();
             SetMapperInputEnabled(_gridInspector, inputEnabled);
         }

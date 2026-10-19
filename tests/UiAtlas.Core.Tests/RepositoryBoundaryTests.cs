@@ -9,7 +9,7 @@ public sealed partial class RepositoryBoundaryTests
     public void AllProjectInputsResolveInsideRepository()
     {
         var root = FindRoot();
-        foreach (var project in Directory.EnumerateFiles(root, "*.csproj", SearchOption.AllDirectories))
+        foreach (var project in Directory.EnumerateFiles(root, "*.csproj", SearchOption.AllDirectories).Where(path => IsProductSource(root, path)))
         {
             var document = XDocument.Load(project);
             foreach (var item in document.Descendants().Where(x => x.Attribute("Include") is not null))
@@ -28,10 +28,7 @@ public sealed partial class RepositoryBoundaryTests
     {
         var root = FindRoot();
         var files = Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
-            .Where(x => !x.Contains($"{System.IO.Path.DirectorySeparatorChar}.git{System.IO.Path.DirectorySeparatorChar}") &&
-                        !x.Contains($"{System.IO.Path.DirectorySeparatorChar}artifacts{System.IO.Path.DirectorySeparatorChar}") &&
-                        !x.Contains($"{System.IO.Path.DirectorySeparatorChar}bin{System.IO.Path.DirectorySeparatorChar}") &&
-                        !x.Contains($"{System.IO.Path.DirectorySeparatorChar}obj{System.IO.Path.DirectorySeparatorChar}"));
+            .Where(path => IsProductSource(root, path));
         foreach (var file in files.Where(x => new[] { ".cs", ".csproj", ".props", ".targets", ".md", ".json", ".yml", ".yaml" }.Contains(System.IO.Path.GetExtension(x))))
         {
             var text = File.ReadAllText(file);
@@ -43,6 +40,12 @@ public sealed partial class RepositoryBoundaryTests
             Assert.DoesNotContain("System.Net." + "Sockets", text, StringComparison.Ordinal);
         }
     }
+
+    // Match the script boundary: generated builds, local concepts and historical
+    // qualification checkouts are not source inputs of the public product.
+    private static bool IsProductSource(string root, string path) => !System.IO.Path.GetRelativePath(root, path)
+        .Split(System.IO.Path.DirectorySeparatorChar).Any(part => part.StartsWith(".codex-", StringComparison.Ordinal)
+            || part is ".git" or ".tmp" or "artifacts" or "bin" or "obj" or "dist" or "output" or "tmp");
 
     private static string FindRoot()
     {

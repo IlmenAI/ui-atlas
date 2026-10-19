@@ -113,7 +113,7 @@ public sealed class MapViewerModel : INotifyPropertyChanged
         Title = record.Session?.Target?.DisplayName
             ?? _entities.Values.FirstOrDefault(value => value.EntityKind == MapEntityKind.MapApplication)?.DisplayName
             ?? "Recorded UI Map";
-        Subtitle = record.Revision is not null ? "Ready UI Map" : "Draft UI Map";
+        Subtitle = record.Revision is not null ? record.Entry.IsReady && !record.Entry.Archived ? "Ready UI Map" : "Published UI Map" : "Draft UI Map";
         Surfaces = new(BuildSurfaces(record, visualStore ?? new MapVisualEvidenceStore()));
         Hierarchy = new(BuildHierarchy());
         Stages = new(BuildStages(record));

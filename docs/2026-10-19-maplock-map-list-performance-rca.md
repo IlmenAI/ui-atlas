@@ -12,7 +12,7 @@ Rebuilding UI Atlas would align its behavior with MapLock. It would also give UI
 
 ## Measurements
 
-All measurements use the same current library, `C:\Users\danie\AppData\Local\UiAtlas\Core`, returning nine map records. No imports, map builds, recording changes, or source-data replacements were performed.
+All measurements use the same current library, `%LOCALAPPDATA%\UiAtlas\Core`, returning nine map records. No imports, map builds, recording changes, or source-data replacements were performed.
 
 The table measures the deployed `AtlasMapsLibrarySource.LoadAsync` implementations in an isolated reflection harness, including backend launch/transfer/decoding where applicable. Each runs twice in its own harness process, sequentially without competing benchmark processes. These are loader timings outside the Visual Studio debugger, not total F5 startup or WPF rendering timings. Normal OS cache, JIT, and GC variation remains.
 
@@ -41,7 +41,7 @@ These phase measurements overlap and must not be added together: the complete `L
 
 The running MapLock executable was observed at:
 
-`C:\stuff\dev\successors\UIMaps.Core\uimaps-application\src\Launcher\bin\Debug\net10.0-windows10.0.19041.0\MapLock.exe`
+`<UIMaps.Core>\uimaps-application\src\Launcher\bin\Debug\net10.0-windows10.0.19041.0\MapLock.exe`
 
 Its shell assembly was built at 16:25:39 local time. Its staged backend recognizes the shared `catalog` command.
 

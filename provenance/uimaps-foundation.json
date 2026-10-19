@@ -40,16 +40,18 @@
       "repository": "https://github.com/AI-Successors/uimaps-protocol",
       "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
       "source": "proto/uimaps/v1/perception.proto",
-      "sha256": "cd188011983db3e06e167a0c49dbfd2ac25548f4fc47b19932bcbf5ade3093e5",
-      "disposition": "unmodified-source"
+      "sha256": "68db142b10f822476195de0defdaf0bb361fbd7e47007590c2c74ba129f812c3",
+      "disposition": "reviewed-adaptation: neutral historical-only provenance; private messages excluded",
+      "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
     },
     {
       "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v1/sensor.proto",
       "repository": "https://github.com/AI-Successors/uimaps-protocol",
       "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
       "source": "proto/uimaps/v1/sensor.proto",
-      "sha256": "0a79dba4a33000df14a6bac943dc81d3e3d0f070480d63511d89c738839a0494",
-      "disposition": "adapted-source: mapping parity; immutable provider responses, bounded verified observations, window metadata and source validation"
+      "sha256": "e2d1aa93dad39f01658d87fd8026205bcd70f6a0300e2949467f3676a7393718",
+      "disposition": "reviewed-adaptation: neutral stream identities; private input messages excluded",
+      "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
     },
     {
       "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v1/services.proto",
@@ -224,24 +226,27 @@
       "repository": "https://github.com/AI-Successors/uimaps-perception",
       "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
       "source": "src/UIMaps.Perception.Core/ObservationNormalizer.cs",
-      "sha256": "b1015dd1ae39c2bb77d75fd8cd298addc7e50d9c1fa0d3a2f2772035c4666b8e",
-      "disposition": "adapted-source: native recorder integration, exact source provenance and explicit workspace snapshot handoff"
+      "sha256": "e0e2f932c496ee485a0af8650e2cf778734c3e982f92ba071e0025faf665ad79",
+      "disposition": "reviewed-adaptation: preserve Atlas geometry and add recorded cancellation and exact health deduplication",
+      "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
     },
     {
       "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/PacketValidator.cs",
       "repository": "https://github.com/AI-Successors/uimaps-perception",
       "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
       "source": "src/UIMaps.Perception.Core/PacketValidator.cs",
-      "sha256": "92a34173eb17595051496965e7ec205b9355f47d1150965804ba7721211590eb",
-      "disposition": "adapted-source: mapping parity; immutable provider responses, bounded verified observations, window metadata and source validation"
+      "sha256": "6d16b3de62352716e3fe7f7b30bd457af4801f096640754318cc4368d1780752",
+      "disposition": "reviewed-adaptation: pure retained and selective validation without private dependencies",
+      "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
     },
     {
       "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/PerceptionEngine.cs",
       "repository": "https://github.com/AI-Successors/uimaps-perception",
       "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
       "source": "src/UIMaps.Perception.Core/PerceptionEngine.cs",
-      "sha256": "ed03f295ff6f46d106ca22d57cc5c0c56b8bc76ff786d23e169d949f2e4eaaef",
-      "disposition": "adapted-source: shared observation-scoped Raw World reconstruction and surface identity continuity"
+      "sha256": "23eb908574b470b5ed57d2ba9affb780880449d199379816b5db32b5631fcb2f",
+      "disposition": "reviewed-adaptation: canonical pure historical seams; preserve live association and reconstruction",
+      "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
     },
     {
       "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/PerceptionPolicy.cs",
@@ -272,8 +277,9 @@
       "repository": "https://github.com/AI-Successors/uimaps-perception",
       "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
       "source": "src/UIMaps.Perception.Core/WorldObjectBuilder.cs",
-      "sha256": "045717c0153c56a02dfe8e1d58ab643bb24a41d4efd39ea155205cf8b9df7f73",
-      "disposition": "unmodified-source"
+      "sha256": "303eb8547c10b8fe1ec0686b139b90b975c9f023a4aee43603fed151a72a1f38",
+      "disposition": "reviewed-adaptation: cancellation and explicit geometry gaps; preserve Atlas construction",
+      "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
     },
     {
       "target": "vendor/uimaps/uimaps-perception/LICENSE.txt",
@@ -444,8 +450,9 @@
       "repository": "https://github.com/AI-Successors/uimaps-recorder",
       "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
       "source": "src/UIMaps.Recorder.Windows/ProviderIsolation.cs",
-      "sha256": "8edd869d777e2499e515060c5ffb53bfb8485a840c4d32ab6f7bf86011a98ae5",
-      "disposition": "adapted-source: mapping parity and complete deep surveys; cancellable unlimited accessibility, retained MSAA evidence and full-coverage retries"
+      "sha256": "b986603f7e3b7664d1bbf79face7c4f8c04e74b00663bf984d66a321af99dc58",
+      "disposition": "reviewed-adaptation: bounded worker containment and cooperative deadlines; preserve portable DLL launch, exhaustive MSAA and immutable raw responses",
+      "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
     },
     {
       "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/ProviderPropertyValue.cs",
@@ -548,16 +555,18 @@
       "repository": "https://github.com/AI-Successors/uimaps-perception",
       "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
       "source": "new shared implementation; not present at base commit",
-      "sha256": "f9d4f0886ab67993e46012a3327db38c8ed92f7e3beb246362fc8ee511d4308b",
-      "disposition": "new-shared-implementation: test5 behavioral reference; observation-scoped surface reconstruction"
+      "sha256": "bdda94f07c8b85113657b587793a41cff226c451c86d68d6111b5d19ee2c7a5d",
+      "disposition": "reviewed-adaptation: review existing Atlas 7b6a049 scene ownership; no new behavior",
+      "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
     },
     {
       "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/OfficeMsaaGeometry.cs",
       "repository": "https://github.com/AI-Successors/uimaps-perception",
       "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
       "source": "new shared implementation; not present at base commit",
-      "sha256": "3aa661762026334f13c9984930dce7c56a20327e260cb474a076e3202553d83b",
-      "disposition": "new-shared-implementation: observation-local Office MSAA client coordinates corroborated by native edit geometry"
+      "sha256": "3b9e2c5824130b0d3bac4b736fa9069a4157e85ac49d00f614a5361b5df28017",
+      "disposition": "reviewed-adaptation: review existing Atlas 7b6a049 native-anchor reconciliation; no new behavior",
+      "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
     },
     {
       "target": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/CaptureSizeLimits.cs",
@@ -566,6 +575,33 @@
       "source": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/CaptureSizeLimits.cs",
       "sha256": "ec9aa5998a3ab00bfcb54aa47ecb6e939b09bf0104998060d96959b8a0253900",
       "disposition": "atlas-authored: shared capture size defaults and transport capacity"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/UiMapRevisionIntegrity.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "e21ff6827bec690fa479d39b41135386c16de360",
+      "source": "src/UIMaps.Protocol/UiMapRevisionIntegrity.cs",
+      "sha256": "05d6c0950d9f084827b769936292d41d404dc99fd38d9361ed38cc78bff2dc0b",
+      "disposition": "reviewed-source: Atlas-produced canonical revision identity",
+      "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/AccessibilityGeometryEvidence.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-perception",
+      "commit": "442887aa7efb353353e79183facd34844f353003",
+      "source": "src/UIMaps.Perception.Core/AccessibilityGeometryEvidence.cs",
+      "sha256": "582cb94b1c389ab1dc57739373a7a43f6ce4c78e824ae3ec941a4002785bfaa8",
+      "disposition": "reviewed-source: explicit source geometry gap; no private dependencies",
+      "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/AccessibilityEvidence.cs",
+      "repository": "https://github.com/IlmenAI/UI-Atlas",
+      "commit": "7b6a0493b6a355f510a8d497425309d269023cd9",
+      "source": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/AccessibilityEvidence.cs",
+      "sha256": "74a3750adf5f4440009e637a803bb77676d579d7b8abc45ccc9c1aa934193b1b",
+      "disposition": "reviewed-existing-Atlas-source: same-episode immutable raw-provider completion and ancestry retained by canonical historical interpretation",
+      "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
     }
   ]
 }

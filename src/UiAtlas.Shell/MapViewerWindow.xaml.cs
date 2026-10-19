@@ -25,11 +25,12 @@ public partial class MapViewerWindow : Window
     private double _panVerticalOrigin;
     private HwndSource? _windowSource;
 
-    internal MapViewerWindow(MapsLibraryRecord record)
+    internal MapViewerWindow(MapsLibraryRecord record, string? selectedEntityRef = null)
     {
         ViewModel = new MapViewerModel(record);
         DataContext = ViewModel;
         InitializeComponent();
+        if (!string.IsNullOrEmpty(selectedEntityRef)) ViewModel.SelectEntity(selectedEntityRef);
         AddHandler(Mouse.PreviewMouseDownEvent, new MouseButtonEventHandler(Viewport_MouseDown), handledEventsToo: true);
         AddHandler(Mouse.PreviewMouseMoveEvent, new MouseEventHandler(Viewport_MouseMove), handledEventsToo: true);
         AddHandler(Mouse.PreviewMouseUpEvent, new MouseButtonEventHandler(Viewport_MouseUp), handledEventsToo: true);

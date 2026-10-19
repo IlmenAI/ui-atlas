@@ -5,22 +5,31 @@ namespace UIMaps.Perception.Core;
 public sealed class ObservationNormalizer
 {
     public IReadOnlyList<Observation> Normalize(SensorEpisodeBundle bundle, long anchorTicks, DateTimeOffset publicationTime)
+        => Normalize(bundle, anchorTicks, publicationTime, recorded: false, CancellationToken.None);
+
+    public IReadOnlyList<Observation> NormalizeRecorded(SensorEpisodeBundle bundle, long anchorTicks, DateTimeOffset captureTime, CancellationToken cancellationToken)
+        => Normalize(bundle, anchorTicks, captureTime, recorded: true, cancellationToken);
+
+    private static IReadOnlyList<Observation> Normalize(SensorEpisodeBundle bundle, long anchorTicks, DateTimeOffset publicationTime,
+        bool recorded, CancellationToken cancellationToken)
     {
         var observations = new List<Observation>();
         foreach (var packet in bundle.SensorPackets)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var freshness = Freshness(packet, bundle.ClockMetadata.MonotonicFrequencyHz, anchorTicks, publicationTime);
             switch (packet.PayloadCase)
             {
                 case SensorPacket.PayloadOneofCase.Screenshot:
+                    if (recorded && packet.Screenshot.ImageBlob.IsEmpty) break;
                     observations.Add(Create(
                         bundle, packet, ObservationKind.VisualSurfaceObservation,
                         bundle.DisplayDescriptor.BoundsPx, "visual_surface", string.Empty,
                         "display:" + bundle.DisplayDescriptor.DisplayId, string.Empty, string.Empty,
-                        [], freshness));
+                        [], freshness, recorded));
                     break;
                 case SensorPacket.PayloadOneofCase.WindowTopology:
-                    observations.AddRange(packet.WindowTopology.Windows.Select(window => Create(
+                    observations.AddRange(CheckCancellation(packet.WindowTopology.Windows, cancellationToken).Select(window => Create(
                         bundle, packet, ObservationKind.Window, window.BoundsPx, "window", window.Title,
                         window.WindowEvidenceId, string.Empty, window.WindowEvidenceId,
                         [
@@ -46,10 +55,11 @@ public sealed class ObservationNormalizer
                             Property("isOwnedWindow", window.IsOwnedWindow.ToString(System.Globalization.CultureInfo.InvariantCulture)),
                             Property("selectionEligibility", window.SelectionEligibility),
                             Property("captureRelevance", window.CaptureRelevance),
-                        ], freshness)));
+                        ], freshness, recorded)));
                     break;
                 case SensorPacket.PayloadOneofCase.Accessibility:
-                    observations.AddRange(AccessibilityEvidence.Nodes(packet.Accessibility).Select(node => Create(
+                    observations.AddRange(CheckCancellation(AccessibilityEvidence.Nodes(packet.Accessibility), cancellationToken)
+                        .Where(AccessibilityGeometryEvidence.HasSpatialGeometry).Select(node => Create(
                         bundle, packet, ObservationKind.AccessibilityObservation, node.BoundsPx,
                         string.IsNullOrWhiteSpace(node.LocalizedControlType) ? node.ControlType : node.LocalizedControlType,
                         node.Name, node.AccessibilityEvidenceId, node.ParentEvidenceId, node.WindowEvidenceId,
@@ -69,7 +79,7 @@ public sealed class ObservationNormalizer
                             Property("childCountIncluded", node.ChildCountIncluded.ToString(System.Globalization.CultureInfo.InvariantCulture)),
                             Property("hostedContentOpaque", node.SupportedPatterns.Contains("NativeWindow.HostedContentOpaque").ToString(System.Globalization.CultureInfo.InvariantCulture)),
                             Property("valueEvidence", node.IsPassword ? string.Empty : node.ValueEvidence),
-                        ], freshness)));
+                        ], freshness, recorded)));
                     break;
             }
         }
@@ -82,6 +92,7 @@ public sealed class ObservationNormalizer
             x => $"{x.ProcessInstanceEvidence}|hwnd:{x.WindowHandleEvidence}|root:{x.RootOwnerHandleEvidence}|class:{x.ClassName}", StringComparer.Ordinal);
         foreach (var observation in observations)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             observation.SourceInterval = observation.Freshness.SourceInterval.Clone();
             if (observation.ObservationKind == ObservationKind.Window)
                 observation.ProcessInstanceEvidence = processByWindow.GetValueOrDefault(observation.SourceEvidenceId, string.Empty);
@@ -92,6 +103,9 @@ public sealed class ObservationNormalizer
         }
         return observations;
     }
+
+    private static IEnumerable<T> CheckCancellation<T>(IEnumerable<T> source, CancellationToken cancellationToken)
+    { foreach (var value in source) { cancellationToken.ThrowIfCancellationRequested(); yield return value; } }
 
     private static Observation Create(
         SensorEpisodeBundle bundle,
@@ -104,7 +118,8 @@ public sealed class ObservationNormalizer
         string parentId,
         string windowId,
         IEnumerable<StringProperty> properties,
-        Freshness freshness)
+        Freshness freshness,
+        bool recorded)
     {
         var observation = new Observation
         {
@@ -115,7 +130,7 @@ public sealed class ObservationNormalizer
             BoundsPx = bounds.Clone(),
             Role = role,
             ObservedName = name,
-            Health = packet.Health.Clone(),
+            Health = ObservationHealth(packet.Health, recorded),
             Confidence = new Confidence { State = ConfidenceState.NotComputed, Rationale = "Direct source fact" },
             Freshness = freshness.Clone(),
             Lineage = new Lineage { SourcePacketIds = { packet.PacketId } },
@@ -126,6 +141,20 @@ public sealed class ObservationNormalizer
         };
         observation.Properties.AddRange(properties.Select(x => x.Clone()));
         return observation;
+    }
+
+    private static Health ObservationHealth(Health source, bool recorded)
+    {
+        var result = source.Clone();
+        if (!recorded) return result;
+        // Provider aggregates may contain the exact same issue once per node.
+        // Repeating that aggregate on every observation/object/track makes a
+        // historical snapshot quadratic without adding evidence. Keep every
+        // distinct issue and its state; the original packets and frame-level
+        // aggregate retain the original multiplicity and source bytes.
+        result.Issues.Clear();
+        result.Issues.AddRange(source.Issues.Distinct().Select(issue => issue.Clone()));
+        return result;
     }
 
     private static Freshness Freshness(SensorPacket packet, long frequency, long anchor, DateTimeOffset published)
