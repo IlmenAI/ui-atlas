@@ -33,6 +33,17 @@ public sealed class AtlasExactRevisionTests
         var read = new CatalogRequest("revision-read", root, RevisionRef: revision.MapRevisionRef, RequireReady: true);
         var exact = (await AtlasCatalogCommand.ExecuteAsync(read)).ExactRevision!;
         Assert.True(exact.Ready); Assert.Equal(before, Convert.FromBase64String(exact.Payload));
+        var grounding = await AtlasCatalogCommand.ExecuteAsync(read with { IncludeRawWorld = true });
+        Assert.Equal(1, grounding.RawWorldContractVersion);
+        Assert.Equal(revision.Sources.Count, grounding.RawWorldSources.Length);
+        foreach (var raw in grounding.RawWorldSources)
+        {
+            var declared = Assert.Single(revision.Sources, value => value.SourceObservationSetRef == raw.SourceObservationSetRef);
+            var bytes = Convert.FromBase64String(raw.Payload);
+            Assert.Equal(declared.SourcePayloadHash, raw.PayloadSha256);
+            Assert.Equal(raw.PayloadSha256, Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant());
+            Assert.Contains(raw.PayloadKind, new[] { "snapshot", "survey" });
+        }
         selected = (await AtlasCatalogCommand.ExecuteAsync(new("maps", root))).Maps.Single(value => value.Id == selected.Id && MapLibraryEntry.Parser.ParseFrom(Convert.FromBase64String(value.Entry)).MapDraftRef == entry.MapDraftRef);
         await AtlasCatalogCommand.ExecuteAsync(new("archive", root, MapId: selected.Id, DraftRef: entry.MapDraftRef, Entry: selected.Entry, Generation: selected.Generation));
         await Assert.ThrowsAsync<InvalidOperationException>(() => AtlasCatalogCommand.ExecuteAsync(read));
@@ -46,5 +57,10 @@ public sealed class AtlasExactRevisionTests
         _ = workspace.Publish("qualification");
         var old = (await AtlasCatalogCommand.ExecuteAsync(read with { RequireReady = false })).ExactRevision!;
         Assert.Equal(before, Convert.FromBase64String(old.Payload));
+        var retainedSource = workspace.Index.Sources.First(value => revision.Sources.Any(source => source.SourceObservationSetRef == value.SourceRef));
+        File.Delete(workspace.Resolve(retainedSource.PublicationFile));
+        await Assert.ThrowsAsync<FileNotFoundException>(() => AtlasCatalogCommand.ExecuteAsync(read with { RequireReady = false, IncludeRawWorld = true }));
+        // Missing source material cannot silently produce a direct-match handoff.
+        Assert.Equal(before, Convert.FromBase64String((await AtlasCatalogCommand.ExecuteAsync(read with { RequireReady = false })).ExactRevision!.Payload));
     }
 }

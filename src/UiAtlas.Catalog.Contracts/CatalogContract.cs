@@ -4,7 +4,7 @@ namespace UiAtlas.Catalog;
 public sealed record CatalogRequest(string Operation, string Root, string? RecordingId = null,
     string? MapId = null, string? DraftRef = null, string? Entry = null, string? SourcePath = null,
     string? Generation = null, int Version = 1, string? KnownCatalogVersion = null,
-    string? RevisionRef = null, bool RequireReady = false, string? ProfileId = null);
+    string? RevisionRef = null, bool RequireReady = false, string? ProfileId = null, bool IncludeRawWorld = false);
 public sealed record CatalogRecording(string Id, DateTimeOffset StartedUtc, string Outcome,
     string ProcessName, int FrameCount, string? MapId);
 public sealed record CatalogMap(string Id, string Path, string ApplicationGroup, string Generation,
@@ -13,6 +13,9 @@ public sealed record CatalogImportCandidate(string Path, string Kind, long Bytes
 // Full immutable bytes with eligibility observed at this read, never a latest alias.
 public sealed record CatalogRevision(string RevisionRef, string CanonicalPayloadHash, string Payload,
     string MapId, string Generation, string Entry, bool Ready, bool Archived, string ReadAtUtc, int Version = 1);
+// Original canonical source payloads whose hashes are embedded in the revision.
+// PayloadKind is "snapshot" (WorldStateSnapshot) or "survey" (SurveyScenePublication).
+public sealed record CatalogRawWorldSource(string SourceObservationSetRef, string PayloadKind, string PayloadSha256, string Payload);
 public sealed record CatalogReply
 {
     public int Version { get; init; } = 1;
@@ -26,6 +29,8 @@ public sealed record CatalogReply
     public CatalogImportCandidate[] Imports { get; init; } = [];
     public string? Revision { get; init; }
     public CatalogRevision? ExactRevision { get; init; }
+    public CatalogRawWorldSource[] RawWorldSources { get; init; } = [];
+    public int RawWorldContractVersion { get; init; }
     public string? CaptureRequest { get; init; }
     public string? MapId { get; init; }
     public int Nodes { get; init; }

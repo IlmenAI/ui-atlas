@@ -6,6 +6,7 @@ using UiAtlas.Core.Build;
 using UiAtlas.Core.Mapping.Atlas;
 using UiAtlas.Core.Storage;
 using UIMaps.Protocol.V3;
+using UIMaps.Protocol.V1;
 
 namespace UiAtlas.Core.Cli;
 
@@ -128,11 +129,45 @@ internal static class AtlasCatalogCommand
             var ready = entry is { IsReady: true, Archived: false };
             if (request.RequireReady && !ready)
                 throw new InvalidOperationException("This exact revision is no longer a Ready published Atlas entry. Select an eligible revision; completed drafts retain their original map.");
-            return new CatalogReply { Root = catalog.Root, ExactRevision = new(reference, revision.CanonicalPayloadHash,
+            var rawWorld = request.IncludeRawWorld ? ReadRawWorldSources(workspace, revision, token) : [];
+            return new CatalogReply { Root = catalog.Root, RawWorldSources = rawWorld,
+                RawWorldContractVersion = request.IncludeRawWorld ? 1 : 0, ExactRevision = new(reference, revision.CanonicalPayloadHash,
                 Encode(revision)!, Path.GetFileNameWithoutExtension(path), Path.GetFileName(workspace.DirectoryPath),
                 Encode(entry) ?? "", ready, entry?.Archived ?? false, DateTimeOffset.UtcNow.ToString("O")) };
         }
         throw new FileNotFoundException("The exact published Atlas revision is unavailable in this catalog.");
+    }
+    private static CatalogRawWorldSource[] ReadRawWorldSources(AtlasMapWorkspace workspace, UiMapRevision revision, CancellationToken token)
+    {
+        if (revision.Sources.Count == 0)
+            throw new InvalidDataException("This revision has no retained Raw World sources for workflow binding.");
+        var result = new List<CatalogRawWorldSource>();
+        long total = revision.CalculateSize();
+        var sources = workspace.Index.Sources.ToDictionary(source => source.SourceRef, StringComparer.Ordinal);
+        foreach (var source in revision.Sources)
+        {
+            token.ThrowIfCancellationRequested();
+            if (!sources.TryGetValue(source.SourceObservationSetRef, out var retained))
+                throw new InvalidDataException("The exact revision's Raw World source is unavailable.");
+            var path = workspace.Resolve(retained.PublicationFile);
+            if (new FileInfo(path).Length > CaptureSizeLimits.MaximumEpisodeBytes)
+                throw new InvalidDataException("The retained Raw World source exceeds its byte limit.");
+            var publication = GetPublicationResponse.Parser.ParseFrom(File.ReadAllBytes(path));
+            IMessage payload = source.AcquisitionSemantic == AcquisitionSemantic.AcquisitionSnapshot
+                ? publication.Snapshot?.WorldStateSnapshot ?? throw new InvalidDataException("Expected a retained Raw World snapshot.")
+                : source.AcquisitionSemantic == AcquisitionSemantic.AcquisitionSurvey
+                    ? publication.Survey ?? throw new InvalidDataException("Expected a retained Raw World survey.")
+                    : throw new InvalidDataException("Unsupported Raw World source semantic.");
+            var bytes = payload.ToByteArray();
+            var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
+            if (hash != source.SourcePayloadHash || hash != source.WorldStateHash)
+                throw new InvalidDataException("The retained Raw World payload does not match the exact revision's source hashes.");
+            total += bytes.LongLength;
+            if (total > CaptureSizeLimits.MaximumEpisodeBytes)
+                throw new InvalidDataException("The revision and its Raw World sources exceed the handoff limit; no sources were omitted.");
+            result.Add(new(source.SourceObservationSetRef, publication.Snapshot is not null ? "snapshot" : "survey", hash, Convert.ToBase64String(bytes)));
+        }
+        return result.ToArray();
     }
     internal static CatalogMap[] LoadMaps(LocalArtifactCatalog catalog, CancellationToken token)
     {
