@@ -14,9 +14,16 @@ public sealed class NativeRecorderCapture
     public NativeRecorderCapture(string? providerPath = null, RecordingProfileSettingsStore? settingsStore = null)
     {
         _profileRequest = RecordingProfileSettingsStore.Request((settingsStore ?? new()).Load());
-        _providerPath = Path.GetFullPath(providerPath ?? Path.Combine(AppContext.BaseDirectory,
-            "native-recorder", "UIMaps.Recorder.ProviderProbe.dll"));
+        _providerPath = Path.GetFullPath(providerPath ?? ResolveProviderPath(AppContext.BaseDirectory));
         if (!File.Exists(_providerPath)) throw new FileNotFoundException("The UI Maps native provider worker is missing. Build or install the complete Atlas package.", _providerPath);
+    }
+
+    internal static string ResolveProviderPath(string baseDirectory)
+    {
+        var executable = Path.Combine(baseDirectory, "native-recorder", "UIMaps.Recorder.ProviderProbe.exe");
+        // A published apphost selects its packaged runtime architecture. Launching
+        // its DLL through PATH's dotnet can select ARM64 for an x64 deployment.
+        return File.Exists(executable) ? executable : Path.ChangeExtension(executable, ".dll");
     }
 
     internal CapturePolicyRequest CreateRequest(CaptureScope scope)
