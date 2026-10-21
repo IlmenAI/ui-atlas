@@ -205,6 +205,14 @@ public static class AtlasMapProjection
                 var properties = new List<GraphProperty> { new("layer", "semantic-world"), new("mapDraftRef", draft.MapDraftRef),
                     new("reviewState", entity.ReviewState.ToString()), new("controlType", SemanticMapProjection.ControlKind(entity, sources.Select(id => nodes[id]).ToArray())), new("mappingEngine", "UIMaps"),
                     new("curationHidden", (entity.ReviewState == ReviewState.ReviewRejected).ToString()) };
+                properties.Add(new("mapEntityKind", entity.EntityKind.ToString()));
+                if (entity.HostedDataGrid is { } hostedGrid)
+                {
+                    properties.Add(new("sourceGridRef", hostedGrid.SourceGridRef));
+                    properties.Add(new("gridHostControlRef", hostedGrid.HostControlRef));
+                }
+                if (!string.IsNullOrWhiteSpace(entity.GridInternalDataGridRef))
+                    properties.Add(new("gridInternalDataGridRef", entity.GridInternalDataGridRef));
                 if (entity.EntityKind == MapEntityKind.MapGridColumn) properties.Add(new("evidenceScope", "reviewed-column-schema; source links identify the recorded grid host"));
                 properties.Add(new("acquisitionStatus", draft.Sources.Any(value => value.AcquisitionSemantic == AcquisitionSemantic.AcquisitionSurvey) ? "partial-survey" : "snapshot"));
                 properties.Add(new("recordKind", "observation"));

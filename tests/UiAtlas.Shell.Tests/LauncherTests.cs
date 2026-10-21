@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
 using UiAtlas.Core.Storage;
+using UiAtlas.Catalog;
 using UiAtlas.Launcher;
 using UiAtlas.Shell;
 using UiAtlas.Shell.Catalog;
@@ -81,7 +82,30 @@ public sealed class LauncherTests
                 window.Navigate("diagnostics");
                 Assert.IsType<DiagnosticsHubView>(page.Content);
                 window.Navigate("settings");
-                Assert.IsType<AtlasSettingsView>(page.Content);
+                var settingsView = Assert.IsType<AtlasSettingsView>(page.Content);
+                var readiness = Assert.IsType<DockPanel>(settingsView.Content).Children.OfType<MapReadinessSettingsPanel>().Single();
+                var toggle = Assert.IsType<StackPanel>(readiness.Content).Children.OfType<CheckBox>().Single();
+                Assert.True(toggle.IsChecked);
+                toggle.IsChecked = false;
+                toggle.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                Assert.False(new MapReadinessSettingsStore(root).Load().RequireReview);
+                window.UpdateLayout();
+                if (Environment.GetEnvironmentVariable("UIATLAS_SETTINGS_QA_DIR") is { Length: > 0 } qa)
+                {
+                    Directory.CreateDirectory(qa);
+                    var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap((int)window.ActualWidth,
+                        (int)window.ActualHeight, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+                    bitmap.Render(window);
+                    var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                    encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+                    using var image = File.Create(Path.Combine(qa, "atlas-readiness-setting.png"));
+                    encoder.Save(image);
+                }
+                var reopened = new MapReadinessSettingsPanel(root);
+                Assert.False(Assert.IsType<StackPanel>(reopened.Content).Children.OfType<CheckBox>().Single().IsChecked);
+                toggle.IsChecked = true;
+                toggle.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                Assert.True(new MapReadinessSettingsStore(root).Load().RequireReview);
                 window.Navigate("maps");
                 Assert.Throws<ArgumentException>(() => window.Navigate("integrations"));
                 Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name is "UIMaps.Application" or "UIMaps.LocalServices");

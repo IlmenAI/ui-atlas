@@ -246,6 +246,8 @@ enum ReviewCommandKind {
   REVIEW_ACCEPT_INTERACTION = 10;
   REVIEW_REJECT_INTERACTION = 11;
   REVIEW_ACCEPT_ALL_BLOCKING = 12;
+  REVIEW_SET_ALIAS = 13;
+  REVIEW_CLEAR_ALIAS = 14;
 }
 
 enum ValidationSeverity {
@@ -690,6 +692,12 @@ message UiMapRevision {
   repeated EvidenceStreamSelection evidence_stream_selections = 19;
 }
 
+message ReviewedMapAlias {
+  string from_entity_ref = 1;
+  string to_entity_ref = 2;
+  string reason = 3;
+}
+
 message ReviewCommand {
   string request_id = 1;
   string map_draft_ref = 2;
@@ -700,6 +708,8 @@ message ReviewCommand {
   string secondary_ref = 7;
   string reason = 8;
   string reviewed_by = 9;
+  // REVIEW_SET_ALIAS may confirm a bounded batch as one atomic, undoable review.
+  repeated ReviewedMapAlias aliases = 10;
 }
 
 message ReviewCommandResult {

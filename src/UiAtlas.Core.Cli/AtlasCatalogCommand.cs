@@ -49,6 +49,7 @@ internal static class AtlasCatalogCommand
             case "maps": return new() { Root = catalog.Root, Maps = LoadMaps(catalog, token) };
             case "maps-summary": return AtlasCatalogIndex.Read(catalog, request.KnownCatalogVersion, token);
             case "revision-read": return ReadRevision(catalog, request, token);
+            case "identity-review-read": case "identity-confirm": case "parameter-review-read": case "parameter-confirm": return ReadRevision(catalog, request, token);
             case "profile-read":
                 if (request.ProfileId != "fast") throw new ArgumentException("This consumer supports the Fast profile.");
                 var settings = new UiAtlas.Core.Recording.Windows.RecordingProfileSettingsStore().Load();
@@ -127,10 +128,16 @@ internal static class AtlasCatalogCommand
                 cursor = page.ContinuationToken;
             } while (cursor.Length > 0);
             var ready = entry is { IsReady: true, Archived: false };
-            if (request.RequireReady && !ready)
+            if ((request.RequireReady || request.Operation == "parameter-confirm") && !ready)
                 throw new InvalidOperationException("This exact revision is no longer a Ready published Atlas entry. Select an eligible revision; completed drafts retain their original map.");
+            if (request.Operation is "identity-review-read" or "identity-confirm")
+                return AtlasWorkflowIdentityReview.Execute(workspace, revision, entry, path, request, token);
+            if (request.Operation is "parameter-review-read" or "parameter-confirm")
+                return AtlasWorkflowParameterReview.Execute(workspace, revision, ReadRawWorldSources(workspace, revision, token),
+                    path, request, token);
             var rawWorld = request.IncludeRawWorld ? ReadRawWorldSources(workspace, revision, token) : [];
-            return new CatalogReply { Root = catalog.Root, RawWorldSources = rawWorld,
+            var parameters = request.IncludeRawWorld ? AtlasParameterMatching.Read(workspace, revision, rawWorld, token) : null;
+            return new CatalogReply { Root = catalog.Root, RawWorldSources = rawWorld, Parameterization = parameters,
                 RawWorldContractVersion = request.IncludeRawWorld ? 1 : 0, ExactRevision = new(reference, revision.CanonicalPayloadHash,
                 Encode(revision)!, Path.GetFileNameWithoutExtension(path), Path.GetFileName(workspace.DirectoryPath),
                 Encode(entry) ?? "", ready, entry?.Archived ?? false, DateTimeOffset.UtcNow.ToString("O")) };
@@ -224,8 +231,11 @@ internal static class AtlasCatalogCommand
         if (workspace.Index.Sessions.All(session => session.DraftRef != entry.MapDraftRef) || entry.MapDraftRef != request.DraftRef)
             throw new InvalidDataException("The selected entry does not belong to this Atlas workspace.");
         token.ThrowIfCancellationRequested();
+        if (request.Operation == "ready")
+            return new() { Root = catalog.Root, Revision = Encode(workspace.MarkReady(entry.MapDraftRef, "local-user:atlas",
+                new MapReadinessSettingsStore(catalog.Root).Load().RequireReview)) };
         UiMapRevision? revision = null;
-        if (request.Operation == "publish" || request.Operation == "ready" && string.IsNullOrEmpty(entry.LatestMapRevisionRef))
+        if (request.Operation == "publish")
             revision = workspace.Publish("local-user:atlas")[workspace.Index.Sessions.ToList().FindIndex(value => value.DraftRef == entry.MapDraftRef)];
         if (request.Operation != "publish") workspace.UpdateLibrary(service =>
         {
@@ -233,7 +243,7 @@ internal static class AtlasCatalogCommand
             {
                 case "archive": service.ArchiveLibraryEntries(new ArchiveMapLibraryEntriesRequest { RequestId = Guid.NewGuid().ToString("N"), ArchivedBy = "local-user:atlas", Entries = { entry } }); break;
                 case "restore": service.RestoreLibraryEntries(new RestoreMapLibraryEntriesRequest { RequestId = Guid.NewGuid().ToString("N"), RestoredBy = "local-user:atlas", Entries = { entry } }); break;
-                case "ready": case "draft": service.SetLibraryReadiness(new SetMapLibraryReadinessRequest { RequestId = Guid.NewGuid().ToString("N"), ChangedBy = "local-user:atlas", Entry = entry, Ready = request.Operation == "ready" }); break;
+                case "draft": service.SetLibraryReadiness(new SetMapLibraryReadinessRequest { RequestId = Guid.NewGuid().ToString("N"), ChangedBy = "local-user:atlas", Entry = entry, Ready = false }); break;
             }
         });
         return new() { Root = catalog.Root, Revision = Encode(revision) };

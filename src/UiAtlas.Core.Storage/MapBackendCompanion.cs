@@ -28,6 +28,7 @@ public static class MapBackendCompanion
                 var index = JsonNode.Parse(File.ReadAllText(indexPath)) ?? throw new InvalidDataException("Invalid map index.");
                 index["LogicalMapId"] = logicalMapId;
                 File.WriteAllText(indexPath, index.ToJsonString());
+                MapParameterizationStore.RebindFile(Path.Combine(targetGeneration, "parameter-review.json"), logicalMapId);
             }
             File.Copy(Path.Combine(source, "active.json"), Path.Combine(target, "active.json"));
         }

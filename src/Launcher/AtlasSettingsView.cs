@@ -9,7 +9,7 @@ namespace UiAtlas.Launcher;
 public sealed class AtlasSettingsView : UserControl, IShellNavigationGuard
 {
     private readonly AtlasSettingsWindow _editor = new(embedded: true);
-    public AtlasSettingsView(LauncherPreferences preferences)
+    public AtlasSettingsView(LauncherPreferences preferences, string? catalogRoot = null)
     {
         var root = new DockPanel();
         var startup = new StackPanel { Margin = new Thickness(24, 0, 24, 12) };
@@ -22,8 +22,10 @@ public sealed class AtlasSettingsView : UserControl, IShellNavigationGuard
         };
         startup.Children.Add(choice);
         startup.Children.Add(new TextBlock { Text = "Applies to the next desktop launch. Changing workspaces does not change this preference." });
-        startup.Children.Add(new TextBlock { Text = "Shared recording and map library: " + UiAtlas.Catalog.AtlasCatalogLocation.Resolve(), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) });
+        startup.Children.Add(new TextBlock { Text = "Shared recording and map library: " + UiAtlas.Catalog.AtlasCatalogLocation.Resolve(catalogRoot), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) });
         DockPanel.SetDock(startup, Dock.Top); root.Children.Add(startup);
+        var readiness = new MapReadinessSettingsPanel(catalogRoot);
+        DockPanel.SetDock(readiness, Dock.Top); root.Children.Add(readiness);
         var editor = (UIElement)_editor.Content;
         _editor.Content = null;
         root.Children.Add(editor);

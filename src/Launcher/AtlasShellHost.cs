@@ -27,6 +27,6 @@ public sealed class AtlasShellHost : IShellHost
     public IMapsLibrarySource Maps { get; }
     public IRecordableApplicationDiscovery Applications { get; } = new RecordableApplicationDiscovery();
     public IRecordingDisplayCatalog Displays { get; } = new RecordingDisplayCatalog();
-    public FrameworkElement CreateSettingsView() => new AtlasSettingsView(_preferences);
+    public FrameworkElement CreateSettingsView() => new AtlasSettingsView(_preferences, _catalog.Root);
     public FrameworkElement CreateRecordingsView() => new AtlasRecordingsView(_catalog);
 }

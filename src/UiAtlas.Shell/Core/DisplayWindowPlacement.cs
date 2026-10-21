@@ -12,10 +12,22 @@ public static class DisplayWindowPlacement
     public static void CenterWindow(Window window, string? displayName = null)
     {
         var screen = Screen.AllScreens.FirstOrDefault(value => value.DeviceName == displayName) ?? Screen.PrimaryScreen;
+        if (screen is not null) CenterWindow(window, screen.Bounds);
+    }
+
+    public static void CenterWindow(Window window, Rectangle displayBounds)
+    {
+        var area = Screen.FromRectangle(displayBounds).WorkingArea;
+        area.Inflate(-16, -16);
         var handle = new WindowInteropHelper(window).Handle;
-        if (screen is null || !GetWindowRect(handle, out var bounds)) return;
-        var rectangle = Center(screen.WorkingArea, new Size(bounds.Right - bounds.Left, bounds.Bottom - bounds.Top));
-        SetWindowPos(handle, 0, rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height, 0x14);
+        // Moving between monitors can change DPI and resize the WPF window.
+        // Re-read physical bounds before the final fit/center pass.
+        for (var pass = 0; pass < 2; pass++)
+        {
+            if (!GetWindowRect(handle, out var bounds)) return;
+            var rectangle = Center(area, new Size(bounds.Right - bounds.Left, bounds.Bottom - bounds.Top));
+            SetWindowPos(handle, 0, rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height, 0x14);
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]

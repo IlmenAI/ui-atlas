@@ -87,10 +87,11 @@ public static class RawOfficeCoordinates
 
     public static Registration? ForControl(IReadOnlyDictionary<(string Stream, string Runtime), Registration> registrations, UiMapControlView control)
     {
+        if (registrations.Count == 0) return null;
         var stream = UiMappingReadModel.Property(control.Source, "rawStreamId");
         // Native map projections expose the provider's RuntimeId array as the
         // runtimeId property. The sealed observation retains our source record ID.
-        var runtime = control.Source.Observations?.SingleOrDefault()?.Control.RuntimeId ??
+        var runtime = control.Source.Observations is { Count: 1 } observations ? observations[0].Control.RuntimeId :
             UiMappingReadModel.Property(control.Source, "sourceAccessibilityEvidenceId") ?? UiMappingReadModel.Property(control.Source, "runtimeId");
         var registration = stream is not null && runtime is not null ? registrations.GetValueOrDefault((stream, runtime)) : null;
         return registration?.Reported == control.Bounds ? registration : null;

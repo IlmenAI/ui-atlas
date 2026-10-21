@@ -10,7 +10,7 @@ public interface IAtlasCatalogReader
     Task<CatalogReply> RequestAsync(CatalogRequest request, CancellationToken token = default);
 }
 
-/// <summary>Headless read client for the Atlas-owned catalog process.</summary>
+/// <summary>Headless client for the Atlas-owned catalog and scoped parameter review.</summary>
 public sealed class AtlasCatalogProcessClient(string? root = null, string? executable = null) : IAtlasCatalogReader
 {
     public string Root { get; } = AtlasCatalogLocation.Resolve(root);
@@ -38,8 +38,9 @@ public sealed class AtlasCatalogProcessClient(string? root = null, string? execu
     public async Task<CatalogReply> RequestAsync(CatalogRequest request, CancellationToken token = default)
     {
         token.ThrowIfCancellationRequested();
-        if (request.Operation is not ("maps-summary" or "revision-read" or "profile-read"))
-            throw new ArgumentException("This catalog adapter supports read operations only.");
+        if (request.Operation is not ("maps-summary" or "revision-read" or "profile-read"
+            or "parameter-review-read" or "parameter-confirm" or "identity-review-read" or "identity-confirm"))
+            throw new ArgumentException("This catalog adapter supports reads and scoped parameter confirmation only.");
         var path = Executable;
         var start = new ProcessStartInfo(path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ? "dotnet" : path)
         { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = Path.GetDirectoryName(path)!,

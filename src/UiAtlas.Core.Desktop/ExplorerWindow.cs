@@ -25,7 +25,7 @@ using IOPath = System.IO.Path;
 
 namespace UiAtlas.Core.Desktop;
 
-public sealed class ExplorerWindow : Window
+public sealed partial class ExplorerWindow : Window
 {
     private const double AppMapZoomStep = 1.15;
     private const double AppMapMinZoomFloor = 0.05;
@@ -212,6 +212,8 @@ public sealed class ExplorerWindow : Window
         _surfaceKindFilter.SelectionChanged += (_, _) => { if (!_refreshingFilters) RefreshAll(); };
         _hierarchy.SelectedItemChanged += (_, args) =>
         {
+            if (!_synchronizing && args.NewValue is TreeViewItem { Tag: ParameterProposal proposal })
+            { SelectParameterProposal(proposal); return; }
             if (_synchronizing || args.NewValue is not TreeViewItem { Tag: SelectionRef selection }) return;
             if (selection.InteractionId is not null) SelectInteractionById(selection.InteractionId);
             else if (selection.ControlId is not null) SelectControlById(selection.ControlId);
@@ -230,11 +232,14 @@ public sealed class ExplorerWindow : Window
 
     private UIElement BuildLayout()
     {
-        var root = new Grid();
+        var root = new Grid { Background = Page };
         root.RowDefinitions.Add(new() { Height = GridLength.Auto });
         root.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) });
         root.RowDefinitions.Add(new() { Height = GridLength.Auto });
-        root.Children.Add(BuildHeader());
+        var header = new StackPanel();
+        header.Children.Add(BuildHeader());
+        header.Children.Add(BuildParameterToolbar());
+        root.Children.Add(header);
 
         var body = new Grid { Margin = new Thickness(12, 10, 12, 8) };
         body.ColumnDefinitions.Add(_hierarchyColumn);
@@ -1837,7 +1842,7 @@ public sealed class ExplorerWindow : Window
 
     private bool TryHandleAppMapZoomWheel(ScrollViewer scrollViewer, Point anchor, int delta)
     {
-        if (_selectedSurface is null || _appMapViewport.Width <= 0 || _appMapViewport.Height <= 0)
+        if ((_selectedSurface is null && _selectedParameter?.ImagePath is null) || _appMapViewport.Width <= 0 || _appMapViewport.Height <= 0)
             return false;
 
         var factor = delta > 0 ? AppMapZoomStep : 1 / AppMapZoomStep;
@@ -1971,6 +1976,7 @@ public sealed class ExplorerWindow : Window
 
     private void SetLevel(UiUnderstandingLevel level)
     {
+        if (level != UiUnderstandingLevel.SemanticWorld && _parameterReviewMode is not null) ExitParameterReview();
         _level = level;
         _statusLevel.Text = _inspectionLevel.DisplayName();
         foreach (var pair in _levelButtons)
@@ -1995,6 +2001,7 @@ public sealed class ExplorerWindow : Window
         SetGraphLoadingState(true, $"Opening map: {IOPath.GetFileName(fullPath)}...");
         try
         {
+            var parameterSourcePath = MapParameterizationStore.PathFor(fullPath);
             var model = await Task.Run(() => new UiMappingReadModel(
                 UiAtlas.Core.Mapping.Atlas.AtlasMapWorkspace.Exists(fullPath)
                     ? UiAtlas.Core.Mapping.Atlas.AtlasMapWorkspace.Open(fullPath).Project()
@@ -2004,6 +2011,8 @@ public sealed class ExplorerWindow : Window
 
             _model = model;
             _graphPath = fullPath;
+            _parameterGraphStoragePath = parameterSourcePath;
+            _parameterDocument = null; _parameterProposals = []; _selectedParameter = null;
             if (_evidence is not null &&
                 _evidence.SessionIds.Any(sessionId => !_model.Graph.Metadata.EffectiveSourceBundleIds.Contains(sessionId, StringComparer.Ordinal)))
             {
@@ -2032,6 +2041,7 @@ public sealed class ExplorerWindow : Window
                 _editMapButton.IsEnabled = !projectionOnly;
                 _editMapButton.ToolTip = projectionOnly ? "Import the complete .atlas-map workspace to review or edit this map." : "Edit controls directly on this map";
             }
+            await LoadParameterReviewAsync();
             _status.Text = $"Opened map: {IOPath.GetFileName(fullPath)}";
         }
         catch (Exception ex) when (ex is IOException or InvalidDataException or NotSupportedException or InvalidOperationException or UIMaps.Map.Core.UiMapException or System.Text.Json.JsonException)
@@ -2871,6 +2881,7 @@ public sealed class ExplorerWindow : Window
     private void RefreshAll()
     {
         if (_model is null) return;
+        if (_parameterReviewMode is not null) { RefreshParameterReview(); return; }
         var query = _search.Text.Trim();
         _topologyLevel.Text = _level.DisplayName();
         _topologyLevel.Foreground = LevelBrush(_level);
@@ -2938,11 +2949,10 @@ public sealed class ExplorerWindow : Window
                 void PopulateControls()
                 {
                 item.Items.Clear();
-                foreach (var control in _model.LayerFor(level).ControlsForSurface(surface.Id)
-                             .Where(control => control.Id == revealedControlId ||
-                                               string.IsNullOrWhiteSpace(query) ||
-                                               control.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                                               control.CanonicalKind.Contains(query, StringComparison.OrdinalIgnoreCase))
+                var controls = _model.LayerFor(level).ControlsForSurface(surface.Id);
+                var parents = UiControlHierarchy.Parents(controls, query, revealedControlId);
+                var controlItems = new Dictionary<string, TreeViewItem>(StringComparer.Ordinal);
+                foreach (var control in controls.Where(control => parents.ContainsKey(control.Id))
                              .OrderBy(control => control.DisplayName, StringComparer.OrdinalIgnoreCase)
                              .ThenBy(control => control.Id, StringComparer.Ordinal))
                 {
@@ -2966,8 +2976,17 @@ public sealed class ExplorerWindow : Window
                         : unverified
                             ? $"{control.CanonicalKind} | discovered in the UI tree but not yet visible or confirmed"
                         : $"{control.CanonicalKind} | observed";
-                    item.Items.Add(controlItem);
+                    controlItems[control.Id] = controlItem;
                     _hierarchyItems[control.Id] = controlItem;
+                }
+                foreach (var (id, controlItem) in controlItems)
+                {
+                    if (controlItems.TryGetValue(parents[id], out var parent))
+                    {
+                        parent.Items.Add(controlItem);
+                        if (!string.IsNullOrWhiteSpace(query)) parent.IsExpanded = true;
+                    }
+                    else item.Items.Add(controlItem);
                 }
                 }
                 if (expandControls) PopulateControls();
@@ -3130,6 +3149,12 @@ public sealed class ExplorerWindow : Window
     private void SelectSurface(UiMapSurfaceView surface, IReadOnlyList<UiMapSurfaceView>? scope = null)
     {
         if (_model is null) return;
+        if (_parameterReviewMode is not null)
+        {
+            var proposal = _parameterProposals.FirstOrDefault(p => p.TargetId == surface.Id);
+            if (proposal is not null) SelectParameterProposal(proposal);
+            return;
+        }
         if (scope is null && surface.Level == UiUnderstandingLevel.RawDataStreams)
         {
             var family = _model.BuildPipeline(UiUnderstandingLevel.RawDataStreams).Nodes.FirstOrDefault(node =>
@@ -3159,6 +3184,12 @@ public sealed class ExplorerWindow : Window
     private void SelectControlById(string id)
     {
         if (_model is null) return;
+        if (_parameterReviewMode is not null)
+        {
+            var proposal = _parameterProposals.FirstOrDefault(p => p.TargetId == id);
+            if (proposal is not null) SelectParameterProposal(proposal);
+            return;
+        }
         var control = _model.Layers.SelectMany(layer => layer.Controls).FirstOrDefault(candidate => candidate.Id == id);
         if (control is null) return;
         var surface = control.Level == UiUnderstandingLevel.RawWorld && _selectedSurface?.Level == control.Level &&
@@ -3620,6 +3651,8 @@ public sealed class ExplorerWindow : Window
         _appMapOverlay.Children.Clear();
         _traceBannerHost.Content = null;
         _traceBannerHost.Visibility = Visibility.Collapsed;
+        if (_parameterReviewMode is not null && _selectedParameter is not null &&
+            RenderRetainedParameterGrid()) return;
         if (_selectedSurface is null || _model is null) return;
         var isRaw = _inspectionLevel == UiUnderstandingLevel.RawDataStreams;
         var isSemanticScene = _inspectionLevel == UiUnderstandingLevel.SemanticWorld &&
@@ -4038,6 +4071,7 @@ public sealed class ExplorerWindow : Window
         else if (projectionMode == UiMapProjectionMode.Routes)
             RenderRoutes();
 
+        RenderParameterOverlays();
         QueueAppMapZoomBoundsUpdate(resetToFit: _resetAppMapZoomOnNextRender);
         _resetAppMapZoomOnNextRender = false;
     }
@@ -4751,6 +4785,8 @@ public sealed class ExplorerWindow : Window
 
     private void ShowProperties(GraphNode node, int controlCount, int variantCount)
     {
+        if (_parameterReviewMode is not null && _selectedParameter is not null)
+        { ShowParameterProperties(); return; }
         var sourceFrame = _selectedVariant?.ControlSourceFrames is { } sources && sources.TryGetValue(node.Id, out var recordedFrame)
             ? recordedFrame : _selectedVariant?.FrameSequence;
         node = UiMapPresentation.ForObservation(node, _selectedVariant?.BundleId, sourceFrame);
@@ -5748,14 +5784,17 @@ public sealed class ExplorerWindow : Window
         return canvas;
     }
 
-    private static bool Matches(UiMapSurfaceView surface, string query, string? surfaceKind)
+    private bool Matches(UiMapSurfaceView surface, string query, string? surfaceKind)
     {
         if (!string.IsNullOrWhiteSpace(surfaceKind) && surfaceKind != "All surface kinds" &&
             !string.Equals(surface.SurfaceKind, surfaceKind, StringComparison.OrdinalIgnoreCase)) return false;
         return string.IsNullOrWhiteSpace(query) ||
                surface.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                surface.SurfaceKind.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-               surface.Source.Properties.Any(property => property.Value.Contains(query, StringComparison.OrdinalIgnoreCase));
+               surface.Source.Properties.Any(property => property.Value.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
+               _model?.LayerFor(surface.Level).ControlsForSurface(surface.Id).Any(control =>
+                   control.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                   control.CanonicalKind.Contains(query, StringComparison.OrdinalIgnoreCase)) == true;
     }
 
     private static string DisplayPropertyName(string value)

@@ -96,6 +96,17 @@ public sealed class LiveMappingTests
                 Assert.DoesNotContain(frame.Automation, value => value.ScopeStatus == "verified");
                 var host = Assert.Single(frame.Automation, value => value.AutomationId == "AtlasMappingGrid");
                 var pixels = retained.ReadBytes(frame.FrameEntry);
+                // The saved grid image is a crop of the captured host, as in Table
+                // Explorer. Keep window chrome and the unrelated button outside it.
+                using (var scene = new MemoryStream(pixels))
+                {
+                    var bitmap = BitmapFrame.Create(scene, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
+                    var origin = frame.ScreenshotBounds ?? frame.Window.Bounds;
+                    var crop = new CroppedBitmap(bitmap, new Int32Rect(host.Bounds.X - origin.X, host.Bounds.Y - origin.Y,
+                        host.Bounds.Width, host.Bounds.Height));
+                    var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(crop));
+                    using var cropped = new MemoryStream(); encoder.Save(cropped); pixels = cropped.ToArray();
+                }
                 var imagePath = Path.Combine(directory, "reviewed-grid.png"); File.WriteAllBytes(imagePath, pixels);
                 var imageHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(pixels)).ToLowerInvariant();
                 var manifest = retained.ReadJson<RecordingManifest>("manifest.json");
@@ -111,7 +122,7 @@ public sealed class LiveMappingTests
                 var capture = new CapturedGrid("fixture-capture", gridReview.GridId, gridReview.Review.Schema,
                     new(target.Hwnd, target.Hwnd, manifest.Target.ProcessId, manifest.Target.ProcessStartedUtc, target.Hwnd, frame.Window.Bounds, host.Bounds),
                     DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, GridCaptureStatus.Partial, GridAcquisitionStage.Verify, ["fixture-visible-scope"],
-                    [new("tile-0001", imagePath, imageHash, DateTimeOffset.UtcNow, frame.Window.Bounds,
+                    [new("tile-0001", imagePath, imageHash, DateTimeOffset.UtcNow, host.Bounds,
                         new(0, 0, 200, 25), new(0, 25, 200, 100), 0, 0, true, [])], [], [], gridReview.Review.Coverage,
                     gridReview.Review.Restoration, capturePath);
                 File.WriteAllText(capturePath, JsonSerializer.Serialize(capture, JsonDefaults.Options));
@@ -121,6 +132,19 @@ public sealed class LiveMappingTests
             var graph = await AtlasMapWorkspace.BuildAsync([recording], mapPath, gridReviews: [gridReview]);
             var workspace = AtlasMapWorkspace.Open(mapPath);
             Assert.Equal("mapped-schema", Assert.Single(workspace.Index.GridReviews!).Status);
+            var parameterGrid = Assert.Single(AtlasParameterizationAdapter.LoadGrids(workspace, graph));
+            Assert.True(parameterGrid.HostBound);
+            Assert.False(string.IsNullOrWhiteSpace(parameterGrid.SurfaceId));
+            var proposal = Assert.Single(UiAtlas.Core.Reader.ParameterizationAnalysis.Build(new(graph), [parameterGrid]),
+                value => value.Id == "grid:test-grid");
+            Assert.Equal(new[] { "physical-0", "physical-100" }, proposal.Schema!.Columns.Select(c => c.ColumnKey));
+            var parameterDocument = MapParameterizationDocument.Empty(workspace.Index.LogicalMapId) with
+            {
+                Proposals = [proposal],
+                Decisions = [new(proposal.Id, proposal.Fingerprint, ParameterReviewState.Accepted, "example_rows", "Collection",
+                    proposal.Scope, new(GridVariationMode.AccordingToSchema), [], "fixture-reviewer", DateTimeOffset.UtcNow)]
+            };
+            MapParameterizationStore.Save(mapPath, parameterDocument, 0);
             var mappedGrid = Assert.Single(workspace.Drafts.SelectMany(value => value.Entities), value => value.EntityKind == UIMaps.Protocol.V3.MapEntityKind.MapDataGrid);
             Assert.Equal(UIMaps.Protocol.V3.GridSchemaStatus.GridSchemaPartial, mappedGrid.HostedDataGrid.SchemaStatus);
             Assert.Equal(new[] { "Name", "Value" }, mappedGrid.HostedDataGrid.ExpectedHeaders);
@@ -146,6 +170,13 @@ public sealed class LiveMappingTests
             var portable = AtlasMapWorkspace.Open(portableMap);
             Assert.Equal("mapped-schema", Assert.Single(portable.Index.GridReviews!).Status);
             Assert.True(File.Exists(portable.Resolve(Assert.Single(portable.Index.GridReviews!).ImageFile)));
+            var portableParameterGrid = Assert.Single(AtlasParameterizationAdapter.LoadGrids(portable, portable.Project()));
+            var portableProposal = Assert.Single(UiAtlas.Core.Reader.ParameterizationAnalysis.Build(new(portable.Project()), [portableParameterGrid]),
+                value => value.Id == proposal.Id);
+            Assert.Equal(proposal.Fingerprint, portableProposal.Fingerprint);
+            Assert.Equal(ParameterReviewState.Accepted, UiAtlas.Core.Reader.ParameterizationAnalysis.State(portableProposal,
+                Assert.Single(MapParameterizationStore.Load(portableMap, portable.Index.LogicalMapId).Decisions)));
+            Assert.NotEmpty(AtlasParameterizationAdapter.ReadGridImage(portableProposal));
             Assert.Contains(portable.Project().Nodes, node => node.ParentId == mappedGrid.MapEntityRef && node.Label == "Value");
             var editorSession = LogicalMapSessionStore.Load(Path.ChangeExtension(portableMap, ".session.json"));
             Assert.Equal(prediction, Assert.Single(editorSession.SpeculativePlanning!.Predictions));
@@ -190,6 +221,19 @@ public sealed class LiveMappingTests
                     editor.Show();
                     await Task.Delay(1500);
                     Assert.Contains("UI Knowledge Graph Editor", ((TextBlock)FindTitle(editor)).Text);
+                    typeof(ExplorerWindow).GetMethod("EnterParameterReview", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                        .Invoke(editor, ["Data grids"]);
+                    editor.UpdateLayout();
+                    var selectedParameter = (ParameterProposal)typeof(ExplorerWindow).GetField("_selectedParameter",
+                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(editor)!;
+                    Assert.Equal(proposal.Id, selectedParameter.Id);
+                    var parameterEvidenceRoot = Environment.GetEnvironmentVariable("UIATLAS_PARAMETER_QA_DIR");
+                    if (!string.IsNullOrWhiteSpace(parameterEvidenceRoot))
+                    {
+                        Directory.CreateDirectory(parameterEvidenceRoot);
+                        await Task.Delay(100);
+                        Render(editor, Path.Combine(parameterEvidenceRoot, "live-mapped-schema-editor.png"));
+                    }
                     review = new MapReviewWindow(mapPath) { ShowActivated = false };
                     review.Show(); review.UpdateLayout();
                     await Task.Delay(200);

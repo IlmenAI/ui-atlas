@@ -27,6 +27,6 @@ public interface IShellNavigationGuard
 public interface IShellWorkSessionsHost
 {
     FrameworkElement CreateWorkSessionsView(Window owner);
-    Task StartWorkSessionAsync(Window owner);
+    Task StartWorkSessionAsync(Window owner, RecordingDisplayScope? displayScope = null);
     Task<bool> TryCloseWorkSessionsAsync(Window owner);
 }

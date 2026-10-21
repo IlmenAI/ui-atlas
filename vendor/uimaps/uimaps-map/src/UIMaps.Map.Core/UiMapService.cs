@@ -873,7 +873,9 @@ public sealed partial class UiMapService
         var affectedRefs = command.CommandKind == ReviewCommandKind.ReviewAcceptAllBlocking
             ? current.ReviewItems.Where(x => x.Blocking && x.ReviewState == ReviewState.ReviewUnreviewed)
                 .Select(x => x.SubjectRef).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList()
-            : string.IsNullOrWhiteSpace(command.SubjectRef) ? [] : new List<string> { command.SubjectRef };
+            : command.CommandKind == ReviewCommandKind.ReviewSetAlias && command.Aliases.Count > 0
+                ? command.Aliases.Select(value => value.FromEntityRef).Distinct(StringComparer.Ordinal).ToList()
+                : string.IsNullOrWhiteSpace(command.SubjectRef) ? [] : new List<string> { command.SubjectRef };
 
         if (command.CommandKind == ReviewCommandKind.ReviewUndo)
             current = RestoreSnapshot(current, _undo, _redo, "MAP_DRAFT_UNDO_UNAVAILABLE");
@@ -1101,6 +1103,33 @@ public sealed partial class UiMapService
                     ReviewedAt = now,
                 });
                 break;
+            case ReviewCommandKind.ReviewSetAlias:
+                var identity = new UIMaps.Protocol.AtlasIdentityEquivalence(draft.Entities, draft.Relationships);
+                var confirmations = command.Aliases.Count > 0 ? command.Aliases.ToArray()
+                    : [new ReviewedMapAlias { FromEntityRef = command.SubjectRef, ToEntityRef = command.SecondaryRef, Reason = command.Reason }];
+                if (confirmations.Length > 4096 || confirmations.Select(value => value.FromEntityRef).Distinct(StringComparer.Ordinal).Count() != confirmations.Length)
+                    throw new UiMapException("MAP_ALIAS_INVALID", "Alias review exceeds its bound or repeats a source identity.");
+                var identities = draft.Entities.ToDictionary(value => value.MapEntityRef, StringComparer.Ordinal);
+                var additions = new List<MapRelationship>();
+                foreach (var confirmation in confirmations)
+                {
+                    if (!identities.TryGetValue(confirmation.FromEntityRef, out var source)
+                        || !identities.TryGetValue(confirmation.ToEntityRef, out var canonical)
+                        || !identity.Compatible(source, canonical) || string.IsNullOrWhiteSpace(confirmation.Reason))
+                        throw new UiMapException("MAP_ALIAS_INVALID", "Alias requires reviewed controls in corresponding paths of different variants and a review reason.");
+                    var alias = new MapRelationship { MapRelationshipRef = _allocator.Allocate("map-relationship"),
+                        RelationshipKind = MapRelationshipKind.MapAliasOf, FromEntityRef = source.MapEntityRef,
+                        ToEntityRef = canonical.MapEntityRef, ReviewState = ReviewState.ReviewAccepted };
+                    alias.Limitations.Add($"Reviewed by {command.ReviewedBy} at {now}: {confirmation.Reason}");
+                    additions.Add(alias);
+                }
+                _ = new UIMaps.Protocol.AtlasIdentityEquivalence(draft.Entities, draft.Relationships.Concat(additions));
+                draft.Relationships.AddRange(additions);
+                break;
+            case ReviewCommandKind.ReviewClearAlias:
+                foreach (var prior in draft.Relationships.Where(value => value.RelationshipKind == MapRelationshipKind.MapAliasOf && value.FromEntityRef == command.SubjectRef))
+                    prior.ReviewState = ReviewState.ReviewRejected;
+                break;
             case ReviewCommandKind.ReviewSetParent:
                 if (entity is null || string.IsNullOrWhiteSpace(command.SecondaryRef)
                     || draft.Entities.All(x => x.MapEntityRef != command.SecondaryRef))
@@ -1158,7 +1187,8 @@ public sealed partial class UiMapService
         ResolveReviewItems(draft, entity.MapEntityRef, ReviewState.ReviewAccepted);
         if (entity.EntityKind == MapEntityKind.MapSurface)
         {
-            foreach (var variant in draft.Entities.Where(x => x.ParentEntityRef == entity.MapEntityRef && x.EntityKind == MapEntityKind.MapSurfaceVariant))
+            foreach (var variant in draft.Entities.Where(x => x.ParentEntityRef == entity.MapEntityRef
+                         && x.EntityKind == MapEntityKind.MapSurfaceVariant && x.ReviewState == ReviewState.ReviewUnreviewed))
                 variant.ReviewState = ReviewState.ReviewAccepted;
         }
     }
@@ -1633,6 +1663,9 @@ public static class UiMapValidator
             finding.AffectedRefs.AddRange(refs);
             report.Findings.Add(finding);
         }
+
+        try { _ = new UIMaps.Protocol.AtlasIdentityEquivalence(draft.Entities, draft.Relationships); }
+        catch (Exception error) when (error is InvalidDataException or ArgumentException) { Finding(ValidationSeverity.ValidationError, "MAP_ALIAS_INVALID", error.Message); }
 
         var included = draft.Entities.Where(x => x.ReviewState != ReviewState.ReviewRejected).ToList();
         var refs = included.Select(x => x.MapEntityRef).ToList();

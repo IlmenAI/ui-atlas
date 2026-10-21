@@ -204,6 +204,15 @@ public sealed class AtlasMapWorkspace : IMappingReviewStore
                 }
             }
             if (sources.Count == 0 || application is null || logicalMapId is null) throw new InvalidDataException("At least one recorded observation is required.");
+            var legacyParameters = MapParameterizationStore.LegacyPath(graphPath);
+            if (existing is null && File.Exists(legacyParameters))
+            {
+                var originalId = File.Exists(graphPath) ? SqliteGraphStore.ReadSummary(graphPath).Metadata.EffectiveLogicalMapId : logicalMapId;
+                _ = MapParameterizationStore.LoadFile(legacyParameters, originalId);
+                var retainedParameters = Path.Combine(output, "parameter-review.json");
+                File.Copy(legacyParameters, retainedParameters);
+                MapParameterizationStore.RebindFile(retainedParameters, logicalMapId);
+            }
             var index = new AtlasMapIndex(Format, logicalMapId, application, sessions, sources, bundles, retainedGrids);
             File.WriteAllText(Path.Combine(output, "atlas-map.json"), JsonSerializer.Serialize(index, Json));
             File.WriteAllText(Path.Combine(output, "build-settings.json"), JsonSerializer.Serialize(buildSettings, Json));
@@ -247,6 +256,61 @@ public sealed class AtlasMapWorkspace : IMappingReviewStore
             MapDraftRef = draft.MapDraftRef, ExpectedEtag = draft.Etag, ValidationRunRef = validations[index].ValidationRunRef,
             PublishedBy = reviewer }).Revision).ToArray();
     }
+
+    public UiMapRevision MarkReady(string draftRef, string changedBy, bool requireReview = true)
+    {
+        using var lease = AcquireLease();
+        var selected = Index.Sessions.SingleOrDefault(value => value.DraftRef == draftRef)
+            ?? throw new ArgumentException("The selected draft does not belong to this workspace.");
+        var session = Service.GetSession(selected.SessionRef);
+        UiMapRevision revision;
+        if (!string.IsNullOrEmpty(session.PublishedMapRevisionRef))
+        {
+            revision = Service.GetRevision(session.PublishedMapRevisionRef);
+        }
+        else
+        {
+            var draft = Service.GetDraft(draftRef);
+            // Check real defects before changing any review state. Only the two
+            // explicit-review gates may be satisfied by automatic acceptance.
+            var preflight = UiMapValidator.Validate(draft, "readiness-preflight", DateTimeOffset.UtcNow.ToString("O"));
+            var blockers = preflight.Findings.Where(finding => finding.Severity == ValidationSeverity.ValidationError
+                && (requireReview || finding.Code is not ("MAP_VALIDATION_BLOCKED" or "MAP_INTERACTION_REVIEW_REQUIRED"))).ToArray();
+            if (blockers.Length > 0)
+                throw new InvalidDataException("This map cannot be marked Ready. "
+                    + string.Join(" ", blockers.Select(value => value.Code + ": " + value.Message))
+                    + (requireReview && blockers.Any(value => value.Code is "MAP_VALIDATION_BLOCKED" or "MAP_INTERACTION_REVIEW_REQUIRED")
+                        ? " Review the map, or turn off 'Require review before marking UI maps Ready' in launcher Settings." : ""));
+            if (!requireReview && draft.ReviewItems.Any(value => value.Blocking && value.ReviewState == ReviewState.ReviewUnreviewed))
+            {
+                draft = Service.ApplyReviewCommand(new ReviewCommand
+                {
+                    RequestId = Guid.NewGuid().ToString("N"), MapDraftRef = draftRef, ExpectedEtag = draft.Etag,
+                    CommandKind = ReviewCommandKind.ReviewAcceptAllBlocking,
+                    ReviewedBy = "policy:manual-review-disabled",
+                    Reason = $"Pending items accepted automatically because manual review was disabled when {changedBy} marked this map Ready.",
+                }).Draft;
+                SaveProjection(Project(), _graphPath);
+            }
+            var validation = Service.ValidateDraft(draftRef, draft.Etag);
+            if (!validation.PublicationEligible)
+                throw new InvalidDataException("This map cannot be marked Ready. " + string.Join(" ",
+                    validation.Findings.Where(value => value.Severity == ValidationSeverity.ValidationError)
+                        .Select(value => value.Code + ": " + value.Message)));
+            revision = Service.Publish(new PublishMapDraftRequest
+            {
+                RequestId = Guid.NewGuid().ToString("N"), MapDraftRef = draftRef, ExpectedEtag = draft.Etag,
+                ValidationRunRef = validation.ValidationRunRef, PublishedBy = changedBy,
+            }).Revision;
+        }
+        Service.SetLibraryReadiness(new SetMapLibraryReadinessRequest
+        {
+            RequestId = Guid.NewGuid().ToString("N"), ChangedBy = changedBy, Ready = true,
+            Entry = new MapLibraryEntry { MappingSessionRef = selected.SessionRef, MapDraftRef = draftRef },
+        });
+        return revision;
+    }
+
     public void UpdateLibrary(Action<UiMapService> change)
     {
         ArgumentNullException.ThrowIfNull(change);

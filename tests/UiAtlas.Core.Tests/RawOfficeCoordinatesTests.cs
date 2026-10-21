@@ -121,6 +121,19 @@ public sealed class RawOfficeCoordinatesTests
                 Assert.DoesNotContain(Get<Canvas>("_appMapOverlay").Children.OfType<Rectangle>(), r => r.ToolTip?.ToString()?.StartsWith("OK •") == true);
                 Get<CheckBox>("_showRawReportedCoordinates").IsChecked = false; Render();
                 Assert.Contains(Get<Canvas>("_appMapOverlay").Children.OfType<Rectangle>(), r => r.ToolTip?.ToString()?.StartsWith("OK •") == true);
+                var rawEdit = model.LayerFor(UiUnderstandingLevel.RawDataStreams).Controls.First(c =>
+                    UiMappingReadModel.Property(c.Source, "rawStreamId") == "uia" &&
+                    c.Source.Observations?.Any(o => o.FrameSequence == 1 && o.Control.RuntimeId == "edit") == true);
+                var semantic = rawEdit with { Level = UiUnderstandingLevel.SemanticWorld,
+                    SourceSurfaceIds = new HashSet<string> { "source-dialog" },
+                    ObservationSources = [rawEdit.Source with { Properties = [
+                        new("rawSurfaceId", "source-dialog"), new("sourceRawDataStreamControlId", rawEdit.Id)] }] };
+                var parameterVariant = dialog.Variants.First(v => v.FrameSequence == 1) with { NativeWindowHwnd = 2 };
+                var frame = evidence.ReadObservation("golden", 1);
+                Assert.Equal(new RectI(2937, 440, 312, 36), Assert.Single(ParameterReviewPresentation.Regions(
+                    semantic, parameterVariant, model: model, frameEvidence: frame)));
+                Assert.Empty(ParameterReviewPresentation.Regions(semantic, parameterVariant, model: model,
+                    frameEvidence: frame with { RawStreams = frame.RawStreams!.Where(s => s.Source != "native-hwnd").ToArray() }));
                 Assert.Equal(new RectI(3425, 1110, 151, 54), evidence.ReadObservation("golden", 1).RawStreams!.Single(s => s.Source == "uia").Controls.Single(c => c.RuntimeId == "ok").Bounds);
             }
             finally { viewer.Close(); }

@@ -196,6 +196,14 @@ public sealed class LocalArtifactCatalog
                 var sourceCuration = MapCurationStore.Load(sourceMapPath, graph.Metadata.EffectiveLogicalMapId);
                 MapCurationStore.Save(duplicateMapPath, sourceCuration with { LogicalMapId = duplicateId });
             }
+            if (!Directory.Exists(MapBackendCompanion.PathFor(sourceMapPath)) &&
+                File.Exists(MapParameterizationStore.LegacyPath(sourceMapPath)))
+            {
+                var sourceParameters = MapParameterizationStore.LoadFile(
+                    MapParameterizationStore.LegacyPath(sourceMapPath), graph.Metadata.EffectiveLogicalMapId);
+                MapParameterizationStore.Save(duplicateMapPath, sourceParameters with
+                    { LogicalMapId = duplicateId, Revision = 0 }, 0);
+            }
 
             return new(duplicateId, duplicateMapPath,
                 sourceSession is null ? null : duplicateSessionPath);
@@ -206,6 +214,7 @@ public sealed class LocalArtifactCatalog
             DeleteFileIfPresent(duplicateMapPath, MapsDirectory);
             DeleteFileIfPresent(duplicateSessionPath, MapsDirectory);
             DeleteFileIfPresent(MapCurationStore.PathForMap(duplicateMapPath), MapsDirectory);
+            DeleteFileIfPresent(MapParameterizationStore.LegacyPath(duplicateMapPath), MapsDirectory);
             throw;
         }
     }
@@ -269,6 +278,8 @@ public sealed class LocalArtifactCatalog
         catch { File.Move(destination, mapPath); throw; }
         ArchiveCompanionIfPresent(MapSessionPath(id), "maps", Path.GetFileNameWithoutExtension(destination), ".session.json");
         ArchiveCompanionIfPresent(MapCurationPath(id), "maps", Path.GetFileNameWithoutExtension(destination), ".curation.json");
+        ArchiveCompanionIfPresent(MapParameterizationStore.LegacyPath(mapPath), "maps",
+            Path.GetFileNameWithoutExtension(destination), ".db.parameters.json");
         return destination;
     }
     public int ArchiveAllRecordings() => ArchiveAll(RecordingsDirectory, "*.mlrec", "recordings");
@@ -296,6 +307,7 @@ public sealed class LocalArtifactCatalog
             File.Exists(mapPath + "-shm") ||
             File.Exists(sessionPath) ||
             File.Exists(MapCurationPath(id)) ||
+            File.Exists(MapParameterizationStore.LegacyPath(mapPath)) ||
             File.Exists(exportPath) ||
             File.Exists(exportPath + ".sha256");
         if (!managedArtifactsExist)
@@ -310,6 +322,7 @@ public sealed class LocalArtifactCatalog
         deletedAny |= DeleteFileIfPresent(mapPath + "-shm", MapsDirectory);
         deletedAny |= DeleteFileIfPresent(sessionPath, MapsDirectory);
         deletedAny |= DeleteFileIfPresent(MapCurationPath(id), MapsDirectory);
+        deletedAny |= DeleteFileIfPresent(MapParameterizationStore.LegacyPath(mapPath), MapsDirectory);
         deletedAny |= DeleteFileIfPresent(exportPath, ExportsDirectory);
         deletedAny |= DeleteFileIfPresent(exportPath + ".sha256", ExportsDirectory);
         return deletedAny;

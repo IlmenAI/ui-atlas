@@ -85,6 +85,7 @@ public static class AtlasMapPackage
             }
             var map = Path.Combine(staging, "map.db");
             var workspace = AtlasMapWorkspace.Open(map);
+            _ = MapParameterizationStore.Load(map, workspace.Index.LogicalMapId);
             foreach (var file in workspace.Index.BundleFiles)
             {
                 var path = workspace.Resolve(file);

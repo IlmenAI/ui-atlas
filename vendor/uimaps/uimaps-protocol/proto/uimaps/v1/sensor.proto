@@ -105,6 +105,13 @@ message AccessibilityNodeRecord {
   string provider_id = 20;
   string native_window_handle_evidence = 21;
   string native_control_id_evidence = 22;
+  // Fresh, non-content state. Missing fields mean unavailable, not false/zero.
+  optional bool has_keyboard_focus = 23;
+  optional bool is_selected = 24;
+  optional int32 toggle_state = 25;
+  optional int32 expand_collapse_state = 26;
+  optional int32 grid_row = 27;
+  optional int32 grid_column = 28;
 }
 
 message AccessibilityPacket {

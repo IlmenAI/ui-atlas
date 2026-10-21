@@ -49,8 +49,8 @@
       "repository": "https://github.com/AI-Successors/uimaps-protocol",
       "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
       "source": "proto/uimaps/v1/sensor.proto",
-      "sha256": "e2d1aa93dad39f01658d87fd8026205bcd70f6a0300e2949467f3676a7393718",
-      "disposition": "reviewed-adaptation: neutral stream identities; private input messages excluded",
+      "sha256": "be2b570a078932cc91e2bc537fe87693bffda5fb000246638480bda3b0d8cee8",
+      "disposition": "reviewed-adaptation: neutral stream identities and optional non-content focus, selection, toggle, expansion and grid-position evidence; private input messages excluded",
       "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
     },
     {
@@ -154,8 +154,8 @@
       "repository": "https://github.com/AI-Successors/uimaps-protocol",
       "commit": "98724b2fc6b98d741879306f47523bde168fe5f3",
       "source": "proto/uimaps/v3/ui_map.proto",
-      "sha256": "992cfac31ea82b7a079e337a672b70ce7baa911fc5bdc3be9e9463b03fa0774d",
-      "disposition": "adapted-source: native recorder integration, exact source provenance and explicit workspace snapshot handoff"
+      "sha256": "52fc7001d9b13ac00bf40b58a63c68a1279d60c71194b1b79b094e166c845e95",
+      "disposition": "adapted-source: native recorder integration, exact source provenance and explicit workspace snapshot handoff; Phase 4.2.2 reviewed Atlas alias commands and validation"
     },
     {
       "target": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/GridColumnHeaderResolver.cs",
@@ -326,8 +326,8 @@
       "repository": "https://github.com/AI-Successors/uimaps-map",
       "commit": "fc005f5fc1787da409f9667c10ef109e25e8d2c8",
       "source": "src/UIMaps.Map.Core/UiMapService.cs",
-      "sha256": "72e5166725675cf2087141d1c0782d2834fd9148f68bafecdfd85c4920a891b4",
-      "disposition": "adapted-source: native recorder integration, exact source provenance and explicit workspace snapshot handoff"
+      "sha256": "0fae2916b26911d27cd4e2a0d233e66233f499fcb908acc8ae999f2231e6ca66",
+      "disposition": "adapted-source: native recorder integration, exact source provenance, explicit workspace snapshot handoff, and preserve rejected variants during bulk acceptance; Phase 4.2.2 reviewed Atlas alias commands and validation"
     },
     {
       "target": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/UiMapStore.cs",
@@ -602,6 +602,14 @@
       "sha256": "74a3750adf5f4440009e637a803bb77676d579d7b8abc45ccc9c1aa934193b1b",
       "disposition": "reviewed-existing-Atlas-source: same-episode immutable raw-provider completion and ancestry retained by canonical historical interpretation",
       "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/AtlasIdentityEquivalence.cs",
+      "repository": "https://github.com/IlmenAI/UI-Atlas",
+      "commit": "3735554abfb5979420e5b6acf07e95a84b66e8eb",
+      "source": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/AtlasIdentityEquivalence.cs",
+      "sha256": "996d5d13156fd5c38af629a2ccf1b9164d37621b6f0a904944bd5bde81fd04fd",
+      "disposition": "atlas-authored working-tree addition: Phase 4.2.2 reviewed revision-scoped control equivalence"
     }
   ]
 }
