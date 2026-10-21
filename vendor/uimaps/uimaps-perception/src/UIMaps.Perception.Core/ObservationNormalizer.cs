@@ -68,6 +68,7 @@ public sealed class ObservationNormalizer
                             Property("sourceAccessibilityEvidenceId", node.AccessibilityEvidenceId),
                             Property("controlType", node.ControlType),
                             Property("localizedControlType", node.LocalizedControlType),
+                            Property("supportedPatterns", string.Join("|", node.SupportedPatterns.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))),
                             Property("className", node.ClassName),
                             Property("providerId", node.ProviderId),
                             Property("nativeWindowHandleEvidence", node.NativeWindowHandleEvidence),
