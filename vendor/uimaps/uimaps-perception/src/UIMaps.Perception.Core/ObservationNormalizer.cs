@@ -73,6 +73,7 @@ public sealed class ObservationNormalizer
                             Property("providerId", node.ProviderId),
                             Property("nativeWindowHandleEvidence", node.NativeWindowHandleEvidence),
                             Property("nativeControlIdEvidence", node.NativeControlIdEvidence),
+                            Property("nativeCaretOwnerConfirmed", node.NativeCaretOwnerConfirmed.ToString(System.Globalization.CultureInfo.InvariantCulture)),
                             Property("isEnabled", node.IsEnabled.ToString(System.Globalization.CultureInfo.InvariantCulture)),
                             Property("isOffscreen", node.IsOffscreen.ToString(System.Globalization.CultureInfo.InvariantCulture)),
                             Property("isPassword", node.IsPassword.ToString(System.Globalization.CultureInfo.InvariantCulture)),

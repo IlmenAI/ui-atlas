@@ -112,6 +112,9 @@ message AccessibilityNodeRecord {
   optional int32 expand_collapse_state = 26;
   optional int32 grid_row = 27;
   optional int32 grid_column = 28;
+  // Native focus and caret owned this exact HWND at both ends of the focused
+  // acquisition. This is editing-owner evidence, not a UIA pattern or receipt.
+  optional bool native_caret_owner_confirmed = 29;
 }
 
 message AccessibilityPacket {
