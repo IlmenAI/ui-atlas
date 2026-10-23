@@ -339,6 +339,7 @@ public sealed class MapperOverlayWindowTests
                 canvas.PreviewMouseDown += (_, _) => businessClicks++;
                 var targetWindow = new Window { Title = "Mapper overlay verification — synthetic data",
                     Width = 850, Height = 570, Left = left, Top = 100, Content = canvas, Topmost = true };
+                NativeDesktopFixture.Place(targetWindow);
                 RecordingHighlightOverlay? overlay = null;
                 try
                 {
@@ -376,7 +377,9 @@ public sealed class MapperOverlayWindowTests
                         var hideButton = Assert.Single(Descendants<Button>(legend));
                         hideButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
                         Assert.True(legend.IsCollapsed);
-                        Assert.Equal(34, legend.Width);
+                        // Window sizing rounds to physical pixels on fractional-DPI displays.
+                        var pixel = 1 / VisualTreeHelper.GetDpi(legend).DpiScaleX;
+                        Assert.InRange(legend.Width, 34 - pixel, 34 + pixel);
                         var restoreButton = Assert.Single(Descendants<Button>(legend));
                         restoreButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
                         Assert.False(legend.IsCollapsed);
@@ -539,6 +542,15 @@ public sealed class MapperOverlayWindowTests
                     Await(() => hit.Dispatcher.Invoke(() => overlay.MapperHighlights.Any(g => g.Kind == MapperHighlightKind.NativeGrid)));
                     hit.Dispatcher.Invoke(() => Assert.True(overlay.MapperLegend!.IsVisible));
                     targetWindow.Width -= 20; Pump(100);
+                    // The target moved and resized above. An explicit replacement
+                    // must carry current geometry, just as a new recorder frame does.
+                    target = WindowCatalog.Resolve(hwnd);
+                    frame = frame with
+                    {
+                        Window = WindowSnapshotCapture.Observe(target),
+                        Automation = [native with { Bounds = Screen(table) }, visual with { Bounds = Screen(candidate) },
+                            MapperHighlightTests.Control("ordinary", "Button", Screen(button))]
+                    };
                     overlay.ReplaceMapperHighlights(target.Bounds, frame); Await(() => overlay.GridHitWindows.Count == 2);
                     overlay.ReplaceMapperHighlights(target.Bounds, frame with { Automation = [] });
                     Await(() => overlay.GridHitWindows.Count == 0);

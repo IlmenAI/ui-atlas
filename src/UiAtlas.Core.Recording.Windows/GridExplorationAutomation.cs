@@ -35,7 +35,8 @@ internal static class GridExplorationAutomation
                 var bounds = new RectI(r.left, r.top, r.right - r.left, r.bottom - r.top);
                 if (element.CurrentProcessId == processId && Near(bounds, request.Bounds) &&
                     (Has(element, UIA_PropertyIds.UIA_IsGridPatternAvailablePropertyId) ||
-                     Has(element, UIA_PropertyIds.UIA_IsTablePatternAvailablePropertyId)))
+                     Has(element, UIA_PropertyIds.UIA_IsTablePatternAvailablePropertyId) ||
+                     Has(element, UIA_PropertyIds.UIA_IsScrollPatternAvailablePropertyId)))
                 { found = true; break; }
                 var parent = walker.GetParentElement(element); Release(element); element = parent;
             }

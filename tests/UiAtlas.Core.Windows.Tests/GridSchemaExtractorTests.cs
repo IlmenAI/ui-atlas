@@ -152,6 +152,28 @@ public sealed class GridSchemaExtractorTests
     }
 
     [Fact]
+    public async Task UnruledHeadersUseBodyColumnsSupportedByOriginalTiles()
+    {
+        using var fixture = new Fixture(stitchedArtifacts: true, ruledRows: true, unruledHeader: true);
+        var reader = new HeaderReader();
+        var draft = await new GridSchemaExtractor(reader).ExtractAsync(fixture.Source, fixture.Source.HeaderBounds);
+        Assert.Equal(new double[] { 0, 60, 120 }, draft.Schema.Columns.Select(c => c.StartX));
+        Assert.Equal(new double[] { 60, 120, 180 }, draft.Schema.Columns.Select(c => c.EndX));
+        Assert.Equal(3, reader.Sizes.Count);
+        Assert.All(reader.Sizes, size => Assert.Equal((60, 24), size));
+        Assert.DoesNotContain("column-dividers-not-detected", draft.Reasons);
+    }
+
+    [Fact]
+    public async Task UnruledHeadersWithoutBodyRowBoundariesRequireManualDividers()
+    {
+        using var fixture = new Fixture(unruledHeader: true);
+        var draft = await Reader().ExtractAsync(fixture.Source, fixture.Source.HeaderBounds);
+        Assert.Single(draft.Schema.Columns);
+        Assert.Contains("column-dividers-not-detected", draft.Reasons);
+    }
+
+    [Fact]
     public async Task RejectsInvalidGeometryDividersAndChangedSourceBeforeSave()
     {
         using var fixture = new Fixture();
@@ -199,14 +221,15 @@ public sealed class GridSchemaExtractorTests
         internal string Directory { get; } = Path.Combine(Path.GetTempPath(), "schema-review-test-" + Guid.NewGuid().ToString("N"));
         internal GridImageExplorationResult Source { get; }
         internal Fixture(GridCaptureStatus status = GridCaptureStatus.Complete, GridRestorationStatus restoration = GridRestorationStatus.Succeeded,
-            bool stitchedArtifacts = false, bool ruledRows = false, bool rowSelector = false, bool footer = false, bool footerText = false)
+            bool stitchedArtifacts = false, bool ruledRows = false, bool rowSelector = false, bool footer = false, bool footerText = false,
+            bool unruledHeader = false)
         {
             System.IO.Directory.CreateDirectory(Directory);
             const int width = 180;
             var height = footer ? 130 : ruledRows ? 120 : 72;
             var pixels = Enumerable.Repeat((byte)255, width * height * 4).ToArray();
             void Dark(int x, int y) { var offset = (y * width + x) * 4; pixels[offset] = pixels[offset + 1] = pixels[offset + 2] = 40; }
-            foreach (var x in new[] { 60, 120 }) for (var y = 0; y < height; y++) Dark(x, y);
+            foreach (var x in new[] { 60, 120 }) for (var y = unruledHeader ? 24 : 0; y < height; y++) Dark(x, y);
             if (rowSelector) for (var y = 0; y < height; y++) Dark(8, y);
             if (ruledRows) foreach (var y in new[] { 24, 48, 72, 96 }) for (var x = 0; x < width; x++) Dark(x, y);
             if (footer) foreach (var y in new[] { 120, 128 }) for (var x = 0; x < width; x++) Dark(x, y);

@@ -189,6 +189,15 @@ public static class AtlasMapProjection
                 }
                 return null;
             }
+            // Old drafts may contain native owner-only windows. Project only
+            // surfaces with positive geometry in at least one retained source;
+            // never gate on the latest visibility or on control counts. This
+            // preserves closed/hidden historical windows and image-only popups.
+            var eligibleSurfaces = draft.Entities.Where(entity => entity.EntityKind == MapEntityKind.MapSurface &&
+                entity.EvidenceLinks.Select(link => worldBySource.GetValueOrDefault((link.SourceObservationSetRef, link.SourceObjectRef)))
+                    .OfType<string>().Any(id => nodes[id].Kind == GraphNodeKind.Surface &&
+                        nodes[id].Evidence.Any(evidence => evidence.Bounds is { Width: > 0, Height: > 0 })))
+                .Select(entity => entity.MapEntityRef).ToHashSet(StringComparer.Ordinal);
             foreach (var entity in draft.Entities.Where(entity => entity.EntityKind is MapEntityKind.MapSurface or MapEntityKind.MapControl or MapEntityKind.MapDataGrid or MapEntityKind.MapGridColumn))
             {
                 var isSurface = entity.EntityKind == MapEntityKind.MapSurface;
@@ -199,7 +208,7 @@ public static class AtlasMapProjection
                     .Cast<string>().Distinct(StringComparer.Ordinal).ToArray();
                 if (sources.Length == 0) continue;
                 var surface = Surface(entity);
-                if (!isSurface && surface is null) continue;
+                if (surface is null || !eligibleSurfaces.Contains(surface)) continue;
                 var parent = isSurface ? appId : entities.TryGetValue(entity.ParentEntityRef, out var parentEntity)
                     && parentEntity.EntityKind is MapEntityKind.MapControl or MapEntityKind.MapDataGrid ? parentEntity.MapEntityRef : surface!;
                 var properties = new List<GraphProperty> { new("layer", "semantic-world"), new("mapDraftRef", draft.MapDraftRef),

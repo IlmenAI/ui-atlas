@@ -85,6 +85,19 @@ public sealed class RecorderWorkflowCommandTests
                 hasResultFrame: true));
     }
 
+    [Theory]
+    [InlineData(AdaptiveClickCaptureOutcome.Failed)]
+    [InlineData(AdaptiveClickCaptureOutcome.DialogFailed)]
+    [InlineData(AdaptiveClickCaptureOutcome.PopupFailed)]
+    [InlineData(AdaptiveClickCaptureOutcome.ControlCaptured)]
+    public void FailedCaptureKeepsAnActionableStatusUntilASuccessfulCapture(AdaptiveClickCaptureOutcome outcome)
+    {
+        Assert.Contains("click again", Program.ManualCaptureFailureStatus(outcome)!.Replace("click a control again", "click again"));
+        Assert.Null(Program.ManualCaptureFailureStatus(AdaptiveClickCaptureOutcome.RootCaptured));
+        Assert.Null(Program.ManualCaptureFailureStatus(AdaptiveClickCaptureOutcome.DialogCaptured));
+        Assert.Null(Program.ManualCaptureFailureStatus(AdaptiveClickCaptureOutcome.PopupCaptured));
+    }
+
     [Fact]
     public void EmptyAccessibilityTreeTriggersOpaqueSurfaceFallback()
     {

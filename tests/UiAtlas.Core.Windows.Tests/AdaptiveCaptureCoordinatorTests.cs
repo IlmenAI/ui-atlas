@@ -7,6 +7,77 @@ namespace UiAtlas.Core.Windows.Tests;
 
 public sealed class AdaptiveCaptureCoordinatorTests
 {
+    [Theory]
+    [InlineData("success")]
+    [InlineData("failure")]
+    [InlineData("cancel")]
+    [InlineData("action-cancel")]
+    [InlineData("timeout")]
+    public async Task TemporarySuspensionWaitsForPendingWorkAndResumesAfterEveryExit(string exit)
+    {
+        var process = System.Diagnostics.Process.GetCurrentProcess();
+        var target = new WindowTarget(1, 1, process.Id, process.ProcessName,
+            process.StartTime.ToUniversalTime(), "Root", "Window", new RectI(0, 0, 800, 600));
+        var baseline = new FrameObservation(1, DateTimeOffset.UtcNow, "",
+            new WindowObservation(1, 1, process.Id, "Window", "Root", target.Bounds, true, true, false, false, 96),
+            [], false, "ok", "baseline");
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var calls = 0;
+        var captureReturned = false;
+        var output = Path.Combine(Path.GetTempPath(), "ui-atlas-suspend-" + Guid.NewGuid().ToString("N") + ".mlrec");
+        await using var session = new ManualRecordingSession(target, output, useNativeRecorder: false);
+        await using var coordinator = new AdaptiveCaptureCoordinator(session, target, null, null, null, async token =>
+        {
+            if (Interlocked.Increment(ref calls) == 1)
+            {
+                started.TrySetResult();
+                await release.Task.WaitAsync(token);
+            }
+            captureReturned = true;
+            return baseline with { Sequence = calls + 1 };
+        });
+        coordinator.Start(baseline);
+        var pending = coordinator.RefreshRootSurfaceAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        using var cancellation = new CancellationTokenSource();
+        var actionCalled = false;
+        var suspended = coordinator.RunWithCaptureSuspendedAsync(async () =>
+        {
+            actionCalled = true;
+            Assert.True(captureReturned);
+            Assert.Null(await coordinator.RefreshRootSurfaceAsync(TimeSpan.FromSeconds(1), CancellationToken.None));
+            if (exit == "failure") throw new InvalidOperationException("exploration failed");
+            if (exit == "action-cancel") throw new OperationCanceledException("exploration cancelled");
+            return 42;
+        }, exit == "timeout" ? TimeSpan.FromMilliseconds(100) : TimeSpan.FromSeconds(3), cancellation.Token);
+        Assert.False(actionCalled);
+        Assert.Null(await coordinator.RefreshRootSurfaceAsync(TimeSpan.FromSeconds(1), CancellationToken.None));
+        if (exit == "cancel") cancellation.Cancel();
+        if (exit is "cancel" or "timeout")
+        {
+            if (exit == "timeout") await Assert.ThrowsAsync<TimeoutException>(() => suspended);
+            else await Assert.ThrowsAnyAsync<OperationCanceledException>(() => suspended);
+            Assert.False(actionCalled);
+            release.TrySetResult();
+        }
+        else
+        {
+            release.TrySetResult();
+            if (exit == "failure") await Assert.ThrowsAsync<InvalidOperationException>(() => suspended);
+            else if (exit == "action-cancel") await Assert.ThrowsAnyAsync<OperationCanceledException>(() => suspended);
+            else Assert.Equal(42, await suspended);
+        }
+        await pending;
+        Assert.Equal(3, (await coordinator.RefreshRootSurfaceAsync(TimeSpan.FromSeconds(2), CancellationToken.None))!.Sequence);
+        Assert.Equal(7, await coordinator.RunWithCaptureSuspendedAsync(() => Task.FromResult(7),
+            TimeSpan.FromSeconds(2), CancellationToken.None));
+        Assert.Equal(4, (await coordinator.RefreshRootSurfaceAsync(TimeSpan.FromSeconds(2), CancellationToken.None))!.Sequence);
+        await coordinator.DrainAsync(TimeSpan.FromSeconds(2), CancellationToken.None);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => coordinator.RunWithCaptureSuspendedAsync(
+            () => Task.FromResult(0), TimeSpan.FromSeconds(1), CancellationToken.None));
+    }
+
     [Fact]
     public void PopupAccessibilityDiagnosticsDistinguishIncompleteContentFromTimeouts()
     {
@@ -799,6 +870,17 @@ public sealed class AdaptiveCaptureCoordinatorTests
                 rootCaptureAttemptOverride: async token => await session.CaptureAsync(
                     "test-root-after-close", token, new FrameCaptureOptions(IncludeAutomation: false)));
             coordinator.Start(baseline);
+
+            // Table Explorer may run more than once before a user opens a form.
+            // The monitor, queues and manual capture must survive both boundaries.
+            for (var pass = 0; pass < 2; pass++)
+            {
+                session.SetInputCapturePaused(true);
+                await coordinator.RunWithCaptureSuspendedAsync(
+                    () => session.RunGridExplorationAsync(() => Task.FromResult(true), CancellationToken.None),
+                    TimeSpan.FromSeconds(2), CancellationToken.None);
+                session.SetInputCapturePaused(false);
+            }
 
             var manualCheckpoint = coordinator.CreateClickCheckpoint();
             var manualPopup = await ShowPopupAsync(root, "Manual popup", 150);

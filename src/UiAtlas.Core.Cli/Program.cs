@@ -1293,6 +1293,7 @@ internal static class Program
             });
         session.FullRawObservations = launchMode != SessionLaunchMode.AutoTabs;
         session.RawCaptureProgress = message => panel.SetStatus(message);
+        overlay.RecordedFramePixels = frame => session.TryGetFrameScreenshot(frame.Sequence, out var pixels) ? pixels : null;
         session.Start(explicitConsent: true);
         // The click that chose a recording mode and any user input used while the
         // initial bounded scan is running must never become the first recorded
@@ -1686,6 +1687,7 @@ internal static class Program
             }
 
             var requestedClicks = 1;
+            string? manualCaptureFailure = null;
             while (true)
             {
                 cancellation.Token.ThrowIfCancellationRequested();
@@ -1705,12 +1707,12 @@ internal static class Program
                 var commandTask = WaitForRecordingCommandAsync(panel, commandCancellation.Token);
                 if (Volatile.Read(ref pauseRequested) == 0)
                 {
-                    panel.SetStatus(requestedClicks == 1 && session.FullRawObservations &&
+                    panel.SetStatus(manualCaptureFailure ?? (requestedClicks == 1 && session.FullRawObservations &&
                         adaptive?.LatestFullFrame.Acquisition?.Status is "partial" or "interrupted"
                         ? IncompleteObservationStatus(adaptive!.LatestFullFrame)
                         : requestedClicks == 1
                         ? "Ready for the next single click."
-                        : "Double-click capture is armed.");
+                        : "Double-click capture is armed."));
                 }
                 await Task.WhenAny(commandTask, clickTask).ConfigureAwait(false);
 
@@ -1731,9 +1733,16 @@ internal static class Program
                             try
                             {
                                 linked.Token.ThrowIfCancellationRequested();
-                                if (adaptive is not null) await adaptive.DrainAsync(TimeSpan.FromSeconds(2), linked.Token).ConfigureAwait(false);
-                                overlay.GridEvidenceFrame = await session.CaptureAsync("grid-host-context", linked.Token).ConfigureAwait(false);
-                                var result = await session.RunGridExplorationAsync(() => exploration.Action(linked.Token), linked.Token).ConfigureAwait(false);
+                                async Task<GridImageExplorationResult> ExploreAsync()
+                                {
+                                    overlay.GridEvidenceFrame = await session.CaptureAsync("grid-host-context", linked.Token).ConfigureAwait(false);
+                                    adaptive?.RegisterFullFrame(overlay.GridEvidenceFrame);
+                                    return await session.RunGridExplorationAsync(() => exploration.Action(linked.Token), linked.Token).ConfigureAwait(false);
+                                }
+                                var result = adaptive is null
+                                    ? await ExploreAsync().ConfigureAwait(false)
+                                    : await adaptive.RunWithCaptureSuspendedAsync(ExploreAsync,
+                                        TimeSpan.FromSeconds(10), linked.Token).ConfigureAwait(false);
                                 exploration.Completion.TrySetResult(result);
                             }
                             catch (Exception ex) { exploration.Completion.TrySetException(ex); }
@@ -1889,6 +1898,7 @@ internal static class Program
                 manualClickCursorUtc = recordedClick.TimestampUtc;
                 session.AddMarker(requestedClicks == 1 ? "manual-click" : "manual-double-click");
                 var clickCaptureOutcome = AdaptiveClickCaptureOutcome.Failed;
+                var frameSequenceBeforeClickCapture = session.LatestFrameSequence;
                 if (adaptive is not null)
                 {
                     var clickPoint = new RectI(recordedClick.X, recordedClick.Y, 1, 1);
@@ -1953,7 +1963,7 @@ internal static class Program
                     }
                     if (pendingInteraction is not null)
                     {
-                        var resultFrames = session.LatestFrameSequence > pendingInteraction.SourceFrameSequence
+                        var resultFrames = session.LatestFrameSequence > frameSequenceBeforeClickCapture
                             ? new[] { session.LatestFrameSequence }
                             : [];
                         var interactionOutcome = ResolveManualInteractionOutcome(
@@ -2003,6 +2013,7 @@ internal static class Program
                     }
                 }
                 requestedClicks = 1;
+                manualCaptureFailure = ManualCaptureFailureStatus(clickCaptureOutcome);
                 if (Volatile.Read(ref pauseRequested) != 0)
                 {
                     overlay.HideTargetFocusOutline();
@@ -2049,6 +2060,7 @@ internal static class Program
         finally
         {
             overlay.ExplorationRunner = null;
+            overlay.RecordedFramePixels = null;
             overlay.SaveReviewedDataGrid = null;
             overlay.ResumeAfterGridInspector = null;
             lock (autoPassGate) pendingGridExploration?.Completion.TrySetCanceled();
@@ -3959,6 +3971,16 @@ internal static class Program
         control.Bounds.Y,
         control.Bounds.Width,
         control.Bounds.Height);
+
+    internal static string? ManualCaptureFailureStatus(AdaptiveClickCaptureOutcome outcome) => outcome switch
+    {
+        AdaptiveClickCaptureOutcome.RootCaptured or AdaptiveClickCaptureOutcome.PopupCaptured or
+            AdaptiveClickCaptureOutcome.DialogCaptured => null,
+        AdaptiveClickCaptureOutcome.ControlCaptured => "Click target saved, but no changed screen was confirmed. Keep the screen open and click again.",
+        AdaptiveClickCaptureOutcome.PopupFailed => "The click was recorded, but the popup was not captured. Keep it open and click again.",
+        AdaptiveClickCaptureOutcome.DialogFailed => "The dialog opened, but its controls were not captured. Keep it open and click a control again.",
+        _ => "The click was detected, but its UI state was not captured. Keep the screen open and click again."
+    };
 
     internal static InteractionOutcome ResolveManualInteractionOutcome(
         AdaptiveClickCaptureOutcome outcome,

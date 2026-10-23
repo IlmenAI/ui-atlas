@@ -1117,7 +1117,9 @@ public sealed class UiMapConstructionEngine(StableMapRefAllocator? allocator = n
         IReadOnlyList<WorldObject> windows,
         TargetApplicationIdentity target)
     {
-        var result = windows.Where(IsObservableWindowCandidate).Where(x => MatchesTarget(x, target))
+        // Ownership membership is independent of surface eligibility. A hidden
+        // or zero-area owner can still anchor a legitimate visible owned window.
+        var result = windows.Where(x => MatchesTarget(x, target))
             .ToDictionary(x => x, _ => "mapped_surface_exact_process");
         var changed = true;
         while (changed)
@@ -1125,7 +1127,7 @@ public sealed class UiMapConstructionEngine(StableMapRefAllocator? allocator = n
             changed = false;
             var acceptedHandles = result.Keys.Select(x => Property(x, "windowHandleEvidence"))
                 .Where(x => !string.IsNullOrWhiteSpace(x)).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            foreach (var window in windows.Where(IsObservableWindowCandidate).Where(x => !result.ContainsKey(x)))
+            foreach (var window in windows.Where(x => !result.ContainsKey(x)))
             {
                 var owner = Property(window, "ownerWindowHandleEvidence");
                 var rootOwner = Property(window, "rootOwnerWindowHandleEvidence");
@@ -1137,7 +1139,7 @@ public sealed class UiMapConstructionEngine(StableMapRefAllocator? allocator = n
                 }
             }
         }
-        return result;
+        return result.Where(pair => IsObservableWindowCandidate(pair.Key)).ToDictionary(pair => pair.Key, pair => pair.Value);
     }
 
     private static string ExcludedWindowReason(
@@ -1175,7 +1177,11 @@ public sealed class UiMapConstructionEngine(StableMapRefAllocator? allocator = n
         var visible = Property(window, "isVisible");
         var minimized = Property(window, "isMinimized");
         var unavailable = Property(window, "isCloakedOrUnavailable");
-        return !string.Equals(visible, bool.FalseString, StringComparison.OrdinalIgnoreCase)
+        // Native ownership context can have WS_VISIBLE set with zero area.
+        // Keep it in source evidence, but require geometry before creating a
+        // user-facing surface. Earlier observed surfaces are never removed here.
+        return window.BoundsPx is { Width: > 0, Height: > 0 }
+            && !string.Equals(visible, bool.FalseString, StringComparison.OrdinalIgnoreCase)
             && !string.Equals(minimized, bool.TrueString, StringComparison.OrdinalIgnoreCase)
             && !string.Equals(unavailable, bool.TrueString, StringComparison.OrdinalIgnoreCase);
     }
@@ -1189,7 +1195,10 @@ public sealed class UiMapConstructionEngine(StableMapRefAllocator? allocator = n
             changed = false;
             foreach (var value in byId.Values)
             {
-                if (!string.IsNullOrWhiteSpace(value.ParentWorldObjectId) && result.Contains(value.ParentWorldObjectId) && result.Add(value.WorldObjectId))
+                // Window membership was resolved separately. Do not admit an
+                // excluded owner window (or its children) through containment.
+                if (value.ObjectKind != WorldObjectKind.WindowObject &&
+                    !string.IsNullOrWhiteSpace(value.ParentWorldObjectId) && result.Contains(value.ParentWorldObjectId) && result.Add(value.WorldObjectId))
                     changed = true;
             }
         }

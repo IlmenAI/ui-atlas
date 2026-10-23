@@ -54,7 +54,7 @@ internal static class MapperHighlightModel
         control.RuntimeId.StartsWith("visual:", StringComparison.OrdinalIgnoreCase);
 
     internal static IReadOnlyList<MapperHighlight> Build(RectI surface,
-        IReadOnlyList<AutomationObservation> controls)
+        IReadOnlyList<AutomationObservation> controls, IReadOnlyList<MapperHighlight>? visualGrids = null)
     {
         var visibleNative = AutomationObservationVisibility.FilterEffectivelyVisible(controls)
             .Select(c => (c.WindowHwnd, c.RuntimeId)).ToHashSet();
@@ -64,6 +64,7 @@ internal static class MapperHighlightModel
             .Select(c => (Control: c, Bounds: VisibleBounds(c, byIdentity)))
             .Where(item => item.Bounds is { Width: > 0, Height: > 0 } && Contains(surface, item.Bounds)).ToArray();
         var grids = eligible.Select(item => ClassifyGrid(item.Control, item.Bounds!)).OfType<MapperHighlight>()
+            .Concat((visualGrids ?? []).Where(g => Contains(surface, g.Bounds)))
             .OrderBy(g => g.Kind == MapperHighlightKind.NativeGrid ? 0 :
                 g.Source == "Native window hint" ? 1 : 2)
             .ThenByDescending(g => Area(g.Bounds)).ToArray();

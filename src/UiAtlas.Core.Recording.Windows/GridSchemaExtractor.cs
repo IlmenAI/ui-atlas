@@ -151,6 +151,14 @@ public sealed class GridSchemaExtractor
             Math.Min(Math.Max(64, header.Height * 3), frame.Height - header.Y - header.Height));
         if (below.Height < 8) return headerRules;
         var bodyRules = TableViewportDescriber.FindRules(frame, below, vertical: true);
+        // Progress browse headers may have no separators, although the body has
+        // a complete ruled grid. Use those physical divisions only when several
+        // row boundaries corroborate them. Original tiles still have to support
+        // every divider, so copied viewport edges cannot become schema columns.
+        var rows = TableViewportDescriber.FindRules(frame, below, vertical: false);
+        if (bodyRules.Count(x => x > header.X + 3 && x < header.X + header.Width - 3) >= 2 &&
+            rows.Count >= 3 && rows.Zip(rows.Skip(1)).All(pair => pair.Second - pair.First >= 8))
+            return bodyRules;
         return headerRules.Where(x => bodyRules.Any(rule => Math.Abs(rule - x) <= 2)).ToArray();
     }
 

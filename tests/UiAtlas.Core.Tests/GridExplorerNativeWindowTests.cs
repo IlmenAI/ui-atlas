@@ -18,7 +18,8 @@ public sealed class GridExplorerNativeWindowTests
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(false, true)]
-    public void ExploreOpaqueGridTraversesAndRestoresWithoutReadingText(bool stop, bool zeroPage)
+    [InlineData(false, false, true)]
+    public void ExploreOpaqueGridTraversesAndRestoresWithoutReadingText(bool stop, bool zeroPage, bool discover = false)
     {
         Sta(() =>
         {
@@ -43,10 +44,43 @@ public sealed class GridExplorerNativeWindowTests
                 var control = MapperHighlightTests.Control("Opaque table", "Table", host.Bounds, "UiAtlas.Visual.Ocr", ["Grid"])
                     with { WindowHwnd = host.Hwnd };
                 var frame = new FrameObservation(1, DateTimeOffset.UtcNow, "", WindowSnapshotCapture.Observe(target), [control], false, "ok", "synthetic-live");
-                overlay = new RecordingHighlightOverlay(target); overlay.Start(); overlay.ReplaceMapperHighlights(target.Bounds, frame);
+                byte[]? retainedPixels = null;
+                if (discover)
+                {
+                    control = control with { RuntimeId = "opaque-pane", ControlType = "ControlType.Pane", ClassName = host.ClassName,
+                        FrameworkId = "Win32", SupportedPatterns = ["ScrollPatternIdentifiers.Pattern"],
+                        WindowHwnd = target.Hwnd, NativeWindowHwnd = host.Hwnd };
+                    // Use physical pixels with their exact origin, as native retained evidence does.
+                    // The legacy composite capture stretches WGC's visible frame to GetWindowRect.
+                    var captureBounds = WindowSnapshotCapture.VisibleFrameBounds(target);
+                    using var bitmap = new System.Drawing.Bitmap(captureBounds.Width, captureBounds.Height);
+                    using (var graphics = System.Drawing.Graphics.FromImage(bitmap))
+                        graphics.CopyFromScreen(captureBounds.X, captureBounds.Y, 0, 0, bitmap.Size);
+                    using var png = new System.IO.MemoryStream();
+                    bitmap.Save(png, System.Drawing.Imaging.ImageFormat.Png);
+                    retainedPixels = png.ToArray();
+                    frame = frame with { Automation = [control], ScreenshotBounds = captureBounds,
+                        Window = frame.Window with { Bounds = captureBounds }, NativeEpisodeEntry = "raw/native/fixture.pb" };
+                    Assert.DoesNotContain(MapperHighlightModel.Build(target.Bounds, frame.Automation), g => g.IsGrid);
+                    if (Environment.GetEnvironmentVariable("UIATLAS_MAPPER_QA_DIR") is { Length: > 0 } evidence)
+                    {
+                        System.IO.File.WriteAllBytes(System.IO.Path.Combine(evidence, "discovery-source.png"), retainedPixels);
+                        System.IO.File.WriteAllText(System.IO.Path.Combine(evidence, "discovery-frame.json"),
+                            System.Text.Json.JsonSerializer.Serialize(frame));
+                    }
+                    Assert.Single(MapperGridDiscovery.Discover(frame, frame.Window, frame.Automation, retainedPixels));
+                }
+                overlay = new RecordingHighlightOverlay(target) { RecordedFramePixels = _ => retainedPixels };
+                overlay.Start(); overlay.ReplaceMapperHighlights(frame.Window.Bounds, frame);
                 Await(() => overlay.GridHitWindows.Count > 0);
                 var dispatcher = overlay.GridHitWindows.First().Dispatcher;
                 dispatcher.Invoke(() => overlay.InspectGrid(overlay.MapperHighlights.Single(g => g.IsGrid)));
+                if (discover) dispatcher.Invoke(() =>
+                {
+                    Assert.Equal(MapperHighlightKind.GridCandidate, overlay.GridInspector!.Selection.Kind);
+                    Assert.Same(control, overlay.GridInspector.Selection.Control);
+                    Assert.Equal("ControlType.Pane", frame.Automation[0].ControlType);
+                });
                 var inspector = overlay.GridInspector!;
                 var handoff = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
                 var stopped = false;

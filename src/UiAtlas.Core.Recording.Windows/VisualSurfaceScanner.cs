@@ -53,6 +53,15 @@ public static class VisualSurfaceScanner
             })
             .ToArray();
 
+    /// <summary>Local geometry evidence only; does not assert a native grid pattern or readable cells.</summary>
+    public static RectI? FindBorderedTable(OpaqueSurfaceScanner.PixelFrame frame, RectI region)
+    {
+        if (region.X < 0 || region.Y < 0 || region.Width < 180 || region.Height < 70 ||
+            (long)region.X + region.Width > frame.Width || (long)region.Y + region.Height > frame.Height)
+            return null;
+        return TryFindBorderedGrid(frame, region)?.Bounds;
+    }
+
     internal static IReadOnlyList<AutomationObservation> DiscoverPopupTextListControls(
         WindowTarget target,
         OpaqueSurfaceScanner.PixelFrame frame,

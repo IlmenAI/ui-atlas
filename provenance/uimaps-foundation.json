@@ -308,10 +308,11 @@
     {
       "target": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/UiMapConstructionEngine.cs",
       "repository": "https://github.com/AI-Successors/uimaps-map",
-      "commit": "d9c7c6d721efb70d09d516dbf9828f06f59c6a0c",
+      "commit": "d2e1c1eb8b01f3810bd83520a543c597f5455bea",
       "source": "src/UIMaps.Map.Core/UiMapConstructionEngine.cs",
-      "sha256": "7e02680b366da2430345d2702c44906127c946dc266d02aae5cdf369a55d8f62",
-      "disposition": "adapted-source: native recorder integration, exact source provenance and explicit workspace snapshot handoff"
+      "sha256": "3b6798057d333b71435907f7307f5d93d20ddff9675b77d1254064d963e35245",
+      "disposition": "adapted-source: native recorder integration, exact source provenance and explicit workspace snapshot handoff; Phase 4.2.14 positive-geometry surface eligibility and ownership-context retention",
+      "reviewEvidence": "docs/2026-10-23-grid-discovery-repair.md"
     },
     {
       "target": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/UiMapException.cs",

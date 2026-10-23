@@ -89,18 +89,41 @@ public sealed class NativeRecorderCapture
         public async Task<WindowTopologyPacket> CaptureAsync(DisplayDescriptor display, RecorderPolicy policy, CancellationToken cancellationToken)
         {
             var packet = await native.CaptureAsync(display, policy with { ExhaustiveCoverage = true }, cancellationToken).ConfigureAwait(false);
-            var identity = $"pid:{target.ProcessId}:started:{target.ProcessStartedUtc.UtcDateTime:O}";
-            var members = packet.Windows.Where(window => window.ProcessId == target.ProcessId
-                && window.ProcessInstanceEvidence == identity
-                && (window.WindowHandleEvidence == target.RootOwnerHwnd.ToString()
-                    || window.RootOwnerHandleEvidence == target.RootOwnerHwnd.ToString()
-                    || window.WindowHandleEvidence == target.Hwnd.ToString())).ToArray();
+            var members = SelectTargetWindows(packet.Windows, target);
             packet.Windows.Clear(); packet.Windows.AddRange(members);
             packet.WindowsIncluded = members.Length;
             if (!members.Any(window => window.WindowHandleEvidence == target.Hwnd.ToString()))
                 throw new RecorderException("RECORDER_TARGET_CHANGED", "The selected application could not be verified by the native recorder.");
             return packet;
         }
+    }
+
+    internal static WindowObservationRecord[] SelectTargetWindows(
+        IEnumerable<WindowObservationRecord> windows, WindowTarget target)
+    {
+        var identity = $"pid:{target.ProcessId}:started:{target.ProcessStartedUtc.UtcDateTime:O}";
+        var candidates = windows.Where(window => window.ProcessId == target.ProcessId &&
+            window.ProcessInstanceEvidence == identity).ToArray();
+        // GA_ROOTOWNER can stop at a normal owned window (VHP/OpenEdge). Atlas's
+        // sealed family follows GW_OWNER too. Derive membership from this fresh
+        // native census without rewriting the provider's original root evidence.
+        var handles = new HashSet<string>(StringComparer.Ordinal)
+        {
+            target.Hwnd.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            target.RootOwnerHwnd.ToString(System.Globalization.CultureInfo.InvariantCulture)
+        };
+        bool changed;
+        do
+        {
+            changed = false;
+            foreach (var window in candidates)
+            {
+                if (window.WindowHandleEvidence is "" or "0") continue;
+                if (handles.Contains(window.RootOwnerHandleEvidence) || window.OwnerChainEvidence.Any(handles.Contains))
+                    changed |= handles.Add(window.WindowHandleEvidence);
+            }
+        } while (changed);
+        return candidates.Where(window => handles.Contains(window.WindowHandleEvidence)).ToArray();
     }
 
     public static FrameObservation Project(SensorEpisodeBundle episode, WindowTarget target, long sequence,

@@ -28,19 +28,53 @@ internal static class GridImageLayout
                         TrimBlankFooter(frame, new(left, bottom, right - left, table.Y + table.Height - bottom - 1)));
             }
         }
-        // The first ruled band must be at the top of the selected table and contain
-        // several column separators. A caption or an arbitrary screenshot is insufficient.
-        var top = table.Y + 1;
-        var search = table with { Height = Math.Min(table.Height, 100) };
+        // Some opaque controls include a caption above the column headers. Only
+        // skip that band when two-dimensional ruled-table geometry proves the
+        // start of the table nearby; never scan arbitrary body rows for a header.
+        var starts = new List<int> { table.Y + 1 };
+        var ruled = VisualSurfaceScanner.FindBorderedTable(frame, table);
+        if (ruled is not null && ruled.Y > table.Y && ruled.Y - table.Y <= 64 &&
+            ruled.Width >= table.Width * .8 && ruled.Height >= table.Height * .6)
+            starts.Add(ruled.Y + 1);
+        var search = table with { Height = Math.Min(table.Height, 130) };
         var rules = TableViewportDescriber.FindRules(frame, search, vertical: false);
-        foreach (var bottom in rules.Where(y => y - top >= 12 && y - top <= 64))
+        if (starts.Count > 1)
+        {
+            // The caption itself can have a border at the same pitch as body rows.
+            // Permit only its first lower boundary, never an unbounded row search.
+            var captionBottom = rules.Where(y => y - ruled!.Y >= 12 && y - table.Y <= 64)
+                .Select(y => (int?)y).FirstOrDefault();
+            if (captionBottom is { } edge) starts.Add(edge + 1);
+        }
+        foreach (var top in starts.Distinct())
+        foreach (var bottom in rules.Where(y => y - top >= 12 && y - top <= 64).Take(1))
         {
             var header = new RectI(table.X + 1, top, table.Width - 2, bottom - top);
             var dividers = TableViewportDescriber.FindRules(frame, header, vertical: true);
-            if (dividers.Count < 2) continue;
+            if (dividers.Count < 2 && (ruled is null || !HasLabelsOverBodyColumns(frame, table, header, bottom))) continue;
             return (header, TrimBlankFooter(frame, new(header.X, bottom + 1, header.Width, table.Y + table.Height - bottom - 1)));
         }
         throw new InvalidOperationException("header-row-not-identified");
+    }
+
+    private static bool HasLabelsOverBodyColumns(OpaqueSurfaceScanner.PixelFrame frame, RectI table, RectI header, int bottom)
+    {
+        // Progress browse controls draw separators in the body but not the header.
+        // Require several independently labelled body columns; one centred caption
+        // or an empty strip cannot establish a header. This proves geometry only.
+        var body = new RectI(header.X, bottom + 3, header.Width,
+            Math.Min(header.Height * 3, table.Y + table.Height - bottom - 3));
+        if (body.Height < 24) return false;
+        var columns = TableViewportDescriber.FindRules(frame, body, vertical: true);
+        if (columns.Count < 4) return false;
+        var edges = new[] { header.X }.Concat(columns).Append(header.X + header.Width).ToArray();
+        var labelled = 0;
+        foreach (var (left, right) in edges.Zip(edges.Skip(1)))
+        {
+            var cell = new RectI(left + 3, header.Y + 3, right - left - 6, header.Height - 6);
+            if (cell.Width >= 12 && cell.Height >= 6 && AzureOpenAiTableReader.HasInk(frame, cell)) labelled++;
+        }
+        return labelled >= 3;
     }
 
     internal static RectI TrimBlankFooter(OpaqueSurfaceScanner.PixelFrame frame, RectI body)

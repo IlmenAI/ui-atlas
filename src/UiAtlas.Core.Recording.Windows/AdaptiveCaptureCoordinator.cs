@@ -41,7 +41,7 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
         SingleWriter = false,
         FullMode = BoundedChannelFullMode.Wait
     });
-    private readonly Channel<PopupRequest> _popupRequests = Channel.CreateBounded<PopupRequest>(new BoundedChannelOptions(64)
+    private readonly Channel<CaptureRequest> _popupRequests = Channel.CreateBounded<CaptureRequest>(new BoundedChannelOptions(64)
     {
         SingleReader = true,
         SingleWriter = false,
@@ -59,6 +59,7 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
     private readonly HashSet<string> _recordedTabs = new(StringComparer.Ordinal);
     private readonly HashSet<string> _controlFingerprints = new(StringComparer.Ordinal);
     private readonly object _tabGate = new();
+    private readonly object _queueGate = new();
     private readonly CancellationTokenSource _shutdown = new();
     private PopupWindowEventMonitor? _popupMonitor;
     private Task? _worker;
@@ -70,6 +71,7 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
     private int _pendingRoot;
     private long _rootRequestSequence;
     private int _draining;
+    private int _suspended;
     private long _popupCaptures;
     private long _popupFailures;
     private RectI? _lastManualHighlightBounds;
@@ -360,8 +362,12 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
         long clickWindowHwnd = 0,
         AdaptiveDialogCaptureCheckpoint? dialogCheckpoint = null)
     {
-        if (Volatile.Read(ref _draining) != 0)
+        if (Volatile.Read(ref _draining) != 0 || Volatile.Read(ref _suspended) != 0)
+        {
+            _session.AddCaptureHealth("adaptive", "capture-not-active",
+                "The click could not be captured because adaptive capture is suspended or finishing.");
             return AdaptiveClickCaptureOutcome.Failed;
+        }
 
         // Resolve the source control while the root surface is still known. A
         // popup-producing click returns through the popup path below, so waiting
@@ -446,7 +452,7 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
             tab = _knownTabs.FirstOrDefault(candidate => Contains(candidate.Observation.Bounds, point.X, point.Y));
         if (tab is not null && !IsTabRecorded(tab.StableKey) && _pendingTabs.TryAdd(tab.StableKey, 0))
         {
-            if (!_requests.Writer.TryWrite(new TabRequest(tab.StableKey)))
+            if (!TryQueue(_requests, new TabRequest(tab.StableKey)))
             {
                 _pendingTabs.TryRemove(tab.StableKey, out _);
                 _session.AddCaptureHealth("adaptive", "queue-full", "A tab delta was dropped because the adaptive queue was full.");
@@ -977,6 +983,8 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
     {
         if (timeout <= TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(nameof(timeout));
+        if (Volatile.Read(ref _draining) != 0 || Volatile.Read(ref _suspended) != 0)
+            return null;
         if (_session.FullRawObservations || _session.UsesNativeRecorder)
         {
             var full = await _session.CaptureFullObservationAsync("manual-refresh", cancellationToken,
@@ -985,7 +993,7 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
             return full;
         }
         var request = CreateRootRequest(isBackground: false);
-        if (!_requests.Writer.TryWrite(request))
+        if (!TryQueue(_requests, request))
         {
             request.Cancellation.Dispose();
             _session.AddCaptureHealth("adaptive", "queue-full",
@@ -1078,15 +1086,65 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
         return AdaptivePopupCaptureOutcome.NotObserved;
     }
 
+    /// <summary>Wait for queued captures, run exclusive work, then resume the same coordinator.</summary>
+    public async Task<T> RunWithCaptureSuspendedAsync<T>(
+        Func<Task<T>> action, TimeSpan timeout, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        if (timeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(timeout));
+        var rootBarrier = new BarrierRequest(new(TaskCreationOptions.RunContinuationsAsynchronously));
+        var popupBarrier = new BarrierRequest(new(TaskCreationOptions.RunContinuationsAsynchronously));
+        lock (_queueGate)
+        {
+            if (_worker is null || _popupWorker is null || _draining != 0 || _suspended != 0)
+                throw new InvalidOperationException("Adaptive capture is not available for temporary suspension.");
+            _suspended = 1;
+        }
+        try
+        {
+            // Admission is stopped before the barriers are written. Existing work
+            // must finish before exploration can scroll; channels stay reusable.
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdown.Token);
+            deadline.CancelAfter(timeout);
+            try
+            {
+                await _requests.Writer.WriteAsync(rootBarrier, deadline.Token).ConfigureAwait(false);
+                await _popupRequests.Writer.WriteAsync(popupBarrier, deadline.Token).ConfigureAwait(false);
+                await Task.WhenAll(rootBarrier.Completion.Task, popupBarrier.Completion.Task)
+                    .WaitAsync(deadline.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && !_shutdown.IsCancellationRequested)
+            {
+                const string message = "Pending recording captures did not finish; table exploration did not start.";
+                _session.AddCaptureHealth("adaptive", "suspend-timeout", message);
+                throw new TimeoutException(message);
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            return await action().ConfigureAwait(false);
+        }
+        finally
+        {
+            lock (_queueGate) { _suspended = 0; }
+        }
+    }
+
+    private bool TryQueue(Channel<CaptureRequest> channel, CaptureRequest request)
+    {
+        lock (_queueGate)
+            return _draining == 0 && _suspended == 0 && channel.Writer.TryWrite(request);
+    }
+
+    /// <summary>Terminal finish boundary. Never use this to pause an active recording.</summary>
     public async Task DrainAsync(TimeSpan timeout, CancellationToken cancellationToken)
     {
-        if (Interlocked.Exchange(ref _draining, 1) == 0)
+        lock (_queueGate)
         {
-            _popupMonitor?.Dispose();
-            _popupMonitor = null;
+            _draining = 1;
             _requests.Writer.TryComplete();
             _popupRequests.Writer.TryComplete();
         }
+        _popupMonitor?.Dispose();
+        _popupMonitor = null;
         var workers = new[] { _worker, _popupWorker }.Where(task => task is not null).Cast<Task>().ToArray();
         if (workers.Length == 0) return;
         try
@@ -1103,7 +1161,7 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
     private void QueuePopup(long hwnd)
     {
         if (_session.FullRawObservations || _session.UsesNativeRecorder) return;
-        if (Volatile.Read(ref _draining) != 0 || hwnd == _target.RootOwnerHwnd ||
+        if (Volatile.Read(ref _draining) != 0 || Volatile.Read(ref _suspended) != 0 || hwnd == _target.RootOwnerHwnd ||
             !IsPopupCaptureCandidateClass(WindowCatalog.GetClass((nint)hwnd))) return;
         try
         {
@@ -1121,7 +1179,7 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
             return;
         }
         if (!_seenPopupsForCurrentClick.TryAdd(hwnd, 0) || !_pendingPopups.TryAdd(hwnd, 0)) return;
-        if (!_popupRequests.Writer.TryWrite(new(hwnd, _activeInteractionId)))
+        if (!TryQueue(_popupRequests, new PopupRequest(hwnd, _activeInteractionId)))
         {
             _pendingPopups.TryRemove(hwnd, out _);
             _seenPopupsForCurrentClick.TryRemove(hwnd, out _);
@@ -1202,6 +1260,9 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
                 {
                     switch (request)
                     {
+                        case BarrierRequest barrier:
+                            barrier.Completion.TrySetResult();
+                            break;
                         case TabRequest tab:
                             await ProcessTabAsync(tab.StableKey, _shutdown.Token).ConfigureAwait(false);
                             break;
@@ -1257,9 +1318,15 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
         {
             await foreach (var request in _popupRequests.Reader.ReadAllAsync(_shutdown.Token).ConfigureAwait(false))
             {
+                if (request is BarrierRequest barrier)
+                {
+                    barrier.Completion.TrySetResult();
+                    continue;
+                }
+                var popup = (PopupRequest)request;
                 try
                 {
-                    await ProcessPopupAsync(request, _shutdown.Token).ConfigureAwait(false);
+                    await ProcessPopupAsync(popup, _shutdown.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (_shutdown.IsCancellationRequested) { }
                 catch (Exception ex)
@@ -1269,7 +1336,7 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
                 }
                 finally
                 {
-                    _pendingPopups.TryRemove(request.Hwnd, out _);
+                    _pendingPopups.TryRemove(popup.Hwnd, out _);
                 }
             }
         }
@@ -2360,6 +2427,7 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
     private void QueueChangedRootSurface()
     {
         if (_session.FullRawObservations || _session.UsesNativeRecorder) return;
+        if (Volatile.Read(ref _draining) != 0 || Volatile.Read(ref _suspended) != 0) return;
         try
         {
             if (!NativeMethods.GetWindowRect((nint)_target.Hwnd, out _))
@@ -2378,7 +2446,7 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
                 return;
             }
             var request = CreateRootRequest(isBackground: true);
-            if (!_requests.Writer.TryWrite(request))
+            if (!TryQueue(_requests, request))
             {
                 request.Cancellation.Dispose();
                 Interlocked.Exchange(ref _pendingRoot, 0);
@@ -2453,7 +2521,8 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
         bool IsBackground,
         CancellationTokenSource Cancellation,
         TaskCompletionSource<FrameObservation?> Completion) : CaptureRequest;
-    private sealed record PopupRequest(long Hwnd, string InteractionId);
+    private sealed record PopupRequest(long Hwnd, string InteractionId) : CaptureRequest;
+    private sealed record BarrierRequest(TaskCompletionSource Completion) : CaptureRequest;
 
     private RootRequest CreateRootRequest(bool isBackground) => new(
         Interlocked.Increment(ref _rootRequestSequence),
