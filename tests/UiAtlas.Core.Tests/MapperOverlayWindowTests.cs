@@ -464,13 +464,24 @@ public sealed class MapperOverlayWindowTests
                         Pump(1500);
                         var covered = new Point(otherTarget.Bounds.X + otherTarget.Bounds.Width / 2,
                             otherTarget.Bounds.Y + otherTarget.Bounds.Height / 2);
-                        var exposed = new Point(native.Bounds.X + native.Bounds.Width - 30, native.Bounds.Y + 20);
                         hit.Dispatcher.Invoke(() =>
                         {
                             Assert.True(overlay.MapperLegend!.IsVisible);
                             Assert.Same(legendInstance, overlay.MapperLegend);
                             Assert.False(overlay.IsMapperPointVisible(covered));
-                            Assert.True(overlay.IsMapperPointVisible(exposed));
+                            // A restored legend can overlap the target on a small desktop.
+                            // Choose exposed samples from independent window geometry, not
+                            // from the visibility result that this assertion verifies.
+                            var blockers = new[] { otherTarget.Bounds,
+                                RecordingHighlightOverlay.ReadPhysicalBounds(overlay.MapperLegend),
+                                RecordingHighlightOverlay.ReadPhysicalBounds(overlay.GridInspector!) };
+                            var exposed = Enumerable.Range(1, 7)
+                                .Select(i => new Point(native.Bounds.X + native.Bounds.Width * i / 8, native.Bounds.Y + 20))
+                                .Where(p => blockers.All(b => p.X < b.X || p.X >= b.X + b.Width ||
+                                    p.Y < b.Y || p.Y >= b.Y + b.Height)).ToArray();
+                            Assert.NotEmpty(exposed);
+                            Assert.All(exposed, point => Assert.True(overlay.IsMapperPointVisible(point),
+                                $"Uncovered grid point {point} was incorrectly clipped."));
                             var pointed = WindowFromPoint(new NativePoint((int)covered.X, (int)covered.Y));
                             Assert.Equal(otherHandle, GetAncestor(pointed, 2));
                         });
@@ -551,7 +562,10 @@ public sealed class MapperOverlayWindowTests
                     targetWindow.Width += 20; Pump(400);
                     Await(() => hit.Dispatcher.Invoke(() => overlay.MapperHighlights.Any(g => g.Kind == MapperHighlightKind.NativeGrid)));
                     hit.Dispatcher.Invoke(() => Assert.True(overlay.MapperLegend!.IsVisible));
-                    targetWindow.Width -= 20; Pump(100);
+                    targetWindow.Width -= 20; Pump(400);
+                    // Let the resize invalidation and passive native refresh finish
+                    // before submitting a new explicit frame at the restored size.
+                    Await(() => hit.Dispatcher.Invoke(() => overlay.MapperHighlights.Any(g => g.Kind == MapperHighlightKind.NativeGrid)));
                     // The target moved and resized above. An explicit replacement
                     // must carry current geometry, just as a new recorder frame does.
                     target = WindowCatalog.Resolve(hwnd);

@@ -33,9 +33,9 @@ function Invoke-CliExpectFailure([Parameter(ValueFromRemainingArguments)] [strin
 function Invoke-InteractiveSmoke {
   $commands = "HELP`nLIST`nMAP HELP`nEXIT`n"
   $start = [Diagnostics.ProcessStartInfo]::new()
-  # Exercise the same framework-dependent invocation used by the packaged ui-atlas.cmd launcher.
+  # Framework-dependent invocation must explicitly select the shell; no arguments print help.
   $start.FileName = 'dotnet'
-  $start.Arguments = '"' + $cliDll.Replace('"','\"') + '"'
+  $start.Arguments = '"' + $cliDll.Replace('"','\"') + '" shell'
   $start.UseShellExecute = $false
   $start.RedirectStandardInput = $true
   $start.RedirectStandardOutput = $true
