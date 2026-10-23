@@ -59,7 +59,9 @@ public sealed class CaptureProfileCatalogService
     private CaptureProfileDescriptor ToDescriptor(ProfileManifest value) => new()
     {
         ProfileId = value.Id, ProfileVersion = value.Version, DisplayName = value.Name,
-        Description = value.Semantics == "survey" ? "Passive staged coverage with explicit intervals and omissions." : "Temporally coherent passive display snapshot.",
+        Description = value.Id == "runtime-grounding"
+            ? "Passive target-prioritized grounding snapshot with deep UIA traversal and bounded live capture time."
+            : value.Semantics == "survey" ? "Passive staged coverage with explicit intervals and omissions." : "Temporally coherent passive display snapshot.",
         CaptureSemantics = value.Semantics == "survey" ? CaptureSemantics.Survey : CaptureSemantics.Snapshot,
         IntendedDurationMinMs = value.MinMs, IntendedDurationMaxMs = value.MaxMs,
         SupportsProgressiveResults = value.Progressive,
@@ -75,7 +77,7 @@ public sealed class CaptureProfileCatalogService
     internal static CaptureLimits DefaultLimitsFor(ProfileManifest value) => new()
     {
         OverallCaptureDeadlineMs = value.ExhaustiveCoverage ? 0 : value.BudgetMs,
-        ScreenCaptureDeadlineMs = Math.Min(value.Id == "mapping-checkpoint" ? 3_000 : 1_000, value.BudgetMs),
+        ScreenCaptureDeadlineMs = Math.Min(value.Id is "mapping-checkpoint" or "runtime-grounding" ? 3_000 : 1_000, value.BudgetMs),
         WindowTopologyDeadlineMs = value.Semantics == "survey"
             ? Math.Clamp(value.BudgetMs / 5, 1_000L, Math.Min(15_000L, value.BudgetMs))
             : Math.Clamp(value.BudgetMs / 5, 1_000L, Math.Min(3_000L, value.BudgetMs)),
