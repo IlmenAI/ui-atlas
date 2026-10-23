@@ -332,6 +332,8 @@ public partial class ShellWindow : Window
             hud.RecordUiMapRequested += MicroHud_RecordUiMapRequested;
             if (_host is IShellWorkSessionsHost work)
                 hud.RecordWorkSessionRequested += async (_, _) => { hud.Close(); RestoreMainWindow(); await work.StartWorkSessionAsync(this, scope); };
+            if (_host is IShellWorkflowRunHost runtime)
+                hud.RunWorkflowRequested += async (_, _) => { hud.Close(); RestoreMainWindow(); await runtime.RunWorkflowAsync(this); };
             hud.Closed += MicroHud_Closed;
             hud.Show();
             Hide();

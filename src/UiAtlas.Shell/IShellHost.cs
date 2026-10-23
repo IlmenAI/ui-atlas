@@ -30,3 +30,8 @@ public interface IShellWorkSessionsHost
     Task StartWorkSessionAsync(Window owner, RecordingDisplayScope? displayScope = null);
     Task<bool> TryCloseWorkSessionsAsync(Window owner);
 }
+
+public interface IShellWorkflowRunHost
+{
+    Task RunWorkflowAsync(Window owner);
+}

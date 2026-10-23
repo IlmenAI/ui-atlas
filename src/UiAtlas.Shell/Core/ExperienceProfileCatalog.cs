@@ -99,6 +99,7 @@ public sealed class ExperienceProfileCatalog
         {
             new ExperienceCommand("hud.record-work-session", "Record Work Session", "\uE7C3", workSessionsAvailable, workSessionsAvailable ? "" : "In development"),
             new ExperienceCommand("hud.record-map", "Record UI Map", "\uE81E"),
+            new ExperienceCommand("hud.run-workflow", "Run workflow", "\uE768", workSessionsAvailable, workSessionsAvailable ? "" : "Not available"),
         });
         var diagnosticsNew = Array.AsReadOnly(new[]
         {
