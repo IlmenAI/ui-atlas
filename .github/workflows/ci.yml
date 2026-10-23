@@ -7,6 +7,11 @@ permissions:
 jobs:
   windows:
     runs-on: windows-latest
+    env:
+      # Hosted runners have one display; keep native fixtures fully on-screen.
+      # This uses the same physical-coordinate setup as attended qualification.
+      UI_ATLAS_NATIVE_TEST_LEFT: '100'
+      UI_ATLAS_NATIVE_TEST_TOP: '150'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
