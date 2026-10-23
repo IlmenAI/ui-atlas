@@ -374,7 +374,17 @@ public sealed class MapperOverlayWindowTests
                         Assert.NotNull(overlay.MapperLegend);
                         Assert.True(overlay.MapperLegend.IsVisible);
                         var legend = overlay.MapperLegend;
+                        // A small desktop legitimately starts with the restore handle
+                        // when the target leaves no exterior room for the full legend.
+                        if (legend.IsCollapsed)
+                        {
+                            var initialRestore = Assert.Single(Descendants<Button>(legend));
+                            Assert.Equal("Show highlight legend", System.Windows.Automation.AutomationProperties.GetName(initialRestore));
+                            initialRestore.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                            Assert.False(legend.IsCollapsed);
+                        }
                         var hideButton = Assert.Single(Descendants<Button>(legend));
+                        Assert.Equal("Hide highlight legend", System.Windows.Automation.AutomationProperties.GetName(hideButton));
                         hideButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
                         Assert.True(legend.IsCollapsed);
                         // Window sizing rounds to physical pixels on fractional-DPI displays.
