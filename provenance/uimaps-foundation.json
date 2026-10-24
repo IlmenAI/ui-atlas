@@ -135,11 +135,11 @@
     },
     {
       "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v3/live_grid_service.proto",
-      "repository": "https://github.com/IlmenAI/UI-Atlas",
-      "commit": "8d6514273cfcb25f01feac2d492286f6fd88e89a",
-      "source": "vendor/uimaps/uimaps-protocol/proto/uimaps/v3/live_grid_service.proto",
-      "sha256": "8e350f935544100ad0dee532e4a1928885597f9babd74b13790ff6abd30f1470",
-      "disposition": "atlas-integrated-source"
+      "repository": "https://github.com/AI-Successors/uimaps-protocol",
+      "commit": "ef9252d18b5a985dd81eaa613d78cf6b38a42898",
+      "source": "proto/uimaps/v3/live_grid_service.proto",
+      "sha256": "0a946a616085bf119bc7142ccd5b759553d61bd99da2e4aadc40cb3bd6dcbd7f",
+      "disposition": "unmodified-source"
     },
     {
       "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v3/ui_localization.proto",
