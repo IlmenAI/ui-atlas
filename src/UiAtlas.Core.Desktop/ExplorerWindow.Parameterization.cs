@@ -77,10 +77,12 @@ public sealed partial class ExplorerWindow
                                 g, System.IO.Path.GetFullPath(g.Review.ImagePath, System.IO.Path.GetDirectoryName(session)!), false))).ToArray();
                 }
                 if (storagePath != MapParameterizationStore.PathFor(path)) throw new IOException("Map changed during review loading. Reload the map.");
-                return (Document: document, Proposals: ParameterizationAnalysis.Build(model, grids, document.Proposals), StoragePath: storagePath);
+                return (Document: document, Proposals: ParameterizationAnalysis.Build(model, grids, document.Proposals), StoragePath: storagePath, Grids: grids);
             });
             if (version != _graphLoadVersion) return;
             _parameterDocument = loaded.Document; _parameterProposals = loaded.Proposals;
+            _inspectionGridSources = loaded.Grids;
+            _inspectionRenderedGridKey = null;
             _parameterStoragePath = loaded.StoragePath;
             _selectedParameter = _parameterProposals.FirstOrDefault(p => p.Id == _selectedParameter?.Id);
             _parameterSummary.Text = $"{loaded.Proposals.Count(p => !p.IsGrid)} parameters · {loaded.Proposals.Count(p => p.IsGrid)} grids";
@@ -89,10 +91,12 @@ public sealed partial class ExplorerWindow
         {
             if (version != _graphLoadVersion) return;
             _parameterDocument = null; _parameterProposals = []; _selectedParameter = null;
+            _inspectionGridSources = []; _inspectionRenderedGridKey = null;
             _parameterError = ex.Message;
             _parameterSummary.Text = "Review unavailable · " + ex.Message;
         }
         if (_parameterReviewMode is not null) RefreshParameterReview();
+        else RefreshInspectionPreview();
     }
 
     private void EnterParameterReview(string mode)
