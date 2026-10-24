@@ -69,7 +69,7 @@ public sealed partial class ExplorerWindow
         _inspectionTabs.Items.Add(new TabItem { Header = "Pipeline", Content = pipeline });
         _inspectionTabs.SelectedIndex = 0;
         AutomationProperties.SetName(_inspectionTabs, "Surface inspection previews");
-        AutomationProperties.SetName(_inspectionGridSelector, "Retained grids on selected surface");
+        AutomationProperties.SetName(_inspectionGridSelector, "Retained grids on selected variant");
         AutomationProperties.SetName(_inspectionGridImage, "Retained data grid image");
         AutomationProperties.SetName(_inspectionGridColumns, "Retained physical grid columns");
         _inspectionGridSelector.SelectionChanged += (_, _) => { if (!_updatingInspectionGrids) RenderInspectionGrid(); };
@@ -91,7 +91,10 @@ public sealed partial class ExplorerWindow
         }
         if (_parameterReviewMode is not null) return;
         var selectedId = (_inspectionGridSelector.SelectedItem as InspectionGridChoice)?.Proposal.Id;
-        var grids = _model is null ? [] : UiInspectionPresentation.GridsForSurface(_model, _selectedSurface, _parameterProposals);
+        var variants = _model is null || _selectedSurface is null ? [] : UiInspectionPresentation.Variants(_model, _selectedSurface, _parameterProposals);
+        var active = variants.FirstOrDefault(v => _inspectionUnavailableGroupId is not null
+            ? v.Group.Id == _inspectionUnavailableGroupId : v.Group.Frames.Any(f => f.Id == _selectedVariant?.Id));
+        var grids = active?.Grids ?? [];
         var choices = grids.Select(grid => new InspectionGridChoice(grid)).ToArray();
         _updatingInspectionGrids = true;
         _inspectionGridSelector.ItemsSource = choices;
@@ -110,7 +113,7 @@ public sealed partial class ExplorerWindow
             var unbound = _parameterProposals.Count(p => p.IsGrid && !p.HostBound);
             _inspectionGridSummary.Text = _parameterError is not null ? "Retained grids unavailable: " + _parameterError
                 : _inspectionLevel == UiUnderstandingLevel.RawDataStreams ? "Inspect a Raw World or Semantic World surface to see its retained grids."
-                : "No retained grid is bound to this surface." + (unbound > 0 ? $" {unbound} grid(s) have unresolved hosts; inspect them in Data grids review." : "");
+                : "No retained grid is bound to this variant." + (unbound > 0 ? $" {unbound} grid(s) have unresolved hosts; inspect them in Data grids review." : "");
             return;
         }
         var proposal = choice.Proposal;
@@ -156,8 +159,8 @@ public sealed partial class ExplorerWindow
             var target = group.Frames.FirstOrDefault(frame => frame.Id == _selectedVariant?.Id) ?? group.Frames.FirstOrDefault();
             if (target is null)
             {
-                if (_selectedSurface is not null && group.Id.StartsWith("semantic:", StringComparison.Ordinal))
-                    SelectHierarchyVariant(new(_selectedSurface.Id, group.Id["semantic:".Length..]));
+                if (_selectedSurface is not null)
+                    SelectHierarchyVariant(new(_selectedSurface.Id, group.Id));
                 return;
             }
             BuildInspectionFrameButtons(group.Frames);
@@ -165,7 +168,7 @@ public sealed partial class ExplorerWindow
         };
     }
 
-    private sealed record InspectionVariantSelection(string SurfaceId, string VariantId);
+    private sealed record InspectionVariantSelection(string SurfaceId, string GroupId);
     private sealed record InspectionGridChoice(ParameterProposal Proposal)
     {
         public string Label => Proposal.DisplayName;
@@ -175,19 +178,28 @@ public sealed partial class ExplorerWindow
     private void SelectHierarchyVariant(InspectionVariantSelection selection)
     {
         var surface = _model?.Layers.SelectMany(layer => layer.Surfaces).FirstOrDefault(s => s.Id == selection.SurfaceId);
-        if (surface is null) return;
-        SelectSurface(surface);
-        var frame = _visibleVariants.FirstOrDefault(f => f.SemanticVariantId == selection.VariantId);
+        if (surface is null || _model is null) return;
+        var group = UiInspectionPresentation.Variants(_model, surface, _parameterProposals)
+            .FirstOrDefault(v => v.Group.Id == selection.GroupId)?.Group;
+        if (group is null) return;
+        var current = _selectedSurface?.Id == surface.Id ? _selectedVariant : null;
+        if (_selectedSurface?.Id != surface.Id || _selectedControl is not null) SelectSurface(surface);
+        var eligible = UiInspectionPresentation.IncludeEquivalentFrames(_model.VariantsFor([surface]), surface.Variants);
+        var frameIds = group.Frames.Select(f => f.Id).ToHashSet(StringComparer.Ordinal);
+        _visibleVariants = eligible;
+        var frame = eligible.FirstOrDefault(f => f.Id == current?.Id && frameIds.Contains(f.Id))
+            ?? eligible.FirstOrDefault(f => frameIds.Contains(f.Id));
+        BuildVariantCards(eligible);
         if (frame is not null) { SelectVariant(frame); return; }
-        var node = _model!.Graph.Nodes.FirstOrDefault(n => n.Id == selection.VariantId);
-        var label = string.IsNullOrWhiteSpace(node?.Label) ? "Recorded variant" : node.Label;
-        var reasons = surface.Variants.Where(f => f.SemanticVariantId == selection.VariantId)
+        var label = group.Label;
+        var reasons = group.Frames
             .Select(f => f.Reason).Distinct(StringComparer.Ordinal).ToArray();
         _selectedVariant = null;
+        _inspectionUnavailableGroupId = group.Id;
         _inspectionUnavailableVariant = $"{label}: no eligible recorded frames for normal preview." +
             (reasons.Length > 0 ? " Recorded status: " + string.Join(", ", reasons) + "." : " No frame observation is attached.") +
             " Its control hierarchy remains available for inspection.";
-        var unavailable = new UiInspectionFrameGroup("semantic:" + selection.VariantId, label + " · no eligible frames", []);
+        var unavailable = new UiInspectionFrameGroup(group.Id, label + " · no eligible frames", []);
         _updatingInspectionVariants = true;
         _inspectionVariantSelector.ItemsSource = UiInspectionPresentation.FrameGroups(_visibleVariants).Append(unavailable).ToArray();
         _inspectionVariantSelector.SelectedItem = unavailable;

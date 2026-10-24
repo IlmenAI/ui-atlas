@@ -96,7 +96,7 @@ public sealed partial class ExplorerWindow
             _parameterSummary.Text = "Review unavailable · " + ex.Message;
         }
         if (_parameterReviewMode is not null) RefreshParameterReview();
-        else RefreshInspectionPreview();
+        else { RefreshInspectionHierarchyGrids(); RefreshInspectionPreview(); }
     }
 
     private void EnterParameterReview(string mode)

@@ -212,8 +212,8 @@ public sealed partial class ExplorerWindow : Window
         _surfaceKindFilter.SelectionChanged += (_, _) => { if (!_refreshingFilters) RefreshAll(); };
         _hierarchy.SelectedItemChanged += (_, args) =>
         {
-            if (!_synchronizing && args.NewValue is TreeViewItem { Tag: InspectionVariantSelection variantSelection })
-            { SelectHierarchyVariant(variantSelection); return; }
+            if (!_synchronizing && args.NewValue is TreeViewItem { Tag: InspectionTreeSelection inspectionSelection } inspectionItem)
+            { SelectInspectionTreeItem(inspectionItem, inspectionSelection); return; }
             if (!_synchronizing && args.NewValue is TreeViewItem { Tag: ParameterProposal proposal })
             { SelectParameterProposal(proposal); return; }
             if (_synchronizing || args.NewValue is not TreeViewItem { Tag: SelectionRef selection }) return;
@@ -2914,6 +2914,7 @@ public sealed partial class ExplorerWindow : Window
     {
         _hierarchy.Items.Clear();
         _hierarchyItems.Clear();
+        _inspectionGridBranches.Clear();
         if (_model is null) return;
         var revealedControl = string.IsNullOrWhiteSpace(revealedControlId)
             ? null
@@ -2954,69 +2955,11 @@ public sealed partial class ExplorerWindow : Window
                 item.ToolTip = $"{surface.SurfaceKind} | {surface.ControlCount} controls | {surface.Variants.Count} recorded frames" +
                     (semanticVariantCount > 0 ? $" | {semanticVariantCount} semantic variants" : "");
                 _hierarchyItems[surface.Id] = item;
-                void PopulateControls()
-                {
-                item.Items.Clear();
-                var controls = _model.LayerFor(level).ControlsForSurface(surface.Id);
-                var parents = UiControlHierarchy.Parents(controls, query, revealedControlId);
-                var controlItems = new Dictionary<string, TreeViewItem>(StringComparer.Ordinal);
-                var controlById = controls.ToDictionary(control => control.Id, StringComparer.Ordinal);
-                var variantItems = new Dictionary<string, TreeViewItem>(StringComparer.Ordinal);
-                foreach (var variantId in controls.Where(control => parents.ContainsKey(control.Id))
-                    .Select(control => PropertyValue(control.Source, "semanticVariantRef")).OfType<string>()
-                    .Where(id => id.Length > 0).Distinct(StringComparer.Ordinal))
-                {
-                    var variantNode = _model.Graph.Nodes.FirstOrDefault(node => node.Id == variantId);
-                    var variantItem = TreeItem("Variant · " + (string.IsNullOrWhiteSpace(variantNode?.Label) ? "Recorded variant" : variantNode.Label),
-                        null, expandControls, LevelBrush(level), FontWeights.SemiBold);
-                    variantItem.Tag = new InspectionVariantSelection(surface.Id, variantId);
-                    variantItem.ToolTip = $"Recorded surface variant\n{variantId}";
-                    variantItems[variantId] = variantItem; item.Items.Add(variantItem);
-                }
-                foreach (var control in controls.Where(control => parents.ContainsKey(control.Id))
-                             .OrderBy(control => control.DisplayName, StringComparer.OrdinalIgnoreCase)
-                             .ThenBy(control => control.Id, StringComparer.Ordinal))
-                {
-                    var unverified = control.Source.Properties.Any(property =>
-                        property.Name == "verificationStatus" && property.Value == "Unverified");
-                    var canConfirmButton = GraphControlConfirmation.IsConfirmableButtonCandidate(control.Source);
-                    var canRemoveButton = GraphControlConfirmation.IsRemovableButtonCandidate(control.Source);
-                    var controlItem = TreeItem(
-                        canConfirmButton
-                            ? $"{UiInspectionPresentation.ControlLabel(control)} · button candidate"
-                            : unverified ? $"{UiInspectionPresentation.ControlLabel(control)} · unverified" : UiInspectionPresentation.ControlLabel(control),
-                        new SelectionRef(surface.Id, control.Id),
-                        false,
-                        canConfirmButton ? Brush("#F97316") : unverified ? Muted : LevelBrush(level),
-                        FontWeights.Normal,
-                        canConfirmButton ? () => ConfirmButtonCandidateAsync(control.Id) : null,
-                        canRemoveButton ? () => RemoveButtonCandidateAsync(control.Id) : null);
-                    controlItem.Opacity = unverified && !canConfirmButton ? 0.68 : 1;
-                    controlItem.ToolTip = canConfirmButton
-                        ? $"{control.CanonicalKind} | potential button: hover to confirm or remove"
-                        : unverified
-                            ? $"{control.CanonicalKind} | discovered in the UI tree but not yet visible or confirmed"
-                        : $"{control.CanonicalKind} | observed";
-                    controlItem.ToolTip = $"{UiInspectionPresentation.ControlLabel(control)}\n{controlItem.ToolTip}\nID: {control.Id}\nParent: {control.ParentControlId}";
-                    controlItems[control.Id] = controlItem;
-                    _hierarchyItems[control.Id] = controlItem;
-                }
-                foreach (var (id, controlItem) in controlItems)
-                {
-                    if (controlItems.TryGetValue(parents[id], out var parent))
-                    {
-                        parent.Items.Add(controlItem);
-                        if (!string.IsNullOrWhiteSpace(query)) parent.IsExpanded = true;
-                    }
-                    else if (variantItems.TryGetValue(PropertyValue(controlById[id].Source,
-                        "semanticVariantRef") ?? "", out var variantParent)) variantParent.Items.Add(controlItem);
-                    else item.Items.Add(controlItem);
-                }
-                }
+                void PopulateControls() => PopulateInspectionHierarchy(item, surface, query, revealedControlId, expandControls);
                 if (expandControls) PopulateControls();
-                else if (surface.ControlCount > 0)
+                else
                 {
-                    item.Items.Add("Expand to inspect controls");
+                    item.Items.Add("Expand to inspect variants, controls and data grids");
                     RoutedEventHandler? expand = null;
                     expand = (_, args) => { if (args.OriginalSource != item) return; item.Expanded -= expand; PopulateControls(); };
                     item.Expanded += expand;
@@ -3411,6 +3354,7 @@ public sealed partial class ExplorerWindow : Window
     {
         if (_model is null) return;
         _inspectionUnavailableVariant = null;
+        _inspectionUnavailableGroupId = null;
         var variants = _model.VariantsFor(_selectedSurfaceScope, _selectedControl);
         if (_inspectionLevel != UiUnderstandingLevel.RawDataStreams)
             variants = UiInspectionPresentation.IncludeEquivalentFrames(variants, _selectedSurfaceScope.SelectMany(s => s.Variants));
@@ -3534,6 +3478,7 @@ public sealed partial class ExplorerWindow : Window
     private void SelectVariant(UiMapVariantView variant)
     {
         _inspectionUnavailableVariant = null;
+        _inspectionUnavailableGroupId = null;
         _selectedVariant = variant;
         if (_selectedControl is not null && !variant.ControlIds.Contains(_selectedControl.Id)) _selectedControl = null;
         _selectedSurface = ResolveSurfaceForVariant(variant) ?? _selectedSurface;
@@ -5783,7 +5728,11 @@ public sealed partial class ExplorerWindow : Window
                surface.SurfaceKind.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                surface.Source.Properties.Any(property => property.Value.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
                _model?.LayerFor(surface.Level).ControlsForSurface(surface.Id).Any(control =>
-                   UiInspectionPresentation.Matches(control, query)) == true;
+                   UiInspectionPresentation.Matches(control, query)) == true ||
+               _model is not null && UiInspectionPresentation.Variants(_model, surface, _parameterProposals).Any(variant =>
+                   variant.Group.Label.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                   variant.Group.Id.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                   variant.Grids.Any(grid => UiInspectionPresentation.Matches(grid, query)));
     }
 
     private static string DisplayPropertyName(string value)

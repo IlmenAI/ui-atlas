@@ -7,9 +7,65 @@ public sealed record UiInspectionFrameGroup(string Id, string Label, IReadOnlyLi
     public override string ToString() => Label;
 }
 
+public sealed record UiInspectionVariant(UiInspectionFrameGroup Group,
+    IReadOnlyList<UiMapControlView> Controls, IReadOnlyList<ParameterProposal> Grids);
+
 /// <summary>Read-only editor organization. Never changes recorded names or target identities.</summary>
 public static class UiInspectionPresentation
 {
+    public static IReadOnlyList<UiInspectionVariant> Variants(UiMappingReadModel model,
+        UiMapSurfaceView surface, IReadOnlyList<ParameterProposal> proposals)
+    {
+        if (surface.Level == UiUnderstandingLevel.RawDataStreams) return [];
+        var controls = model.LayerFor(surface.Level).ControlsForSurface(surface.Id);
+        var groups = FrameGroups(surface.Variants).ToList();
+        var declared = surface.Level == UiUnderstandingLevel.SemanticWorld
+            ? model.Graph.Nodes.Where(n => n.Kind == GraphNodeKind.State && n.ParentId == surface.Id && Property(n, "layer") == "semantic-world").Select(n => n.Id)
+            : [];
+        foreach (var id in controls.Select(c => Property(c.Source, "semanticVariantRef")).Concat(declared)
+            .Where(id => id.Length > 0).Distinct(StringComparer.Ordinal))
+        {
+            if (groups.Any(g => g.Id == "semantic:" + id)) continue;
+            var label = model.Graph.Nodes.FirstOrDefault(n => n.Id == id)?.Label;
+            groups.Add(new("semantic:" + id, string.IsNullOrWhiteSpace(label) ? "Recorded variant" : label, []));
+        }
+        var members = groups.Select(group =>
+        {
+            var ids = group.Frames.SelectMany(f => f.ControlIds).ToHashSet(StringComparer.Ordinal);
+            return controls.Where(c => Property(c.Source, "semanticVariantRef") is { Length: > 0 } variantId
+                ? group.Id == "semantic:" + variantId : ids.Contains(c.Id)).ToArray();
+        }).ToList();
+        var assigned = members.SelectMany(m => m).Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
+        var unclassified = controls.Where(c => !assigned.Contains(c.Id)).ToArray();
+        if (unclassified.Length > 0 || groups.Count == 0)
+        {
+            var index = groups.FindIndex(g => g.Id == "unclassified:" + surface.Id);
+            if (index >= 0) members[index] = members[index].Concat(unclassified).ToArray();
+            else
+            {
+                groups.Add(new("unclassified:" + surface.Id, "Unclassified observations", []));
+                members.Add(unclassified);
+            }
+        }
+        var grids = GridsForSurface(model, surface, proposals);
+        var hosts = model.LayerFor(UiUnderstandingLevel.SemanticWorld).Controls.ToDictionary(c => c.Id, StringComparer.Ordinal);
+        return groups.Select((group, index) =>
+        {
+            var ids = members[index].Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
+            var bound = grids.Where(p => surface.Level == UiUnderstandingLevel.SemanticWorld
+                ? ids.Contains(p.TargetId)
+                : hosts[p.TargetId].Source.Properties.Any(property => property.Name == "sourceRawControlId" && ids.Contains(property.Value)))
+                .ToArray();
+            return new UiInspectionVariant(group, members[index], bound);
+        }).ToArray();
+    }
+
+    public static bool Matches(ParameterProposal grid, string query) =>
+        grid.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+        grid.Id.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+        grid.Schema?.Columns.Any(column => column.Label.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+            column.ColumnKey.Contains(query, StringComparison.OrdinalIgnoreCase)) == true;
+
     public static string ControlLabel(UiMapControlView control)
     {
         var kind = string.IsNullOrWhiteSpace(control.CanonicalKind) ? "Control" : control.CanonicalKind.Trim();

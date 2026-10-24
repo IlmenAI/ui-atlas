@@ -69,6 +69,33 @@ public sealed class InspectionPresentationTests
     }
 
     [Fact]
+    public void VariantTreesKeepExactGridMembershipAndUnclassifiedControls()
+    {
+        var model = new UiMappingReadModel(Graph());
+        var surface = model.LayerFor(UiUnderstandingLevel.SemanticWorld).Surfaces.Single(s => s.Id == "surface");
+        var first = Proposal();
+        var second = first with { Id = "grid:second", TargetId = "grid2" }; // Same label is not identity.
+        var details = first with { Id = "grid:details", TargetId = "details" };
+        var groups = UiInspectionPresentation.Variants(model, surface, [first, second, details, first with { Id = "unbound", HostBound = false }]);
+        Assert.Equal(["grid:arrival", "grid:second"], groups.Single(g => g.Group.Id == "semantic:v1").Grids.Select(g => g.Id));
+        Assert.Equal("grid:details", Assert.Single(groups.Single(g => g.Group.Id == "semantic:v2").Grids).Id);
+        Assert.Equal(["pane", "grid", "grid2"], groups.Single(g => g.Group.Id == "semantic:v1").Controls.Select(c => c.Id));
+        Assert.True(UiInspectionPresentation.Matches(first, "c"));
+        var raw = model.LayerFor(UiUnderstandingLevel.RawWorld).Surfaces.Single(s => s.Id == "raw");
+        Assert.Contains(UiInspectionPresentation.Variants(model, raw, [first]), g => g.Controls.Any(c => c.Id == "raw-grid") && g.Grids.Count == 1);
+        var orphan = Graph().Nodes.Single(n => n.Id == "grid") with { Id = "orphan", ParentId = "surface", Evidence = [],
+            Properties = Graph().Nodes.Single(n => n.Id == "grid").Properties.Where(p => p.Name != "semanticVariantRef").ToArray() };
+        var withOrphan = new UiMappingReadModel(Graph() with { Nodes = Graph().Nodes.Append(orphan).ToArray() });
+        var unknown = UiInspectionPresentation.Variants(withOrphan, surface, [first with { Id = "grid:orphan", TargetId = "orphan" }]);
+        Assert.Equal("grid:orphan", Assert.Single(unknown.Single(v => v.Group.Id == "unclassified:surface").Grids).Id);
+        Assert.DoesNotContain(unknown.Where(v => v.Group.Id.StartsWith("semantic:")), v => v.Grids.Count > 0);
+        var emptyState = Graph().Nodes.Single(n => n.Id == "v2") with { Id = "empty-variant", Evidence = [] };
+        var emptyModel = new UiMappingReadModel(Graph() with { Nodes = Graph().Nodes.Append(emptyState).ToArray() });
+        var empty = UiInspectionPresentation.Variants(emptyModel, surface, []).Single(v => v.Group.Id == "semantic:empty-variant");
+        Assert.Empty(empty.Group.Frames); Assert.Empty(empty.Controls); Assert.Empty(empty.Grids);
+    }
+
+    [Fact]
     public void EditorShowsInlineGridInBothWorldsAndClearsItForOtherSurfaces()
     {
         Sta(() =>
@@ -92,7 +119,7 @@ public sealed class InspectionPresentationTests
                 Assert.Equal("", ((GridColumn)Get<DataGrid>("_inspectionGridColumns").Items[2]).Label);
                 Assert.Contains("separate from the selected frame", Get<TextBlock>("_inspectionGridSummary").Text);
                 Assert.Contains("partial or unknown schema", Get<TextBlock>("_inspectionGridSummary").Text);
-                var second = proposal with { Id = "grid:second", DisplayName = "Second retained grid",
+                var second = proposal with { Id = "grid:second", TargetId = "grid2", DisplayName = "Second retained grid",
                     Schema = proposal.Schema! with { Columns = [new("second-column", 0, "Second", 0, 100)] } };
                 Set("_parameterProposals", new[] { proposal, second }); Call("RefreshInspectionPreview");
                 var grids = Get<ComboBox>("_inspectionGridSelector");
@@ -111,19 +138,61 @@ public sealed class InspectionPresentationTests
                 Assert.Equal(new[] { "1", "2" }, frames.Select(b => b.Content!.ToString()));
                 frames[1].RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
                 Assert.Equal(2, Get<UiMapVariantView>("_selectedVariant").FrameSequence);
+                Set("_parameterProposals", new[] { proposal, second });
+                Call("BuildHierarchy", "", "grid");
+                var tree = Get<Dictionary<string, TreeViewItem>>("_hierarchyItems");
+                var controlBranch = (TreeViewItem)tree["pane"].Parent;
+                Assert.Equal("Controls", AutomationProperties.GetName(controlBranch));
+                var variantNode = (TreeViewItem)controlBranch.Parent;
+                Assert.Equal(new[] { "Controls", "Data grids" }, variantNode.Items.OfType<TreeViewItem>().Select(AutomationProperties.GetName));
+                var gridBranch = (TreeViewItem)variantNode.Items[1];
+                Assert.Equal(2, gridBranch.Items.Count);
+                var secondNode = (TreeViewItem)gridBranch.Items[1];
+                secondNode.IsSelected = true; Pump(20);
+                Assert.Same(secondNode, Get<TreeView>("_hierarchy").SelectedItem);
+                Assert.Equal(2, Get<UiMapVariantView>("_selectedVariant").FrameSequence);
+                Assert.Equal("Second retained grid", grids.SelectedItem.ToString());
+                var firstGridNode = (TreeViewItem)gridBranch.Items[0];
+                var blankColumn = (TreeViewItem)firstGridNode.Items[2];
+                Assert.Equal("3. (unnamed column)", AutomationProperties.GetName(blankColumn));
+                blankColumn.IsSelected = true; Pump(20);
+                Assert.Equal("c", ((GridColumn)Get<DataGrid>("_inspectionGridColumns").SelectedItem).ColumnKey);
+                Assert.Equal("Arrival Guest List", grids.SelectedItem.ToString());
+                Assert.Equal(2, Get<UiMapVariantView>("_selectedVariant").FrameSequence);
+                Assert.Equal("1. Name", AutomationProperties.GetName((TreeViewItem)firstGridNode.Items[0]));
+                Assert.Equal("2. Name", AutomationProperties.GetName((TreeViewItem)firstGridNode.Items[1]));
+                // Metadata arriving after expansion refreshes the existing branch and leaves controls intact.
+                Set("_parameterProposals", new[] { proposal }); Call("RefreshInspectionHierarchyGrids"); Call("RefreshInspectionPreview");
+                Assert.Single(gridBranch.Items.Cast<TreeViewItem>());
+                Assert.Same(controlBranch, tree["pane"].Parent);
+                Call("BuildHierarchy", "Second", "");
+                Assert.DoesNotContain("surface", Get<Dictionary<string, TreeViewItem>>("_hierarchyItems").Keys);
+                Set("_parameterProposals", new[] { proposal, second }); Call("BuildHierarchy", "second-column", "");
+                var searchSurface = Get<Dictionary<string, TreeViewItem>>("_hierarchyItems")["surface"];
+                var searchVariant = Assert.Single(searchSurface.Items.OfType<TreeViewItem>());
+                Assert.Equal(2, searchVariant.Items.Count);
+                Assert.Equal("Second retained grid", AutomationProperties.GetName(Assert.Single(((TreeViewItem)searchVariant.Items[1]).Items.OfType<TreeViewItem>())));
+                Set("_parameterProposals", new[] { proposal });
                 variants.SelectedItem = variants.Items.OfType<UiInspectionFrameGroup>().Single(group => group.Id == "semantic:v2");
                 Assert.Equal(3, Get<UiMapVariantView>("_selectedVariant").FrameSequence);
                 Assert.Contains("semantic:v2", variants.ToolTip.ToString());
+                Assert.Empty(grids.Items);
+                Assert.Null(Get<Image>("_inspectionGridImage").Source);
                 Call("BuildHierarchy", "", "grid");
                 var hierarchy = Get<Dictionary<string, TreeViewItem>>("_hierarchyItems");
                 Assert.Same(hierarchy["pane"], hierarchy["grid"].Parent);
                 Assert.Contains("Pane · unnamed", AutomationProperties.GetName(hierarchy["pane"]));
-                Assert.Contains("Variant", AutomationProperties.GetName((TreeViewItem)hierarchy["pane"].Parent));
+                Assert.Equal("Controls", AutomationProperties.GetName((TreeViewItem)hierarchy["pane"].Parent));
+                Assert.Contains("Variant", AutomationProperties.GetName((TreeViewItem)((TreeViewItem)hierarchy["pane"].Parent).Parent));
                 Get<TabControl>("_inspectionTabs").SelectedIndex = 1;
                 Call("RenderAppMap"); Assert.Equal(1, Get<TabControl>("_inspectionTabs").SelectedIndex);
                 Call("SelectSurfaceById", "raw");
                 Assert.Equal(0, Get<TabControl>("_inspectionTabs").SelectedIndex);
                 Assert.NotNull(Get<Image>("_inspectionGridImage").Source);
+                Call("BuildHierarchy", "", "raw-grid");
+                var rawControlBranch = (TreeViewItem)Get<Dictionary<string, TreeViewItem>>("_hierarchyItems")["raw-grid"].Parent;
+                Assert.Equal("Controls", AutomationProperties.GetName(rawControlBranch));
+                Assert.Equal(new[] { "Controls", "Data grids" }, ((TreeViewItem)rawControlBranch.Parent).Items.OfType<TreeViewItem>().Select(AutomationProperties.GetName));
                 Call("SelectSurfaceById", "other");
                 Assert.Null(Get<Image>("_inspectionGridImage").Source);
                 Assert.Empty(Get<DataGrid>("_inspectionGridColumns").Items);
@@ -144,7 +213,7 @@ public sealed class InspectionPresentationTests
                     [new("layer", "raw-world"), new("sceneVisible", "False")], graph.Nodes.Single(n => n.Id == "v2").Evidence)).ToArray() }));
                 Call("RefreshAll"); Call("SelectSurfaceById", "surface");
                 Call("BuildHierarchy", "", "details");
-                var hiddenVariant = (TreeViewItem)Get<Dictionary<string, TreeViewItem>>("_hierarchyItems")["details"].Parent;
+                var hiddenVariant = (TreeViewItem)((TreeViewItem)Get<Dictionary<string, TreeViewItem>>("_hierarchyItems")["details"].Parent).Parent;
                 hiddenVariant.IsSelected = true; Pump(20);
                 Assert.Null(Get<UiMapVariantView?>("_selectedVariant"));
                 Assert.Null(Get<Image>("_appMapImage").Source);
@@ -188,6 +257,7 @@ public sealed class InspectionPresentationTests
              new("v2", GraphNodeKind.State, "surface", "v2", "Details", [new("layer", "semantic-world")], Frames(3)),
              Control("pane", "v1", "", "Pane", "surface", "semantic-world", "v1"),
              Control("grid", "pane", "Arrival Guest List", "DataGrid", "surface", "semantic-world", "v1"),
+             Control("grid2", "pane", "Other grid", "DataGrid", "surface", "semantic-world", "v1"),
              Control("details", "v2", "Details", "Pane", "surface", "semantic-world", "v2") with { Evidence = Frames(3) },
              Control("raw-grid", "raw", "Arrival Guest List", "DataGrid", "raw", "raw-world", "")], []);
     }
