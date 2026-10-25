@@ -97,9 +97,9 @@ public sealed class ExperienceProfileCatalog
         });
         var mapsHud = Array.AsReadOnly(new[]
         {
-            new ExperienceCommand("hud.record-work-session", "Record Work Session", "\uE7C3", workSessionsAvailable, workSessionsAvailable ? "" : "In development"),
             new ExperienceCommand("hud.record-map", "Record UI Map", "\uE81E"),
-            new ExperienceCommand("hud.run-workflow", "Run workflow", "\uE768", workSessionsAvailable, workSessionsAvailable ? "" : "Not available"),
+            new ExperienceCommand("hud.record-work-session", "Record Workflow", "\uE7C3", workSessionsAvailable, workSessionsAvailable ? "" : "In development"),
+            new ExperienceCommand("hud.run-workflow", "Execute Workflow", "\uE768", workSessionsAvailable, workSessionsAvailable ? "" : "Not available"),
         });
         var diagnosticsNew = Array.AsReadOnly(new[]
         {
