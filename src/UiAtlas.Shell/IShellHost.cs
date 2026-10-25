@@ -35,3 +35,8 @@ public interface IShellWorkflowRunHost
 {
     Task RunWorkflowAsync(Window owner);
 }
+
+public interface IShellSkillsHost
+{
+    FrameworkElement CreateSkillView(string route);
+}

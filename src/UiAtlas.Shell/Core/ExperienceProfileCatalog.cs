@@ -55,7 +55,7 @@ public sealed class ExperienceProfileCatalog
 {
     private readonly IReadOnlyDictionary<ExperienceProfileId, ExperienceProfileDefinition> _definitions;
 
-    public ExperienceProfileCatalog(bool diagnosticsAvailable, bool workSessionsAvailable = false)
+    public ExperienceProfileCatalog(bool diagnosticsAvailable, bool workSessionsAvailable = false, bool skillsAvailable = false)
     {
         var work = new ExperienceProfileOption(ExperienceProfileId.Work, "Work", workSessionsAvailable ? ExperienceAvailability.Available : ExperienceAvailability.InDevelopment);
         var maps = new ExperienceProfileOption(ExperienceProfileId.Maps, "Maps", ExperienceAvailability.Available);
@@ -108,6 +108,19 @@ public sealed class ExperienceProfileCatalog
             new ExperienceCommand("new.integration", "Integration", "\uE774", false, "In development"),
             new ExperienceCommand("new.diagnostics", "Diagnostics", "\uE9D2", diagnosticsAvailable, diagnosticsAvailable ? "" : "Not installed"),
         });
+        if (skillsAvailable)
+        {
+            ExperienceNavigationItem[] skillNavigation = [
+                new("business-knowledge", "Business Knowledge", "\uE8F1"),
+                new("work-sessions", "Tasks", "\uE7C3", workSessionsAvailable),
+                new("skillgen", "SkillGen", "\uE945"),
+                new("run-skills", "Run Skills", "\uE768"),
+                new("execution-history", "Execution History", "\uE9D9"),
+                new("people-escalation", "People & Escalation", "\uE716", true, "", true),
+                new("skill-connections", "Connections", "\uE774")];
+            mapsNavigation = Array.AsReadOnly(skillNavigation.Concat(mapsNavigation.Where(n => n.Route is not ("work-sessions" or "runs"))).ToArray());
+            diagnosticsNavigation = Array.AsReadOnly(skillNavigation.Concat(diagnosticsNavigation.Where(n => n.Route is not ("work-sessions" or "runs"))).ToArray());
+        }
         _definitions = new Dictionary<ExperienceProfileId, ExperienceProfileDefinition>
         {
             [ExperienceProfileId.Work] = new(work, mapsNavigation, mapsNew, mapsHud),

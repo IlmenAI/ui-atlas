@@ -177,6 +177,9 @@ public partial class ShellWindow : Window
         _activeRoute = item.Route;
         switch (item.Route)
         {
+            case "business-knowledge" or "skillgen" or "run-skills" or "execution-history" or "people-escalation" or "skill-connections" when _host is IShellSkillsHost skills:
+                ShowPage(skills.CreateSkillView(item.Route));
+                break;
             case "work-sessions" when _host is IShellWorkSessionsHost work:
                 ShowPage(work.CreateWorkSessionsView(this));
                 break;
