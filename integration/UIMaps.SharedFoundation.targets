@@ -57,7 +57,7 @@
     </MSBuild>
     <Copy SourceFiles="@(_AtlasMappingTools)" DestinationFiles="@(_AtlasMappingTools->'$(TargetDir)atlas\%(AtlasRelativePath)')" SkipUnchangedFiles="true" />
   </Target>
-  <ItemGroup Condition="Exists('$(UIMapsIntegrationRoot)\uimaps-workflow-contracts\UIMaps.Workflow.Contracts.csproj') and ($(MSBuildProjectName.StartsWith('UIMaps.WorkflowRecorder')) or $(MSBuildProjectName.StartsWith('UIMaps.Recorder')) or $(MSBuildProjectName.StartsWith('UIMaps.Perception')) or $(MSBuildProjectName.StartsWith('UIMaps.Localization')) or '$(MSBuildProjectName)' == 'UIMaps.Application' or '$(MSBuildProjectName)' == 'UIMaps.Application.Tests' or '$(MSBuildProjectName)' == 'UIMaps.Protocol.Tests')">
-    <ProjectReference Include="$(UIMapsIntegrationRoot)\uimaps-workflow-contracts\UIMaps.Workflow.Contracts.csproj" />
+  <ItemGroup Condition="Exists('$(UIMapsIntegrationRoot)\uimaps-task-contracts\UIMaps.Task.Contracts.csproj') and ($(MSBuildProjectName.StartsWith('UIMaps.TaskRecorder')) or $(MSBuildProjectName.StartsWith('UIMaps.Recorder')) or $(MSBuildProjectName.StartsWith('UIMaps.Perception')) or $(MSBuildProjectName.StartsWith('UIMaps.Localization')) or '$(MSBuildProjectName)' == 'UIMaps.Application' or '$(MSBuildProjectName)' == 'UIMaps.Application.Tests' or '$(MSBuildProjectName)' == 'UIMaps.Protocol.Tests')">
+    <ProjectReference Include="$(UIMapsIntegrationRoot)\uimaps-task-contracts\UIMaps.Task.Contracts.csproj" />
   </ItemGroup>
 </Project>
