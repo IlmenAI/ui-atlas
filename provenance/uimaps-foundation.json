@@ -532,8 +532,8 @@
       "repository": "https://github.com/IlmenAI/UI-Atlas",
       "commit": "8d6514273cfcb25f01feac2d492286f6fd88e89a",
       "source": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/NativeGraphicsCapture.cs",
-      "sha256": "5c533833936e98f2c418bf50e19252256a6e963ff0d4d7592931e7063fb8f437",
-      "disposition": "atlas-integrated-source"
+      "sha256": "a96001e8001059b159833a447f290c5c19c8717ab5d48bd39b6f4139f5647f83",
+      "disposition": "reviewed-adaptation: bounded source-sized staging texture for CopyResource; crop current content only during CPU row copy; preserve opaque alpha"
     },
     {
       "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/NativeMsaaProvider.cs",
@@ -548,8 +548,8 @@
       "repository": "https://github.com/AI-Successors/uimaps-recorder",
       "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
       "source": "new shared implementation; not present at base commit",
-      "sha256": "17a612368c99e98490977fa8aa7db0fab37f13bceb896e0e4e5298ed37835082",
-      "disposition": "new-shared-implementation"
+      "sha256": "c7dd360c36a0d372762732b133cb4daf8149320ac7df56f3b3ae2a1d04278a43",
+      "disposition": "reviewed-adaptation: preserve unavailable image evidence when validation rejects a window; retain all size, blank-image and byte-budget checks"
     },
     {
       "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/SurfaceSceneReconstructor.cs",

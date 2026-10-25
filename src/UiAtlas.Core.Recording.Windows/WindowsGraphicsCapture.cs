@@ -249,15 +249,17 @@ internal static unsafe class WindowsGraphicsCapture
             var description = default(Texture2DDescription);
             var getDescription = (delegate* unmanaged[Stdcall]<nint, Texture2DDescription*, void>)GetMethod(texture, 10);
             getDescription(texture, &description);
-            if (description.Format != Bgra8Unorm || description.Sample.Count != 1)
+            if (description.Format != Bgra8Unorm || description.Sample.Count != 1 || description.MipLevels != 1 || description.ArraySize != 1)
                 throw new InvalidOperationException("Capture texture has an unsupported pixel format.");
+            ValidateSize(new(checked((int)description.Width), checked((int)description.Height)));
 
             var width = Math.Min(description.Width, checked((uint)contentSize.Width));
             var height = Math.Min(description.Height, checked((uint)contentSize.Height));
             var stagingDescription = description with
             {
-                Width = width,
-                Height = height,
+                // CopyResource requires identical texture dimensions. WGC can
+                // retain a larger frame-pool texture than the current content.
+                // Keep its allocation size and crop only during CPU row copy.
                 MipLevels = 1,
                 ArraySize = 1,
                 Usage = 3,
