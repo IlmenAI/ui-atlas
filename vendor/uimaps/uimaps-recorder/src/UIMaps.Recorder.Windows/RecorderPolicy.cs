@@ -24,6 +24,7 @@ public sealed record RecorderPolicy(
     public long MaxBytesPerSegment { get; init; } = 16L * 1024 * 1024;
     public IReadOnlySet<string> TargetWindowHandleEvidence { get; init; } = new HashSet<string>(StringComparer.Ordinal);
     public string TargetProcessInstanceEvidence { get; init; } = string.Empty;
+    public bool RuntimeGroundingWindowScope { get; init; }
     public static RecorderPolicy Default { get; } = new(
         TimeSpan.FromSeconds(5),
         TimeSpan.FromSeconds(1),
@@ -93,6 +94,7 @@ public sealed record RecorderPolicy(
         {
             CaptureSemantics = value.CaptureSemantics,
             MappingCheckpoint = value.ResolvedProfileRef?.ProfileId == "mapping-checkpoint",
+            RuntimeGroundingWindowScope = value.ResolvedProfileRef?.ProfileId == "runtime-grounding",
             CaptureMsaa = value.ProviderBudgets.Any(budget => budget.ProviderId == "msaa"),
             ExhaustiveCoverage = exhaustive,
             MaxNodesPerEpisode = exhaustive ? int.MaxValue : value.MaxNodesPerEpisode,

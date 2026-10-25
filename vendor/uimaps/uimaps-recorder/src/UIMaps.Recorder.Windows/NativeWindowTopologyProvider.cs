@@ -129,6 +129,9 @@ public sealed class NativeWindowTopologyProvider : IWindowTopologyProvider
     internal static List<WindowObservationRecord> ApplyPolicy(IEnumerable<WindowObservationRecord> windows, RecorderPolicy policy)
     {
         var ordered = windows
+            // Replay is assigned to a root window, not every document hosted by
+            // the same Office process. Keep its complete native owner chain.
+            .Where(x => !policy.RuntimeGroundingWindowScope || IsTargetWindowFamily(x, policy))
             .OrderByDescending(x => policy.TargetWindowHandleEvidence.Contains(x.WindowHandleEvidence))
             .ThenByDescending(x => !string.IsNullOrWhiteSpace(policy.TargetProcessInstanceEvidence)
                 && string.Equals(x.ProcessInstanceEvidence, policy.TargetProcessInstanceEvidence, StringComparison.Ordinal))
@@ -148,6 +151,11 @@ public sealed class NativeWindowTopologyProvider : IWindowTopologyProvider
         policy.TargetWindowHandleEvidence.Contains(window.WindowHandleEvidence)
         || (!string.IsNullOrWhiteSpace(policy.TargetProcessInstanceEvidence)
             && string.Equals(window.ProcessInstanceEvidence, policy.TargetProcessInstanceEvidence, StringComparison.Ordinal))
+        || policy.TargetWindowHandleEvidence.Contains(window.RootOwnerHandleEvidence)
+        || window.OwnerChainEvidence.Any(policy.TargetWindowHandleEvidence.Contains);
+
+    private static bool IsTargetWindowFamily(WindowObservationRecord window, RecorderPolicy policy) =>
+        policy.TargetWindowHandleEvidence.Contains(window.WindowHandleEvidence)
         || policy.TargetWindowHandleEvidence.Contains(window.RootOwnerHandleEvidence)
         || window.OwnerChainEvidence.Any(policy.TargetWindowHandleEvidence.Contains);
 
