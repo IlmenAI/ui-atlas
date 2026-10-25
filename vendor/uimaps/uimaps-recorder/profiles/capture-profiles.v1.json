@@ -1,5 +1,5 @@
 {
-  "catalogVersion": "1.1.0",
+  "catalogVersion": "1.1.1",
   "profiles": [
     {
       "id": "live",
@@ -75,7 +75,7 @@
     },
     {
       "id": "runtime-grounding",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "name": "Runtime grounding",
       "semantics": "snapshot",
       "minMs": 1000,

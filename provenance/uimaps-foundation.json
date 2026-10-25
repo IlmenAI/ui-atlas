@@ -261,7 +261,7 @@
       "repository": "https://github.com/IlmenAI/UI-Atlas",
       "commit": "8d6514273cfcb25f01feac2d492286f6fd88e89a",
       "source": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/TrackAssociator.cs",
-      "sha256": "d29936a28551366ba572aba439370ef15963570e404456b3d3dcf31d6cdeca05",
+      "sha256": "3242d8e87c3564bbac4810b633f32e86711add820304cd27402eb325e116a218",
       "disposition": "atlas-integrated-source"
     },
     {
@@ -395,7 +395,7 @@
       "repository": "https://github.com/IlmenAI/UI-Atlas",
       "commit": "8d6514273cfcb25f01feac2d492286f6fd88e89a",
       "source": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/CaptureProfiles.cs",
-      "sha256": "80cc68faad231cce4eb7265b32f7b7509961374bf1bc2d9abeeb97b31a2e308d",
+      "sha256": "e68b70530699ba78d96f298b492ec329272238e3c7548ed41884baaad0ddfae5",
       "disposition": "atlas-integrated-source"
     },
     {
@@ -443,7 +443,7 @@
       "repository": "https://github.com/IlmenAI/UI-Atlas",
       "commit": "8d6514273cfcb25f01feac2d492286f6fd88e89a",
       "source": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/NativeWindowTopologyProvider.cs",
-      "sha256": "4d4791260df1891292ce90f9253648fdb735333e15bb8d13dc1e66ae7b1896f5",
+      "sha256": "3a88e2234ec1d0937cc6b75f144bcec5078301ab19467127d876fac16a981e12",
       "disposition": "atlas-integrated-source"
     },
     {
@@ -476,7 +476,7 @@
       "repository": "https://github.com/AI-Successors/uimaps-recorder",
       "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
       "source": "src/UIMaps.Recorder.Windows/RecorderPolicy.cs",
-      "sha256": "1af472c3b61ce1d39536711a94f85ce14f3cfdf487a6d1e3bb06638eec93263f",
+      "sha256": "f4b0e49f94ff5a23e5f32104a1573283fdec2e18dcd19a73eb59334e5c7f758d",
       "disposition": "adapted-source: configurable capture sizes, 256 MiB defaults and 512 MiB reader capacity"
     },
     {
@@ -492,7 +492,7 @@
       "repository": "https://github.com/IlmenAI/UI-Atlas",
       "commit": "8d6514273cfcb25f01feac2d492286f6fd88e89a",
       "source": "vendor/uimaps/uimaps-recorder/profiles/capture-profiles.v1.json",
-      "sha256": "c242cdc9e6abdbd66db67d9cb36f727d33acaed67ef359e301d035d65fa5f58e",
+      "sha256": "f43baeb87d9d2cf596176de24b4197359c92079f9475d09ff49f8ea5a97aa1ab",
       "disposition": "atlas-integrated-source"
     },
     {

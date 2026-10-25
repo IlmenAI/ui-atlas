@@ -60,7 +60,7 @@ public sealed class CaptureProfileCatalogService
     {
         ProfileId = value.Id, ProfileVersion = value.Version, DisplayName = value.Name,
         Description = value.Id == "runtime-grounding"
-            ? "Passive target-prioritized grounding snapshot with deep UIA traversal and bounded live capture time."
+            ? "Passive grounding snapshot of the assigned window and its native owned windows, with deep UIA traversal and bounded live capture time."
             : value.Semantics == "survey" ? "Passive staged coverage with explicit intervals and omissions." : "Temporally coherent passive display snapshot.",
         CaptureSemantics = value.Semantics == "survey" ? CaptureSemantics.Survey : CaptureSemantics.Snapshot,
         IntendedDurationMinMs = value.MinMs, IntendedDurationMaxMs = value.MaxMs,
