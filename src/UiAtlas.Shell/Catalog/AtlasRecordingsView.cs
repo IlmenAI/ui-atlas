@@ -16,6 +16,7 @@ public sealed partial class AtlasRecordingsView : UserControl
     private bool _refreshing;
     private bool _initialized;
     private bool _changingFilters;
+    private long _revision;
     public AtlasRecordingsView(AtlasCatalogClient client)
     {
         _client = client;
@@ -68,7 +69,9 @@ public sealed partial class AtlasRecordingsView : UserControl
         _refreshing = true;
         try
         {
+            var revision = _revision;
             var reply = await _client.RequestAsync(new("recordings", _client.Root));
+            if (revision != _revision) return;
             SetRecordings(reply.Recordings);
             StatusText.Text = "";
         }
@@ -104,9 +107,14 @@ public sealed partial class AtlasRecordingsView : UserControl
     {
         if (sender is Button { Tag: RecordingLibraryItem item } button) ShowRecordingMenu(button, item);
     }
-    private void ShowRecordingMenu(Button button, RecordingLibraryItem item)
+    private void Recording_ContextMenuOpening(object sender, ContextMenuEventArgs e)
     {
-        var menu = new ContextMenu { PlacementTarget = button, Placement = PlacementMode.Bottom };
+        if (sender is not FrameworkElement { DataContext: RecordingLibraryItem item } anchor) return;
+        e.Handled = true; ShowRecordingMenu(anchor, item, e.CursorLeft < 0 ? PlacementMode.Bottom : PlacementMode.MousePoint);
+    }
+    private void ShowRecordingMenu(FrameworkElement button, RecordingLibraryItem item, PlacementMode placement = PlacementMode.Bottom)
+    {
+        var menu = new ContextMenu { PlacementTarget = button, Placement = placement };
         void Add(string label, Func<Task> action, bool enabled = true)
         {
             var entry = new MenuItem { Header = label, IsEnabled = enabled };
@@ -117,6 +125,8 @@ public sealed partial class AtlasRecordingsView : UserControl
         Add(item.HasMap ? "Rebuild UI Map" : "Build UI Map", () => BuildAsync(item.Recording), _job is null && !item.IsInvalid && !item.Recording.Archived);
         menu.Items.Add(new Separator());
         Add(item.Recording.Archived ? "Restore recording" : "Archive recording", () => SetArchivedAsync(item.Recording), _job is null);
+        var delete = new MenuItem { Header = "Delete recording…", Foreground = System.Windows.Media.Brushes.Firebrick, IsEnabled = _job is null && !_refreshing };
+        delete.Click += async (_, _) => await RunAsync(() => DeleteRecordingAsync(item.Recording)); menu.Items.Add(delete);
         Add("Recording details", () =>
         {
             MessageBox.Show(Window.GetWindow(this), item.Details + $"\nFrames: {item.Recording.FrameCount:N0}", "Recording details", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -124,6 +134,21 @@ public sealed partial class AtlasRecordingsView : UserControl
         });
         button.ContextMenu = menu;
         menu.IsOpen = true;
+    }
+    private async Task DeleteRecordingAsync(CatalogRecording item)
+    {
+        if (_job is not null || _refreshing) return;
+        if (!DeleteConfirmationDialog.Confirm(Window.GetWindow(this), "UI Map recording", item.ProcessName + " · " + item.Id,
+            "This permanently deletes this recording file. This cannot be undone. Existing UI Maps are retained. Recordings still used by a saved map cannot be deleted.",
+            "Recorded " + item.StartedUtc.ToLocalTime().ToString("g"), $"{item.FrameCount:N0} frames")) return;
+        _job = new(); string message;
+        try
+        {
+            message = (await _client.RequestAsync(new("recording-delete", _client.Root, RecordingId: item.Id, ExpectedArtifactStamp: item.Stamp), _job.Token)).Message;
+            ++_revision; _recordings = _recordings.Where(r => r.Id != item.Id).ToArray(); ApplyFilters();
+        }
+        finally { _job.Dispose(); _job = null; }
+        await RefreshAsync(); StatusText.Text = message;
     }
     private Task OpenAsync(CatalogRecording item)
     {

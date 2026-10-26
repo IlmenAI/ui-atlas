@@ -96,7 +96,7 @@ public sealed class InspectionPresentationTests
     }
 
     [Fact]
-    public void EditorShowsInlineGridInBothWorldsAndClearsItForOtherSurfaces()
+    public void EditorKeepsPipelineVisibleAcrossVariantsWorldsAndGridReview()
     {
         Sta(() =>
         {
@@ -112,22 +112,15 @@ public sealed class InspectionPresentationTests
             {
                 Set("_model", new UiMappingReadModel(Graph())); Set("_parameterProposals", new[] { proposal });
                 viewer.Show(); Call("RefreshAll"); Call("SelectSurfaceById", "surface"); Pump(30);
-                Assert.Equal(0, Get<TabControl>("_inspectionTabs").SelectedIndex);
-                Assert.NotNull(Get<Image>("_inspectionGridImage").Source);
-                Assert.Equal(3, Get<DataGrid>("_inspectionGridColumns").Items.Count);
-                Assert.Equal("Arrival Guest List", Get<ComboBox>("_inspectionGridSelector").SelectedItem.ToString());
-                Assert.Equal("", ((GridColumn)Get<DataGrid>("_inspectionGridColumns").Items[2]).Label);
-                Assert.Contains("separate from the selected frame", Get<TextBlock>("_inspectionGridSummary").Text);
-                Assert.Contains("partial or unknown schema", Get<TextBlock>("_inspectionGridSummary").Text);
+                var pipeline = Get<Canvas>("_topologyCanvas");
+                Assert.True(viewer.IsAncestorOf(pipeline));
+                Assert.DoesNotContain(VisualDescendants(viewer).OfType<TabControl>(), tabs =>
+                    tabs.Items.OfType<TabItem>().Any(item => item.Header is "Data grids" or "Pipeline"));
+                Assert.Contains(VisualDescendants(viewer).OfType<Button>(), button => Equals(button.Content, "Data grids"));
                 var second = proposal with { Id = "grid:second", TargetId = "grid2", DisplayName = "Second retained grid",
                     Schema = proposal.Schema! with { Columns = [new("second-column", 0, "Second", 0, 100)] } };
-                Set("_parameterProposals", new[] { proposal, second }); Call("RefreshInspectionPreview");
-                var grids = Get<ComboBox>("_inspectionGridSelector");
-                Assert.Equal(2, grids.Items.Count); grids.SelectedIndex = 1;
-                Assert.Equal("Second retained grid", grids.SelectedItem.ToString());
-                Assert.Single(Get<DataGrid>("_inspectionGridColumns").Items.Cast<GridColumn>());
-                Set("_parameterProposals", new[] { proposal }); Call("RefreshInspectionPreview");
-                Assert.Equal(3, Get<DataGrid>("_inspectionGridColumns").Items.Count);
+                Set("_parameterProposals", new[] { proposal, second }); Call("RefreshInspectionTitle");
+                Set("_parameterProposals", new[] { proposal }); Call("RefreshInspectionTitle");
                 Assert.True(Get<ScrollViewer>("_variantStripScroller").Height <= 50);
                 var variants = Get<ComboBox>("_inspectionVariantSelector");
                 Assert.Equal(2, variants.Items.Count);
@@ -151,18 +144,15 @@ public sealed class InspectionPresentationTests
                 secondNode.IsSelected = true; Pump(20);
                 Assert.Same(secondNode, Get<TreeView>("_hierarchy").SelectedItem);
                 Assert.Equal(2, Get<UiMapVariantView>("_selectedVariant").FrameSequence);
-                Assert.Equal("Second retained grid", grids.SelectedItem.ToString());
                 var firstGridNode = (TreeViewItem)gridBranch.Items[0];
                 var blankColumn = (TreeViewItem)firstGridNode.Items[2];
                 Assert.Equal("3. (unnamed column)", AutomationProperties.GetName(blankColumn));
                 blankColumn.IsSelected = true; Pump(20);
-                Assert.Equal("c", ((GridColumn)Get<DataGrid>("_inspectionGridColumns").SelectedItem).ColumnKey);
-                Assert.Equal("Arrival Guest List", grids.SelectedItem.ToString());
                 Assert.Equal(2, Get<UiMapVariantView>("_selectedVariant").FrameSequence);
                 Assert.Equal("1. Name", AutomationProperties.GetName((TreeViewItem)firstGridNode.Items[0]));
                 Assert.Equal("2. Name", AutomationProperties.GetName((TreeViewItem)firstGridNode.Items[1]));
                 // Metadata arriving after expansion refreshes the existing branch and leaves controls intact.
-                Set("_parameterProposals", new[] { proposal }); Call("RefreshInspectionHierarchyGrids"); Call("RefreshInspectionPreview");
+                Set("_parameterProposals", new[] { proposal }); Call("RefreshInspectionHierarchyGrids"); Call("RefreshInspectionTitle");
                 Assert.Single(gridBranch.Items.Cast<TreeViewItem>());
                 Assert.Same(controlBranch, tree["pane"].Parent);
                 Call("BuildHierarchy", "Second", "");
@@ -176,37 +166,34 @@ public sealed class InspectionPresentationTests
                 variants.SelectedItem = variants.Items.OfType<UiInspectionFrameGroup>().Single(group => group.Id == "semantic:v2");
                 Assert.Equal(3, Get<UiMapVariantView>("_selectedVariant").FrameSequence);
                 Assert.Contains("semantic:v2", variants.ToolTip.ToString());
-                Assert.Empty(grids.Items);
-                Assert.Null(Get<Image>("_inspectionGridImage").Source);
                 Call("BuildHierarchy", "", "grid");
                 var hierarchy = Get<Dictionary<string, TreeViewItem>>("_hierarchyItems");
                 Assert.Same(hierarchy["pane"], hierarchy["grid"].Parent);
                 Assert.Contains("Pane · unnamed", AutomationProperties.GetName(hierarchy["pane"]));
                 Assert.Equal("Controls", AutomationProperties.GetName((TreeViewItem)hierarchy["pane"].Parent));
                 Assert.Contains("Variant", AutomationProperties.GetName((TreeViewItem)((TreeViewItem)hierarchy["pane"].Parent).Parent));
-                Get<TabControl>("_inspectionTabs").SelectedIndex = 1;
-                Call("RenderAppMap"); Assert.Equal(1, Get<TabControl>("_inspectionTabs").SelectedIndex);
                 Call("SelectSurfaceById", "raw");
-                Assert.Equal(0, Get<TabControl>("_inspectionTabs").SelectedIndex);
-                Assert.NotNull(Get<Image>("_inspectionGridImage").Source);
                 Call("BuildHierarchy", "", "raw-grid");
                 var rawControlBranch = (TreeViewItem)Get<Dictionary<string, TreeViewItem>>("_hierarchyItems")["raw-grid"].Parent;
                 Assert.Equal("Controls", AutomationProperties.GetName(rawControlBranch));
                 Assert.Equal(new[] { "Controls", "Data grids" }, ((TreeViewItem)rawControlBranch.Parent).Items.OfType<TreeViewItem>().Select(AutomationProperties.GetName));
                 Call("SelectSurfaceById", "other");
-                Assert.Null(Get<Image>("_inspectionGridImage").Source);
-                Assert.Empty(Get<DataGrid>("_inspectionGridColumns").Items);
-                Assert.Contains("No retained grid", Get<TextBlock>("_inspectionGridSummary").Text);
                 Set("_parameterProposals", new[] { proposal with { ImageSha256 = new string('0', 64) } });
                 Call("SelectSurfaceById", "surface");
-                Assert.Null(Get<Image>("_inspectionGridImage").Source);
-                Assert.Contains("unavailable", Get<TextBlock>("_inspectionGridSummary").Text);
-                Assert.Equal(3, Get<DataGrid>("_inspectionGridColumns").Items.Count);
                 Set("_parameterDocument", MapParameterizationDocument.Empty("map"));
                 Call("EnterParameterReview", "Data grids");
-                Assert.Equal(1, Get<TabControl>("_inspectionTabs").SelectedIndex);
+                Assert.True(viewer.IsAncestorOf(pipeline));
+                Assert.Equal("Data grids", Get<string>("_parameterReviewMode"));
                 Call("ExitParameterReview"); Call("RefreshAll"); Call("SelectSurfaceById", "surface");
-                Assert.Equal(0, Get<TabControl>("_inspectionTabs").SelectedIndex);
+                Assert.True(viewer.IsAncestorOf(pipeline));
+                Set("_sideBySideLayout", false); Call("ApplyCenterLayout"); Pump(30);
+                Assert.True(viewer.IsAncestorOf(pipeline));
+                if (Environment.GetEnvironmentVariable("UIATLAS_PIPELINE_QA_DIR") is { Length: > 0 } qa)
+                {
+                    Directory.CreateDirectory(qa); viewer.UpdateLayout();
+                    var image = new RenderTargetBitmap((int)viewer.ActualWidth, (int)viewer.ActualHeight, 96, 96, PixelFormats.Pbgra32); image.Render(viewer);
+                    var png = new PngBitmapEncoder(); png.Frames.Add(BitmapFrame.Create(image)); using var file = File.Create(Path.Combine(qa, "pipeline-only.png")); png.Save(file);
+                }
                 var graph = Graph();
                 Set("_model", new UiMappingReadModel(graph with { Nodes = graph.Nodes.Append(new GraphNode(
                     "hidden-frame", GraphNodeKind.State, "raw", "hidden-frame", "Hidden observation",
@@ -233,6 +220,15 @@ public sealed class InspectionPresentationTests
             T Get<T>(string name) => (T)typeof(ExplorerWindow).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(viewer)!;
             void Call(string name, params object[] args) => typeof(ExplorerWindow).GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(viewer, args);
         });
+    }
+
+    private static IEnumerable<DependencyObject> VisualDescendants(DependencyObject root)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i); yield return child;
+            foreach (var descendant in VisualDescendants(child)) yield return descendant;
+        }
     }
 
     private static ParameterProposal Proposal() => new("grid:arrival", "grid", "surface", "Arrival Guest List", "table_data",

@@ -18,6 +18,14 @@ public interface IShellHost
     FrameworkElement CreateRecordingsView();
 }
 
+/// <summary>Current-page drill-down navigation for the shared title-bar Back button.</summary>
+public interface IShellBackNavigation
+{
+    bool CanGoBack { get; }
+    event EventHandler? CanGoBackChanged;
+    void GoBack();
+}
+
 public interface IShellNavigationGuard
 {
     bool CanLeave(Window owner);
@@ -44,4 +52,16 @@ public interface IShellSkillsHost
 public interface IShellHomeHost
 {
     FrameworkElement CreateHomeView(Action<string> navigate);
+}
+
+public sealed record ShellOrganization(string Id, string Name);
+/// <summary>Optional MapLock workspace; standalone Atlas retains its existing navigation.</summary>
+public interface IShellOrganizationHost
+{
+    bool CanLeaveOrganizationView(FrameworkElement view, Window owner) => true;
+    string? OrganizationId { get; }
+    IReadOnlyList<ShellOrganization> Organizations();
+    event EventHandler? OrganizationChanged;
+    void SelectOrganization(string? id);
+    FrameworkElement CreateOrganizationView(string route, Window owner, Action<string> navigate);
 }

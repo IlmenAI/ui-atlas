@@ -173,6 +173,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
@@ -198,7 +199,11 @@
                         </ComboBox.ItemTemplate>
                     </ComboBox>
 
-                    <ListBox x:Name="NavigationList" Grid.Row="2" Margin="0,20,0,0"
+                    <ComboBox x:Name="OrganizationSelector" Grid.Row="2" Height="42" Margin="0,12,0,0"
+                              Visibility="Collapsed" DisplayMemberPath="Name" AutomationProperties.Name="Organization"
+                              SelectionChanged="OrganizationSelector_SelectionChanged" />
+
+                    <ListBox x:Name="NavigationList" Grid.Row="3" Margin="0,20,0,0"
                              Background="Transparent" BorderThickness="0"
                              ItemContainerStyle="{StaticResource NavigationItemStyle}"
                              SelectionChanged="NavigationList_SelectionChanged">

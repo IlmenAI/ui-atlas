@@ -46,7 +46,8 @@
     <StackPanel>
      <ItemsControl x:Name="RecordingList">
       <ItemsControl.ItemTemplate><DataTemplate>
-       <Grid>
+       <Grid ContextMenuOpening="Recording_ContextMenuOpening">
+        <Grid.ContextMenu><ContextMenu/></Grid.ContextMenu>
         <Button Style="{StaticResource ApplicationRowStyle}" Tag="{Binding}" Click="OpenRecording_Click" ToolTip="{Binding Details}" AutomationProperties.Name="{Binding Title}">
          <Grid MinHeight="90">
           <Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="2.1*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="1.35*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="54"/></Grid.ColumnDefinitions>

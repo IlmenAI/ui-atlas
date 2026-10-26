@@ -140,19 +140,6 @@ public sealed partial class ExplorerWindow
         var vertical = scroll?.VerticalOffset ?? 0;
         SelectHierarchyVariant(new(selection.SurfaceId, selection.GroupId));
         if (selection.ControlId is not null) SelectControlById(selection.ControlId);
-        if (selection.GridId is not null)
-        {
-            if (_inspectionTabs is not null) _inspectionTabs.SelectedIndex = 0;
-            if (selection.GridId.Length > 0)
-                _inspectionGridSelector.SelectedItem = _inspectionGridSelector.Items.OfType<InspectionGridChoice>()
-                    .FirstOrDefault(choice => choice.Proposal.Id == selection.GridId);
-            if (selection.ColumnKey is not null)
-            {
-                var column = _inspectionGridColumns.Items.OfType<GridColumn>().FirstOrDefault(c => c.ColumnKey == selection.ColumnKey);
-                _inspectionGridColumns.SelectedItem = column;
-                if (column is not null) _inspectionGridColumns.ScrollIntoView(column);
-            }
-        }
         _synchronizing = true;
         item.IsSelected = true;
         _synchronizing = false;

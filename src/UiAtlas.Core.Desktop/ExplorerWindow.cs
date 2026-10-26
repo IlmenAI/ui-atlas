@@ -573,7 +573,7 @@ public sealed partial class ExplorerWindow : Window
         panel.Children.Add(_topologyScrollViewer);
         var card = CardBorder(panel);
         card.Margin = new Thickness(0, 0, 0, 6);
-        return BuildInspectionPane(card);
+        return card;
     }
 
     private UIElement BuildAppMapCard()
@@ -3564,7 +3564,7 @@ public sealed partial class ExplorerWindow : Window
 
     private void RenderAppMap()
     {
-        RefreshInspectionPreview();
+        RefreshInspectionTitle();
         CancelManualButtonEditor();
         _renderedViewportBounds = null;
         _renderedEvidencePng = null;

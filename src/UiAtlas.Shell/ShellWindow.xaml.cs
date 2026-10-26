@@ -32,8 +32,11 @@ public partial class ShellWindow : Window
     private FrameworkElement? _settingsView;
     private bool _workClosing, _workCloseApproved;
     private MapsView? _mapsView;
+    private IShellBackNavigation? _pageBackNavigation;
     private DiagnosticsHubView? _diagnosticsHubView;
     private HwndSource? _windowSource;
+    private bool _changingOrganization;
+    private IReadOnlyList<ExperienceNavigationItem> Navigation => (IReadOnlyList<ExperienceNavigationItem>)NavigationList.ItemsSource;
 
     public ShellWindow(IShellHost host)
     {
@@ -53,9 +56,18 @@ public partial class ShellWindow : Window
         ProfileSelector.SelectedItem = _profiles.Profiles.Single(option => option.Id == startupMode);
         _changingProfile = false;
         ApplyProfile(startupMode);
+        if (host is IShellOrganizationHost organizations)
+        {
+            RefreshOrganizations();
+            organizations.OrganizationChanged += (_, _) => Dispatcher.Invoke(() =>
+            {
+                RefreshOrganizations(); _activeRoute = organizations.OrganizationId is null ? "organizations" : "skills";
+                ApplyProfile(ActiveProfileId);
+            });
+        }
         Closing += (_, args) =>
         {
-            if (_settingsView is IShellNavigationGuard guard && !guard.CanLeave(this)) args.Cancel = true;
+            if (!CanLeaveCurrentPage()) args.Cancel = true;
         };
         Closing += async (_, args) =>
         {
@@ -65,7 +77,11 @@ public partial class ShellWindow : Window
             _workClosing = true;
             try
             {
-                if (await work.TryCloseWorkSessionsAsync(this)) { _workCloseApproved = true; Close(); }
+                if (await work.TryCloseWorkSessionsAsync(this))
+                {
+                    _workCloseApproved = true;
+                    _ = Dispatcher.BeginInvoke(new Action(Close));
+                }
             }
             finally { _workClosing = false; }
         };
@@ -74,7 +90,7 @@ public partial class ShellWindow : Window
     public event EventHandler? ProfileChanged;
     public void Navigate(string route)
     {
-        var item = _activeProfile.Navigation.FirstOrDefault(value => value.Route == route && value.IsAvailable)
+        var item = Navigation.FirstOrDefault(value => value.Route == route && value.IsAvailable)
             ?? throw new ArgumentException("This workspace does not expose that page.", nameof(route));
         SelectNavigation(item);
     }
@@ -129,11 +145,38 @@ public partial class ShellWindow : Window
     private void ApplyProfile(ExperienceProfileId requestedProfile)
     {
         _activeProfile = _profiles.GetDefinition(requestedProfile);
-        NavigationList.ItemsSource = _activeProfile.Navigation;
+        NavigationList.ItemsSource = _host is IShellOrganizationHost organizations
+            ? OrganizationNavigation(organizations.OrganizationId, _activeProfile.Option.Id) : _activeProfile.Navigation;
 
-        var retained = _activeProfile.Navigation.FirstOrDefault(item =>
+        if (_host is IShellOrganizationHost && _activeRoute == "recordings" && _activeProfile.Option.Id != ExperienceProfileId.Diagnostics) _activeRoute = "maps";
+        var retained = Navigation.FirstOrDefault(item =>
             item.IsAvailable && string.Equals(item.Route, _activeRoute, StringComparison.Ordinal));
-        SelectNavigation(retained ?? _activeProfile.Navigation.First(item => item.IsAvailable));
+        SelectNavigation(retained ?? Navigation.First(item => item.IsAvailable));
+    }
+
+    public static IReadOnlyList<ExperienceNavigationItem> OrganizationNavigation(string? organizationId, ExperienceProfileId profile)
+    {
+        List<ExperienceNavigationItem> items = organizationId is null ? [new("organizations", "Organizations", "\uE80F")]
+            : [new("skills", "Skills", "\uE945"), new("organization-maps", "UI maps", "\uE81E"),
+                new("organization-knowledge", "Knowledge", "\uE8F1"), new("organization-about", "About", "\uE946")];
+        items.Add(new("maps", "Shared UI Maps", "\uE81E", StartsNewSection: true));
+        if (profile == ExperienceProfileId.Diagnostics) items.Add(new("recordings", "UI Map Recordings", "\uE714"));
+        items.Add(new("settings", "Settings", "\uE713", StartsNewSection: true)); return items;
+    }
+    private void RefreshOrganizations()
+    {
+        if (_host is not IShellOrganizationHost host) return;
+        _changingOrganization = true;
+        OrganizationSelector.Visibility = Visibility.Visible;
+        OrganizationSelector.ItemsSource = new[] { new ShellOrganization("", "All organizations") }.Concat(host.Organizations()).ToArray();
+        OrganizationSelector.SelectedItem = OrganizationSelector.Items.Cast<ShellOrganization>().FirstOrDefault(o => o.Id == (host.OrganizationId ?? ""));
+        _changingOrganization = false;
+    }
+    private void OrganizationSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_changingOrganization || _host is not IShellOrganizationHost host || OrganizationSelector.SelectedItem is not ShellOrganization selected) return;
+        if (!CanLeaveCurrentPage()) { RefreshOrganizations(); return; }
+        host.SelectOrganization(string.IsNullOrEmpty(selected.Id) ? null : selected.Id);
     }
 
     private void ProfileSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -149,12 +192,12 @@ public partial class ShellWindow : Window
             return;
         }
 
-        if (_activeRoute == "settings" && _settingsView is IShellNavigationGuard guard && !guard.CanLeave(this))
+        if (!CanLeaveCurrentPage())
         {
             _changingProfile = true; ProfileSelector.SelectedItem = _activeProfile.Option; _changingProfile = false;
             return;
         }
-        _activeRoute = _profiles.GetDefinition(selected.Id).LandingRoute ?? _activeRoute;
+        if (_host is not IShellOrganizationHost) _activeRoute = _profiles.GetDefinition(selected.Id).LandingRoute ?? _activeRoute;
         ApplyProfile(selected.Id);
         ProfileChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -164,17 +207,31 @@ public partial class ShellWindow : Window
         if (NavigationList.SelectedItem is not ExperienceNavigationItem item || !item.IsAvailable)
             return;
 
+        if (_restoringNavigation) return;
         ActivateNavigation(item);
+    }
+
+    private bool _restoringNavigation;
+    private bool CanLeaveCurrentPage()
+    {
+        if (PageHost.Content is IShellNavigationGuard guard && !guard.CanLeave(this)) return false;
+        return _host is not IShellOrganizationHost org || PageHost.Content is not FrameworkElement page || org.CanLeaveOrganizationView(page, this);
     }
 
     private void ActivateNavigation(ExperienceNavigationItem item)
     {
-        if (_activeRoute == "settings" && item.Route != "settings" && _settingsView is IShellNavigationGuard guard && !guard.CanLeave(this))
+        if (item.Route != _activeRoute && !CanLeaveCurrentPage())
         {
-            NavigationList.SelectedItem = _activeProfile.Navigation.First(value => value.Route == "settings");
+            _restoringNavigation = true;
+            NavigationList.SelectedItem = Navigation.FirstOrDefault(value => value.Route == _activeRoute);
+            _restoringNavigation = false;
             return;
         }
         _activeRoute = item.Route;
+        if (_host is IShellOrganizationHost organizations && item.Route is "organizations" or "skills" or "organization-maps" or "organization-knowledge" or "organization-about")
+        {
+            ShowPage(organizations.CreateOrganizationView(item.Route, this, Navigate)); return;
+        }
         switch (item.Route)
         {
             case "business-knowledge" or "skills" or "execution-history" or "people-escalation" when _host is IShellSkillsHost skills:
@@ -220,7 +277,6 @@ public partial class ShellWindow : Window
     {
         var view = new MapsView(_launcher, _host.Maps, _applicationDiscovery);
         view.LaunchCompleted += (_, result) => ReportLaunch(result);
-        view.CanGoBackChanged += (_, _) => UpdateBackButton();
         return view;
     }
 
@@ -240,15 +296,15 @@ public partial class ShellWindow : Window
 
     private void BackButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_activeRoute == "maps" && _mapsView?.CanGoBack == true)
-            _mapsView.GoBack();
+        if (_pageBackNavigation?.CanGoBack == true && CanLeaveCurrentPage())
+            _pageBackNavigation.GoBack();
         UpdateBackButton();
     }
 
     private void UpdateBackButton()
     {
         if (BackButton is not null)
-            BackButton.Visibility = _activeRoute == "maps" && _mapsView?.CanGoBack == true
+            BackButton.Visibility = _pageBackNavigation?.CanGoBack == true
                 ? Visibility.Visible
                 : Visibility.Collapsed;
     }
@@ -482,9 +538,14 @@ public partial class ShellWindow : Window
         return _mapsView;
     }
 
+    private void PageBackChanged(object? sender, EventArgs e) => UpdateBackButton();
+
     private void ShowPage(FrameworkElement page)
     {
+        if (_pageBackNavigation is not null) _pageBackNavigation.CanGoBackChanged -= PageBackChanged;
         PageHost.Content = page;
+        _pageBackNavigation = page as IShellBackNavigation;
+        if (_pageBackNavigation is not null) _pageBackNavigation.CanGoBackChanged += PageBackChanged;
         UpdateBackButton();
     }
 

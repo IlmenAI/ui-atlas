@@ -6,11 +6,24 @@ public sealed record CatalogRequest(string Operation, string Root, string? Recor
     string? Generation = null, int Version = 1, string? KnownCatalogVersion = null,
     string? RevisionRef = null, bool RequireReady = false, string? ProfileId = null, bool IncludeRawWorld = false,
     long? ExpectedReviewRevision = null, string? ExpectedReviewSha256 = null,
-    CatalogParameterConfirmation[]? ParameterConfirmations = null, string? ExpectedDraftEtag = null, string[]? IdentityConfirmations = null);
+    CatalogParameterConfirmation[]? ParameterConfirmations = null, string? ExpectedDraftEtag = null, string[]? IdentityConfirmations = null, string? ExpectedArtifactStamp = null);
 public sealed record CatalogRecording(string Id, DateTimeOffset StartedUtc, string Outcome,
-    string ProcessName, int FrameCount, string? MapId, bool Archived = false);
+    string ProcessName, int FrameCount, string? MapId, bool Archived = false, string? Stamp = null);
 public sealed record CatalogMap(string Id, string Path, string ApplicationGroup, string Generation,
-    string Entry, string? Session, string? Draft, string? Revision, bool SummaryOnly = false);
+    string Entry, string? Session, string? Draft, string? Revision, bool SummaryOnly = false, CatalogApplicationInfo? Application = null);
+public sealed record CatalogApplicationInfo(string ProductName, string Executable, string ApplicationVersion,
+    string WindowTitle, string[] RecordingIds, DateTimeOffset? LastRecorded)
+{
+    public bool Equals(CatalogApplicationInfo? other) => other is not null && ProductName == other.ProductName
+        && Executable == other.Executable && ApplicationVersion == other.ApplicationVersion && WindowTitle == other.WindowTitle
+        && LastRecorded == other.LastRecorded && (RecordingIds ?? []).SequenceEqual(other.RecordingIds ?? [], StringComparer.Ordinal);
+    public override int GetHashCode()
+    {
+        var hash = new HashCode(); hash.Add(ProductName); hash.Add(Executable); hash.Add(ApplicationVersion); hash.Add(WindowTitle); hash.Add(LastRecorded);
+        foreach (var id in RecordingIds ?? []) hash.Add(id, StringComparer.Ordinal);
+        return hash.ToHashCode();
+    }
+}
 public sealed record CatalogImportCandidate(string Path, string Kind, long Bytes);
 // Full immutable bytes with eligibility observed at this read, never a latest alias.
 public sealed record CatalogRevision(string RevisionRef, string CanonicalPayloadHash, string Payload,
@@ -58,6 +71,7 @@ public sealed record CatalogReply
     public string? MapId { get; init; }
     public int Nodes { get; init; }
     public int Edges { get; init; }
+    public string? PreviewPng { get; init; }
 }
 public static class AtlasCatalogLocation
 {

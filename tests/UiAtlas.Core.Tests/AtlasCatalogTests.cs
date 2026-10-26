@@ -9,6 +9,28 @@ namespace UiAtlas.Core.Tests;
 public sealed class AtlasCatalogTests
 {
     [Fact]
+    public async Task MapPresentationUsesRetainedRecordingAndPreviewRejectsStaleSelections()
+    {
+        using var temp = new TempDirectory(); var source = await Recording(temp.Path);
+        var root = Path.Combine(temp.Path, "shared");
+        await AtlasCatalogCommand.ExecuteAsync(new("import", root, SourcePath: source));
+        var recording = Assert.Single((await AtlasCatalogCommand.ExecuteAsync(new("recordings", root))).Recordings);
+        await AtlasCatalogCommand.ExecuteAsync(new("build", root, RecordingId: recording.Id));
+        var map = Assert.Single((await AtlasCatalogCommand.ExecuteAsync(new("maps-summary", root))).Maps);
+        Assert.NotNull(map.Application); Assert.Single(map.Application.RecordingIds);
+        using var bundle = UiAtlas.Core.Recording.RecordingBundle.Open(source);
+        var manifest = bundle.ReadJson<UiAtlas.Core.Contracts.RecordingManifest>("manifest.json");
+        Assert.Equal(manifest.EndedUtc, map.Application.LastRecorded);
+        Assert.Equal(manifest.Target.ProductName ?? "", map.Application.ProductName);
+        var preview = await AtlasCatalogCommand.ExecuteAsync(new("map-preview", root, MapId: map.Id, Generation: map.Generation, Entry: map.Entry));
+        Assert.NotNull(preview.PreviewPng);
+        var png = Convert.FromBase64String(preview.PreviewPng);
+        Assert.Equal(new byte[] {137, 80, 78, 71}, png.Take(4));
+        var cached = await AtlasCatalogCommand.ExecuteAsync(new("maps-summary", root, KnownCatalogVersion: (await AtlasCatalogCommand.ExecuteAsync(new("maps-summary", root))).CatalogVersion));
+        Assert.True(cached.NotModified);
+        await Assert.ThrowsAsync<IOException>(() => AtlasCatalogCommand.ExecuteAsync(new("map-preview", root, MapId: map.Id, Generation: "stale", Entry: map.Entry)));
+    }
+    [Fact]
     public async Task CatalogProtocolRespondsWhileCancellationInputRemainsOpen()
     {
         using var temp = new TempDirectory();
