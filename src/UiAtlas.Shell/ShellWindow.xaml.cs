@@ -177,7 +177,7 @@ public partial class ShellWindow : Window
         _activeRoute = item.Route;
         switch (item.Route)
         {
-            case "business-knowledge" or "skillgen" or "run-skills" or "execution-history" or "people-escalation" or "skill-connections" when _host is IShellSkillsHost skills:
+            case "business-knowledge" or "skills" or "execution-history" or "people-escalation" when _host is IShellSkillsHost skills:
                 ShowPage(skills.CreateSkillView(item.Route));
                 break;
             case "work-sessions" when _host is IShellWorkSessionsHost work:
@@ -192,9 +192,6 @@ public partial class ShellWindow : Window
             case "maps":
                 _mapsView ??= CreateMapsView();
                 ShowPage(_mapsView);
-                break;
-            case "recents":
-                ShowPage(new PlaceholderView("Recents", "Recent UI Map activity will appear here when a product-level activity contract is available.", "\uE823"));
                 break;
             case "settings":
                 _settingsView ??= _host.CreateSettingsView();
@@ -343,6 +340,12 @@ public partial class ShellWindow : Window
                 };
             if (_host is IShellWorkflowRunHost runtime)
                 hud.RunWorkflowRequested += async (_, _) => { hud.Close(); RestoreMainWindow(); await runtime.RunWorkflowAsync(this); };
+            hud.DiagnosticsRequested += (_, _) =>
+            {
+                hud.Close(); RestoreMainWindow();
+                ActivateNavigation(new ExperienceNavigationItem("diagnostics", "Diagnostics", "\uE9D2"));
+                if (_activeRoute == "diagnostics") NavigationList.SelectedItem = null;
+            };
             hud.Closed += MicroHud_Closed;
             hud.Show();
             Hide();
