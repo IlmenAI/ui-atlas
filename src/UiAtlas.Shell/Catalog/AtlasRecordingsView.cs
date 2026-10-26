@@ -1,49 +1,66 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using Microsoft.Win32;
 using UiAtlas.Catalog;
 
 namespace UiAtlas.Shell.Catalog;
 
-/// <summary>The same recording workflow in Atlas and MapLock; all data work belongs to Atlas.</summary>
-public sealed class AtlasRecordingsView : UserControl
+/// <summary>The shared recordings library; all data mutations belong to Atlas.</summary>
+public sealed partial class AtlasRecordingsView : UserControl
 {
     private readonly AtlasCatalogClient _client;
-    private readonly DataGrid _list = new() { AutoGenerateColumns = false, IsReadOnly = true, SelectionMode = DataGridSelectionMode.Single };
-    private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 10) };
-    private readonly Button _build;
-    private readonly Button _cancel;
+    private CatalogRecording[] _recordings = [];
     private CancellationTokenSource? _job;
     private Window? _owner;
     private bool _refreshing;
+    private bool _initialized;
+    private bool _changingFilters;
     public AtlasRecordingsView(AtlasCatalogClient client)
     {
         _client = client;
-        var root = new DockPanel(); var header = new StackPanel();
-        header.Children.Add(new TextBlock { Text = "Recordings", FontSize = 28, FontWeight = FontWeights.SemiBold });
-        header.Children.Add(new TextBlock { Text = "UI Atlas recordings, shared by both apps.", Margin = new Thickness(0, 8, 0, 8) });
-        header.Children.Add(new TextBlock { Text = client.Root, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) });
-        var actions = new WrapPanel();
-        actions.Children.Add(Action("New recording", () => { _status.Text = _client.Start("recording", "start").Message; return Task.CompletedTask; }));
-        actions.Children.Add(Action("Refresh", RefreshAsync));
-        _build = Action("Build UI Map", BuildAsync); actions.Children.Add(_build);
-        actions.Children.Add(Action("Open map", OpenAsync));
-        _cancel = Action("Cancel build", () => { _job?.Cancel(); return Task.CompletedTask; }); _cancel.IsEnabled = false; actions.Children.Add(_cancel);
-        actions.Children.Add(Action("Import…", ImportAsync));
-        actions.Children.Add(Action("Find previous MapLock recordings…", FindLegacyAsync));
-        header.Children.Add(actions); header.Children.Add(_status); DockPanel.SetDock(header, Dock.Top); root.Children.Add(header);
-        foreach (var (title, property, width) in new[] { ("Application", "ProcessName", 150d), ("Recorded", "StartedUtc", 190d), ("Outcome", "Outcome", 100d), ("Frames", "FrameCount", 65d), ("Recording ID", "Id", 330d) })
-            _list.Columns.Add(new DataGridTextColumn { Header = title, Binding = new System.Windows.Data.Binding(property), Width = width });
-        root.Children.Add(_list); Content = root;
-        Loaded += async (_, _) => { _owner = Window.GetWindow(this); if (_owner is not null) _owner.Activated += OwnerActivated; await RefreshAsync(); };
+        InitializeComponent();
+        ApplicationFilter.ItemsSource = new[] { "All applications" };
+        ApplicationFilter.SelectedIndex = 0;
+        _initialized = true;
+        Loaded += async (_, _) =>
+        {
+            _owner = Window.GetWindow(this);
+            if (_owner is not null) _owner.Activated += OwnerActivated;
+            await RefreshAsync();
+        };
         Unloaded += (_, _) => { if (_owner is not null) _owner.Activated -= OwnerActivated; _owner = null; _job?.Cancel(); };
     }
     private async void OwnerActivated(object? sender, EventArgs args) => await RefreshAsync();
-    private Button Action(string label, Func<Task> action)
+    private void Scope_Click(object sender, RoutedEventArgs args) => ApplyFilters();
+    private void Search_Changed(object sender, TextChangedEventArgs args) => ApplyFilters();
+    private void Filter_Changed(object sender, SelectionChangedEventArgs args) => ApplyFilters();
+    private void ApplyFilters()
     {
-        var button = new Button { Content = label, Margin = new Thickness(0, 0, 8, 6), Padding = new Thickness(12, 7, 12, 7) };
-        button.Click += async (_, _) => { try { await action(); } catch (Exception error) { _status.Text = error.GetBaseException().Message; } };
-        return button;
+        if (!_initialized || _changingFilters) return;
+        var archived = ArchiveTab.IsChecked == true;
+        var items = RecordingLibraryItem.Filter(_recordings, archived, SearchBox.Text,
+            ApplicationFilter.SelectedIndex > 0 ? ApplicationFilter.SelectedItem as string : null,
+            StatusFilter.SelectedIndex, SortFilter.SelectedIndex);
+        RecordingList.ItemsSource = items;
+        var total = _recordings.Count(item => item.Archived == archived);
+        CountText.Text = $"{items.Length} of {total} {(archived ? "archived" : "active")} recordings";
+        EmptyMessage.Visibility = items.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+        EmptyMessage.Text = total == 0 ? archived ? "No archived recordings." : "No recordings yet. Import a recording or record a UI Map from Maps."
+            : "No recordings match your search and filters.";
+    }
+    private async Task RunAsync(Func<Task> action)
+    {
+        try { await action(); }
+        catch (Exception error) { StatusText.Text = error.GetBaseException().Message; }
+    }
+    private async void Refresh_Click(object sender, RoutedEventArgs args) => await RefreshAsync();
+    private async void Import_Click(object sender, RoutedEventArgs args) => await RunAsync(ImportAsync);
+    private async void FindLegacy_Click(object sender, RoutedEventArgs args) => await RunAsync(FindLegacyAsync);
+    private void Cancel_Click(object sender, RoutedEventArgs args) => _job?.Cancel();
+    private void Utilities_Click(object sender, RoutedEventArgs args)
+    {
+        if (sender is Button { ContextMenu: { } menu } button) { menu.PlacementTarget = button; menu.Placement = PlacementMode.Bottom; menu.IsOpen = true; }
     }
     private async Task RefreshAsync()
     {
@@ -51,38 +68,92 @@ public sealed class AtlasRecordingsView : UserControl
         _refreshing = true;
         try
         {
-            var selected = (_list.SelectedItem as CatalogRecording)?.Id;
             var reply = await _client.RequestAsync(new("recordings", _client.Root));
-            _list.ItemsSource = reply.Recordings; _list.SelectedItem = reply.Recordings.FirstOrDefault(item => item.Id == selected);
-            _status.Text = $"{reply.Recordings.Length} recordings. Select one to build or open its Atlas map.";
+            SetRecordings(reply.Recordings);
+            StatusText.Text = "";
         }
-        catch (Exception error) { _status.Text = "Could not read recordings: " + error.GetBaseException().Message; }
+        catch (Exception error)
+        {
+            StatusText.Text = "Could not read recordings: " + error.GetBaseException().Message;
+            if (_recordings.Length == 0) EmptyMessage.Text = "Recordings could not be loaded. Try Refresh.";
+        }
         finally { _refreshing = false; }
     }
-    private Task OpenAsync()
+    internal void SetRecordings(CatalogRecording[] recordings)
     {
-        if (_list.SelectedItem is not CatalogRecording item) throw new InvalidOperationException("Select a recording first.");
-        if (item.MapId is null) throw new InvalidOperationException("Build a map from this recording first.");
-        _status.Text = _client.Start("map", "open", item.MapId).Message;
-        return Task.CompletedTask;
-    }
-    private async Task BuildAsync()
-    {
-        if (_job is not null) return;
-        if (_list.SelectedItem is not CatalogRecording item) throw new InvalidOperationException("Select a recording first.");
-        _job = new(); _build.IsEnabled = false; _cancel.IsEnabled = true;
+        _recordings = recordings;
+        var selected = ApplicationFilter.SelectedItem as string;
+        _changingFilters = true;
         try
         {
-            _status.Text = $"UI Atlas is building {item.ProcessName} using your saved recording and map-build settings…";
-            var reply = await _client.RequestAsync(new("build", _client.Root, RecordingId: item.Id, MapId: item.MapId), _job.Token);
-            _status.Text = reply.Message;
-            _list.SelectedItem = null; // The next refresh resolves the new map relationship.
+            ApplicationFilter.ItemsSource = new[] { "All applications" }.Concat(_recordings.Select(item => item.ProcessName)
+                .Distinct(StringComparer.Ordinal).OrderBy(value => value, StringComparer.OrdinalIgnoreCase)).ToArray();
+            ApplicationFilter.SelectedItem = selected;
+            if (ApplicationFilter.SelectedIndex < 0) ApplicationFilter.SelectedIndex = 0;
         }
-        catch (OperationCanceledException) { _status.Text = "Build cancelled. Previous maps and recordings were preserved."; }
-        catch (Exception error) { _status.Text = "Build failed: " + error.GetBaseException().Message; }
-        finally { _job.Dispose(); _job = null; _build.IsEnabled = true; _cancel.IsEnabled = false; }
-        var message = _status.Text; await RefreshAsync(); _status.Text = message;
-        _list.SelectedItem = (_list.ItemsSource as CatalogRecording[])?.FirstOrDefault(value => value.Id == item.Id);
+        finally { _changingFilters = false; }
+        ApplyFilters();
+    }
+    private async void OpenRecording_Click(object sender, RoutedEventArgs args)
+    {
+        if (sender is not FrameworkElement { Tag: RecordingLibraryItem item }) return;
+        if (item.HasMap) await RunAsync(() => OpenAsync(item.Recording));
+        else ShowRecordingMenu((Button)sender, item);
+    }
+    private void RecordingMenu_Click(object sender, RoutedEventArgs args)
+    {
+        if (sender is Button { Tag: RecordingLibraryItem item } button) ShowRecordingMenu(button, item);
+    }
+    private void ShowRecordingMenu(Button button, RecordingLibraryItem item)
+    {
+        var menu = new ContextMenu { PlacementTarget = button, Placement = PlacementMode.Bottom };
+        void Add(string label, Func<Task> action, bool enabled = true)
+        {
+            var entry = new MenuItem { Header = label, IsEnabled = enabled };
+            entry.Click += async (_, _) => await RunAsync(action);
+            menu.Items.Add(entry);
+        }
+        Add("Open map", () => OpenAsync(item.Recording), item.HasMap);
+        Add(item.HasMap ? "Rebuild UI Map" : "Build UI Map", () => BuildAsync(item.Recording), _job is null && !item.IsInvalid && !item.Recording.Archived);
+        menu.Items.Add(new Separator());
+        Add(item.Recording.Archived ? "Restore recording" : "Archive recording", () => SetArchivedAsync(item.Recording), _job is null);
+        Add("Recording details", () =>
+        {
+            MessageBox.Show(Window.GetWindow(this), item.Details + $"\nFrames: {item.Recording.FrameCount:N0}", "Recording details", MessageBoxButton.OK, MessageBoxImage.Information);
+            return Task.CompletedTask;
+        });
+        button.ContextMenu = menu;
+        menu.IsOpen = true;
+    }
+    private Task OpenAsync(CatalogRecording item)
+    {
+        if (item.MapId is null) throw new InvalidOperationException("Build a map from this recording first.");
+        StatusText.Text = _client.Start("map", "open", item.MapId).Message;
+        return Task.CompletedTask;
+    }
+    private async Task SetArchivedAsync(CatalogRecording item)
+    {
+        if (_job is not null || _refreshing) return;
+        _job = new();
+        string message;
+        try { message = (await _client.RequestAsync(new(item.Archived ? "recording-restore" : "recording-archive", _client.Root, RecordingId: item.Id), _job.Token)).Message; }
+        finally { _job.Dispose(); _job = null; }
+        await RefreshAsync(); StatusText.Text = message;
+    }
+    private async Task BuildAsync(CatalogRecording item)
+    {
+        if (_job is not null || _refreshing) return;
+        _job = new(); CancelButton.Visibility = Visibility.Visible;
+        try
+        {
+            StatusText.Text = $"UI Atlas is building {item.ProcessName} using your saved recording and map-build settings…";
+            var reply = await _client.RequestAsync(new("build", _client.Root, RecordingId: item.Id, MapId: item.MapId), _job.Token);
+            StatusText.Text = reply.Message;
+        }
+        catch (OperationCanceledException) { StatusText.Text = "Build cancelled. Previous maps and recordings were preserved."; }
+        catch (Exception error) { StatusText.Text = "Build failed: " + error.GetBaseException().Message; }
+        finally { _job.Dispose(); _job = null; CancelButton.Visibility = Visibility.Collapsed; }
+        var message = StatusText.Text; await RefreshAsync(); StatusText.Text = message;
     }
     private async Task ImportAsync()
     {
@@ -95,14 +166,14 @@ public sealed class AtlasRecordingsView : UserControl
         if (_job is not null) return;
         _job = new();
         string message;
-        try { _status.Text = "Importing retained Atlas evidence. Source files will be kept…"; message = (await _client.RequestAsync(new("import", _client.Root, SourcePath: path), _job.Token)).Message; }
+        try { StatusText.Text = "Importing retained Atlas evidence. Source files will be kept…"; message = (await _client.RequestAsync(new("import", _client.Root, SourcePath: path), _job.Token)).Message; }
         finally { _job.Dispose(); _job = null; }
-        await RefreshAsync(); _status.Text = message;
+        await RefreshAsync(); StatusText.Text = message;
     }
     private async Task FindLegacyAsync()
     {
         var reply = await _client.RequestAsync(new("legacy-inventory", _client.Root));
-        if (reply.Imports.Length == 0) { _status.Text = "No retained Atlas artifacts were found in previous MapLock storage. Older MapLock-only maps stay in their original storage."; return; }
+        if (reply.Imports.Length == 0) { StatusText.Text = "No retained Atlas artifacts were found in previous MapLock storage. Older MapLock-only maps stay in their original storage."; return; }
         var list = new ListBox { ItemsSource = reply.Imports, DisplayMemberPath = "Path", Margin = new Thickness(0, 12, 0, 12) };
         var panel = new DockPanel { Margin = new Thickness(20) };
         var explanation = new TextBlock { Text = "Select retained Atlas evidence to copy into the shared library. Imports include captured text and screenshots. Source files stay unchanged; identical artifacts are not duplicated.", TextWrapping = TextWrapping.Wrap };

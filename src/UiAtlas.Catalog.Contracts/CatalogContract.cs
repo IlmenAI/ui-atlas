@@ -8,7 +8,7 @@ public sealed record CatalogRequest(string Operation, string Root, string? Recor
     long? ExpectedReviewRevision = null, string? ExpectedReviewSha256 = null,
     CatalogParameterConfirmation[]? ParameterConfirmations = null, string? ExpectedDraftEtag = null, string[]? IdentityConfirmations = null);
 public sealed record CatalogRecording(string Id, DateTimeOffset StartedUtc, string Outcome,
-    string ProcessName, int FrameCount, string? MapId);
+    string ProcessName, int FrameCount, string? MapId, bool Archived = false);
 public sealed record CatalogMap(string Id, string Path, string ApplicationGroup, string Generation,
     string Entry, string? Session, string? Draft, string? Revision, bool SummaryOnly = false);
 public sealed record CatalogImportCandidate(string Path, string Kind, long Bytes);

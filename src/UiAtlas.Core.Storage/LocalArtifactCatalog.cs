@@ -270,6 +270,31 @@ public sealed class LocalArtifactCatalog
     }
 
     public string ArchiveRecording(string id) => Archive(RecordingPath(id), "recordings");
+
+    // Library visibility is independent of evidence retention: maps may still reference this bundle.
+    public bool IsRecordingArchived(string id)
+    {
+        var path = ResolveArtifactPath(RecordingsDirectory, id, ".archived");
+        if (!File.Exists(path)) return false;
+        if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
+            throw new InvalidDataException("Recording archive markers cannot be links.");
+        return true;
+    }
+
+    public void SetRecordingArchived(string id, bool archived)
+    {
+        var recording = RecordingPath(id);
+        if (!File.Exists(recording)) throw new FileNotFoundException("Recording was not found.");
+        if ((File.GetAttributes(recording) & FileAttributes.ReparsePoint) != 0)
+            throw new InvalidDataException("Recording links cannot be archived.");
+        var path = ResolveArtifactPath(RecordingsDirectory, id, ".archived");
+        if (archived)
+        {
+            if (IsRecordingArchived(id)) return;
+            using var marker = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+        }
+        else DeleteFileIfPresent(path, RecordingsDirectory);
+    }
     public string ArchiveMap(string id)
     {
         var mapPath = MapPath(id);

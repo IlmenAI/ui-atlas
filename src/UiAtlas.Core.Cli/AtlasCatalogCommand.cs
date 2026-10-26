@@ -67,7 +67,10 @@ internal static class AtlasCatalogCommand
                 var links = RecordingMapLinks(catalog, token);
                 return new() { Root = catalog.Root, Recordings = catalog.ListRecordings().Select(item => new CatalogRecording(item.Id,
                     item.StartedUtc, item.Outcome, item.ProcessName, item.FrameCount,
-                    File.Exists(catalog.MapPath(item.Id)) ? item.Id : links.GetValueOrDefault(item.Id))).ToArray() };
+                    File.Exists(catalog.MapPath(item.Id)) ? item.Id : links.GetValueOrDefault(item.Id), catalog.IsRecordingArchived(item.Id))).ToArray() };
+            case "recording-archive": case "recording-restore":
+                catalog.SetRecordingArchived(request.RecordingId ?? throw new ArgumentException("Select a recording."), request.Operation == "recording-archive");
+                return new() { Root = catalog.Root, Message = request.Operation == "recording-archive" ? "Recording archived. Source evidence remains available to its maps." : "Recording restored." };
             case "build":
                 var recording = catalog.RecordingPath(request.RecordingId ?? throw new ArgumentException("Select a recording."));
                 var mapId = request.MapId ?? request.RecordingId!;
