@@ -40,3 +40,8 @@ public interface IShellSkillsHost
 {
     FrameworkElement CreateSkillView(string route);
 }
+
+public interface IShellHomeHost
+{
+    FrameworkElement CreateHomeView(Action<string> navigate);
+}
