@@ -10,8 +10,9 @@ namespace UiAtlas.Core.Desktop;
 
 public sealed partial class ExplorerWindow
 {
-    private readonly ComboBox _inspectionVariantSelector = new()
-    { MinWidth = 100, MaxWidth = 170, DisplayMemberPath = nameof(UiInspectionFrameGroup.Label), Margin = new(3, 0, 8, 0) };
+    private readonly ListBox _inspectionVariantSelector = new()
+    { MinWidth = 100, MaxWidth = 650, MaxHeight = 64, DisplayMemberPath = nameof(UiInspectionFrameGroup.Label),
+        BorderThickness = new(0), Background = Brushes.Transparent, Margin = new(3, 0, 8, 0) };
     private bool _updatingInspectionVariants;
     private string? _inspectionUnavailableVariant;
 
@@ -25,6 +26,42 @@ public sealed partial class ExplorerWindow
     private void ConfigureInspectionVariantSelector()
     {
         AutomationProperties.SetName(_inspectionVariantSelector, "Surface variant");
+        var panel = new FrameworkElementFactory(typeof(StackPanel)); panel.SetValue(StackPanel.OrientationProperty, Orientation.Horizontal);
+        _inspectionVariantSelector.ItemsPanel = new ItemsPanelTemplate(panel);
+        ScrollViewer.SetHorizontalScrollBarVisibility(_inspectionVariantSelector, ScrollBarVisibility.Auto);
+        ScrollViewer.SetVerticalScrollBarVisibility(_inspectionVariantSelector, ScrollBarVisibility.Disabled);
+        _inspectionVariantSelector.PreviewKeyDown += (_, e) =>
+        {
+            if (_inspectionVariantSelector.Items.Count == 0 || e.Key is not (System.Windows.Input.Key.Left or System.Windows.Input.Key.Right)) return;
+            _inspectionVariantSelector.SelectedIndex = Math.Clamp(_inspectionVariantSelector.SelectedIndex + (e.Key == System.Windows.Input.Key.Left ? -1 : 1), 0, Math.Max(0, _inspectionVariantSelector.Items.Count - 1));
+            _inspectionVariantSelector.ScrollIntoView(_inspectionVariantSelector.SelectedItem); e.Handled = true;
+        };
+        AutomationProperties.SetHelpText(_inspectionVariantSelector, "Visible surface variants. Select a variant to inspect its recorded frames.");
+        var itemStyle = new Style(typeof(ListBoxItem));
+        itemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(9, 5, 9, 5)));
+        itemStyle.Setters.Add(new Setter(FrameworkElement.MarginProperty, new Thickness(1, 2, 1, 2)));
+        itemStyle.Setters.Add(new Setter(Control.FontSizeProperty, 12d));
+        itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, Brushes.Transparent));
+        itemStyle.Setters.Add(new Setter(Control.BorderBrushProperty, Brushes.Transparent));
+        itemStyle.Setters.Add(new Setter(Control.BorderThicknessProperty, new Thickness(1)));
+        itemStyle.Setters.Add(new Setter(Control.TemplateProperty, System.Windows.Markup.XamlReader.Parse("""
+            <ControlTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" TargetType="{x:Type ListBoxItem}">
+                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+                </Border>
+            </ControlTemplate>
+            """)));
+        var selected = new Trigger { Property = ListBoxItem.IsSelectedProperty, Value = true };
+        selected.Setters.Add(new Setter(Control.BackgroundProperty, Brush("#EFE8FF")));
+        selected.Setters.Add(new Setter(Control.BorderBrushProperty, Brush("#8B5CF6")));
+        selected.Setters.Add(new Setter(Control.ForegroundProperty, Brush("#6D28D9")));
+        itemStyle.Triggers.Add(selected);
+        var hovered = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
+        hovered.Setters.Add(new Setter(Control.BorderBrushProperty, Brush("#A78BFA")));
+        itemStyle.Triggers.Add(hovered);
+        _inspectionVariantSelector.ItemContainerStyle = itemStyle;
         _inspectionVariantSelector.SelectionChanged += (_, _) =>
         {
             if (_updatingInspectionVariants || _inspectionVariantSelector.SelectedItem is not UiInspectionFrameGroup group) return;

@@ -809,6 +809,7 @@ public sealed partial class ExplorerWindow : Window
         row.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
         row.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
         row.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
+        row.SizeChanged += (_, e) => _inspectionVariantSelector.MaxWidth = Math.Max(100, (e.NewSize.Width - 100) * .65);
         row.Children.Add(label);
         Grid.SetColumn(_inspectionVariantSelector, 1);
         row.Children.Add(_inspectionVariantSelector);
@@ -3416,7 +3417,7 @@ public sealed partial class ExplorerWindow : Window
         var selected = groups.FirstOrDefault(group => group.Frames.Any(frame => frame.Id == _selectedVariant?.Id))
             ?? groups.FirstOrDefault();
         _inspectionVariantSelector.SelectedItem = selected;
-        _inspectionVariantSelector.IsEnabled = groups.Count > 1;
+        _inspectionVariantSelector.IsEnabled = groups.Count > 0;
         _inspectionVariantSelector.ToolTip = selected is null ? "No eligible recorded observations"
             : selected.Label + "\n" + selected.Id + "\nFrames retain their original recording identities.";
         _updatingInspectionVariants = false;

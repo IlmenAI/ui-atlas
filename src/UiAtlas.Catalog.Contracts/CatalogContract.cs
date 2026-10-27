@@ -6,7 +6,14 @@ public sealed record CatalogRequest(string Operation, string Root, string? Recor
     string? Generation = null, int Version = 1, string? KnownCatalogVersion = null,
     string? RevisionRef = null, bool RequireReady = false, string? ProfileId = null, bool IncludeRawWorld = false,
     long? ExpectedReviewRevision = null, string? ExpectedReviewSha256 = null,
-    CatalogParameterConfirmation[]? ParameterConfirmations = null, string? ExpectedDraftEtag = null, string[]? IdentityConfirmations = null, string? ExpectedArtifactStamp = null);
+    CatalogParameterConfirmation[]? ParameterConfirmations = null, string? ExpectedDraftEtag = null, string[]? IdentityConfirmations = null, string? ExpectedArtifactStamp = null,
+    CatalogHeaderSettingsUpdate? HeaderSettingsUpdate = null);
+public sealed record CatalogHeaderSettings(bool Enabled, string Endpoint, string Deployment, bool HasKey,
+    string Provider = "local", bool AutoAnalyze = false);
+public sealed record CatalogHeaderProvider(string Id, string Model, string Endpoint, string CredentialReference);
+// Only transported over redirected stdin to the local settings owner; keys never appear in replies or arguments.
+public sealed record CatalogHeaderSettingsUpdate(bool Enabled, string Endpoint, string Deployment, string? ApiKey = null,
+    string? Provider = null, bool AutoAnalyze = false, CatalogHeaderProvider[]? Providers = null);
 public sealed record CatalogRecording(string Id, DateTimeOffset StartedUtc, string Outcome,
     string ProcessName, int FrameCount, string? MapId, bool Archived = false, string? Stamp = null);
 public sealed record CatalogMap(string Id, string Path, string ApplicationGroup, string Generation,
@@ -53,6 +60,7 @@ public sealed record CatalogIdentityCandidate(string Fingerprint, string Canonic
 public sealed record CatalogIdentityReview(string MapId, string Generation, string RevisionRef, string DraftRef, string DraftEtag, CatalogIdentityCandidate[] Candidates);
 public sealed record CatalogReply
 {
+    public CatalogHeaderSettings? HeaderSettings { get; init; }
     public int Version { get; init; } = 1;
     public bool Success { get; init; } = true;
     public string Message { get; init; } = "";

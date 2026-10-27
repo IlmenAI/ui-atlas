@@ -35,6 +35,8 @@ public partial class ShellWindow : Window
     private IShellBackNavigation? _pageBackNavigation;
     private DiagnosticsHubView? _diagnosticsHubView;
     private HwndSource? _windowSource;
+    private readonly UiAtlas.Presentation.AtlasSettingsNavigation _recorderSettingsNavigation;
+    public string RecorderSettingsPipe => _recorderSettingsNavigation.PipeName;
     private bool _changingOrganization;
     private IReadOnlyList<ExperienceNavigationItem> Navigation => (IReadOnlyList<ExperienceNavigationItem>)NavigationList.ItemsSource;
 
@@ -47,6 +49,11 @@ public partial class ShellWindow : Window
         _profiles = host.Profiles;
         _activeRoute = host.StartupRoute;
         InitializeComponent();
+        _recorderSettingsNavigation = new(() => Dispatcher.Invoke(() =>
+        {
+            RestoreMainWindow(); Navigate("settings");
+            if (_settingsView is IShellSettingsSectionNavigation settings) settings.ShowRecordingSettings();
+        }));
         Title = host.ProductName;
         ProductTitle.Text = host.ProductName;
         ProductLogo.Wordmark = host.ProductName.ToUpperInvariant();
@@ -109,6 +116,7 @@ public partial class ShellWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _recorderSettingsNavigation.Dispose();
         _windowSource?.RemoveHook(MainWindowWindowProc);
         _windowSource = null;
         _suppressHudCloseRestore = true;

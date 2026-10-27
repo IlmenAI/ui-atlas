@@ -18,6 +18,11 @@ public interface IShellHost
     FrameworkElement CreateRecordingsView();
 }
 
+public interface IShellSettingsSectionNavigation
+{
+    void ShowRecordingSettings();
+}
+
 /// <summary>Current-page drill-down navigation for the shared title-bar Back button.</summary>
 public interface IShellBackNavigation
 {

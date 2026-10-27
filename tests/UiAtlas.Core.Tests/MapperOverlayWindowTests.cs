@@ -221,7 +221,7 @@ public sealed class MapperOverlayWindowTests
                 overlay.ReplaceMapperHighlights(target.Bounds, frame with { Automation = [] });
                 Pump(80);
                 Assert.Same(inspector, overlay.GridInspector);
-                dispatcher.Invoke(() => Descendants<Button>(inspector).Single(b => Equals(b.Content, "Explore"))
+                dispatcher.Invoke(() => Descendants<Button>(inspector).Single(b => Equals(b.Content, "Explore table"))
                     .RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent)));
                 var deadline = DateTime.UtcNow.AddSeconds(75);
                 var observedTopmost = false;
@@ -254,7 +254,7 @@ public sealed class MapperOverlayWindowTests
                 dispatcher.Invoke(() =>
                 {
                     inspector.UpdateLayout();
-                    Descendants<Button>(inspector).Single(b => Equals(b.Content, "Extract"))
+                    Descendants<Button>(inspector).Single(b => Equals(b.Content, "Analyze headers"))
                         .RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
                 });
                 Pump(50);
@@ -297,11 +297,11 @@ public sealed class MapperOverlayWindowTests
                 content.Measure(new Size(342, double.PositiveInfinity));
                 content.Arrange(new Rect(content.DesiredSize));
                 content.UpdateLayout();
-                Assert.InRange(content.ActualHeight, 200, 380);
+                Assert.InRange(content.ActualHeight, 200, 550);
                 var labels = Descendants<TextBlock>(content).ToArray();
                 Assert.Contains(labels, text => text.Text == selection.Classification);
-                Assert.Contains(Descendants<Button>(content), button => Equals(button.Content, "Explore"));
-                Assert.Contains(labels, text => text.Text.Contains("all columns", StringComparison.OrdinalIgnoreCase) &&
+                Assert.Contains(Descendants<Button>(content), button => Equals(button.Content, "Explore table"));
+                Assert.Contains(labels, text => text.Text.Contains("find columns", StringComparison.OrdinalIgnoreCase) &&
                     text.Text.Contains("sample", StringComparison.OrdinalIgnoreCase));
                 Assert.All(labels, text => Assert.True(text.ActualHeight >= text.FontSize));
                 var path = Environment.GetEnvironmentVariable("UIATLAS_MAPPER_QA_DIR");
@@ -395,12 +395,15 @@ public sealed class MapperOverlayWindowTests
                         Assert.False(legend.IsCollapsed);
                         Assert.Same(legend, overlay.MapperLegend);
                         Assert.All(overlay.GridHitWindows, h => Assert.True(h.IsVisible));
-                        Assert.Contains(overlay.GridHitWindows, h => RecordingHighlightOverlay.ReadPhysicalBounds(h) == native.Bounds);
-                        Assert.Contains(overlay.GridHitWindows, h => RecordingHighlightOverlay.ReadPhysicalBounds(h) == visual.Bounds);
+                        Assert.True(overlay.GridHitWindows.Any(h => RecordingHighlightOverlay.ReadPhysicalBounds(h) == native.Bounds),
+                            $"Expected native bounds {native.Bounds}; actual {string.Join("; ", overlay.GridHitWindows.Select(RecordingHighlightOverlay.ReadPhysicalBounds))}");
+                        Assert.True(overlay.GridHitWindows.Any(h => RecordingHighlightOverlay.ReadPhysicalBounds(h) == visual.Bounds),
+                            $"Expected candidate bounds {visual.Bounds}; actual {string.Join("; ", overlay.GridHitWindows.Select(RecordingHighlightOverlay.ReadPhysicalBounds))}; retained {string.Join("; ", overlay.MapperHighlights.Select(g => g.Bounds))}");
                         hit.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left)
                             { RoutedEvent = UIElement.PreviewMouseDownEvent });
                         Assert.NotNull(overlay.GridInspector);
                         Assert.True(overlay.GridInspector.IsVisible);
+                        Assert.False(overlay.MapperLegend!.IsVisible); // Modal grid review suppresses the topmost legend.
                         Assert.True(MapperHighlightModel.Contains(target.Bounds,
                             RecordingHighlightOverlay.ReadPhysicalBounds(overlay.GridInspector)),
                             "The native inspector must remain inside the target's physical bounds.");
@@ -424,7 +427,7 @@ public sealed class MapperOverlayWindowTests
                     hit.Dispatcher.Invoke(() =>
                     {
                         Assert.All(overlay.GridHitWindows, h => Assert.True(h.IsVisible));
-                        Assert.True(overlay.MapperLegend!.IsVisible);
+                        Assert.False(overlay.MapperLegend!.IsVisible);
                         Assert.False(overlay.MapperLegend.IsCollapsed);
                     });
                     var hiddenInput = overlay.RunHiddenAsync(() =>
@@ -436,15 +439,24 @@ public sealed class MapperOverlayWindowTests
                                 Assert.True(h.IsVisible);
                                 Assert.False(IsWindowEnabled(new WindowInteropHelper(h).Handle));
                             });
-                            Assert.True(overlay.MapperLegend!.IsVisible);
+                            Assert.False(overlay.MapperLegend!.IsVisible);
                         });
                         return Task.FromResult(true);
                     }, CancellationToken.None);
                     Await(() => hiddenInput.IsCompleted); Assert.True(hiddenInput.GetAwaiter().GetResult());
 
-                    // Passive updates must work without a new recorded frame or business click.
+                    // Modal review retains its original evidence until explicitly closed.
                     button.Content = "Refreshed without another click";
+                    Pump(600);
+                    hit.Dispatcher.Invoke(() =>
+                    {
+                        Assert.NotNull(overlay.GridInspector);
+                        Assert.DoesNotContain(overlay.MapperHighlights, g => g.Name == "Refreshed without another click");
+                        overlay.GridInspector.Close();
+                    });
+                    // Closing review restores passive updates without a business click.
                     Await(() => hit.Dispatcher.Invoke(() => overlay.MapperHighlights.Any(g => g.Name == "Refreshed without another click")));
+                    hit.Dispatcher.Invoke(() => overlay.InspectGrid(overlay.MapperHighlights.First(g => g.IsGrid)));
                     var legendInstance = overlay.MapperLegend;
                     overlay.ReplaceMapperHighlights(target.Bounds, frame with { Automation = [], AutomationStatus = "not-requested" });
                     hit.Dispatcher.Invoke(() => Assert.NotEmpty(overlay.MapperHighlights));
@@ -466,14 +478,13 @@ public sealed class MapperOverlayWindowTests
                             otherTarget.Bounds.Y + otherTarget.Bounds.Height / 2);
                         hit.Dispatcher.Invoke(() =>
                         {
-                            Assert.True(overlay.MapperLegend!.IsVisible);
+                            Assert.False(overlay.MapperLegend!.IsVisible);
                             Assert.Same(legendInstance, overlay.MapperLegend);
                             Assert.False(overlay.IsMapperPointVisible(covered));
-                            // A restored legend can overlap the target on a small desktop.
+                            // The hidden legend is not an occluder during grid review.
                             // Choose exposed samples from independent window geometry, not
                             // from the visibility result that this assertion verifies.
                             var blockers = new[] { otherTarget.Bounds,
-                                RecordingHighlightOverlay.ReadPhysicalBounds(overlay.MapperLegend),
                                 RecordingHighlightOverlay.ReadPhysicalBounds(overlay.GridInspector!) };
                             var exposed = Enumerable.Range(1, 7)
                                 .Select(i => new Point(native.Bounds.X + native.Bounds.Width * i / 8, native.Bounds.Y + 20))
@@ -507,7 +518,7 @@ public sealed class MapperOverlayWindowTests
                         overlay.RestoreAfterScreenshot();
                         hit.Dispatcher.Invoke(() =>
                         {
-                            Assert.True(overlay.MapperLegend!.IsVisible);
+                            Assert.False(overlay.MapperLegend!.IsVisible);
                             Assert.All(overlay.GridHitWindows, h => Assert.True(h.IsVisible));
                         });
                     }

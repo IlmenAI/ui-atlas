@@ -5,6 +5,41 @@ namespace UiAtlas.Core.Windows.Tests;
 
 public sealed class AzureHeaderSettingsTests
 {
+    [Fact]
+    public void SharedAzureReusesAnImportedGridConnectionCredentialReference()
+    {
+        var credentials = new Credentials();
+        const string reference = "UIMaps/AzureOpenAI/Grid/fixture/connection";
+        credentials.Values[reference] = "existing-secret";
+        var store = new AzureHeaderSettingsStore(credentials: credentials);
+        var settings = new AzureHeaderSettings(true, "", "", Providers:
+            [new("azure-openai", "saved-deployment", "https://example.openai.azure.com", reference)]);
+        Assert.True(store.HasKey(settings));
+        Assert.Equal("azure-openai/saved-deployment/low", store.CreateReader(settings).Name);
+        Assert.Single(credentials.Values);
+    }
+    [Fact]
+    public void SharedProfilesReuseCredentialReferencesAndResolveUpdatedModelsWithoutCopyingKeys()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "shared-header-test-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var credentials = new Credentials(); credentials.Values["UIMaps/Skills/OpenAI"] = "shared-secret";
+            var store = new AzureHeaderSettingsStore(Path.Combine(directory, "settings.json"), credentials);
+            var shared = new AzureHeaderSettings(true, "", "", Provider: "openai", AutoAnalyze: true,
+                Providers: [new("openai", "gpt-6.1", "", "UIMaps/Skills/OpenAI")]);
+            store.Save(shared);
+            Assert.True(store.HasKey(store.Load())); Assert.True(store.Load().AutoAnalyze);
+            Assert.Equal("openai/gpt-6.1/low", store.CreateReader(store.Load()).Name);
+            Assert.Single(credentials.Values); Assert.DoesNotContain("shared-secret", File.ReadAllText(Path.Combine(directory, "settings.json")));
+            store.Save(store.Load() with { Providers = [new("openai", "gpt-6", "", "UIMaps/Skills/OpenAI")] }, validateConnection: false);
+            Assert.Equal("openai/gpt-6/low", store.CreateReader(store.Load()).Name);
+            credentials.Values.Clear(); Assert.False(store.HasKey(store.Load()));
+            Assert.Throws<AzureHeaderException>(() => store.CreateReader(store.Load()));
+            Assert.Throws<AzureHeaderException>(() => store.Save(shared, "must-not-be-copied"));
+        }
+        finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
+    }
     [Theory]
     [InlineData("https://example.openai.azure.com/")]
     [InlineData("https://example.openai.azure.com/openai/v1/")]

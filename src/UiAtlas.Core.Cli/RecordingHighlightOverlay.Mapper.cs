@@ -38,6 +38,7 @@ internal sealed partial class RecordingHighlightOverlay
     internal FrameObservation? GridEvidenceFrame { get; set; }
     internal Func<FrameObservation, byte[]?>? RecordedFramePixels { get; set; }
     internal Action? ResumeAfterGridInspector { get; set; }
+    internal Action<bool>? GridReviewActiveChanged { get; set; }
     internal IReadOnlyList<MapperHighlight> MapperHighlights => _mapperHighlights;
     internal MapperGridInspector? GridInspector => _gridInspector;
     internal MapperLegendWindow? MapperLegend => _mapperLegend;
@@ -118,8 +119,10 @@ internal sealed partial class RecordingHighlightOverlay
     private void ApplyMapperSnapshot(RectI root, long surfaceHwnd, IReadOnlyList<AutomationObservation> controls, string layer,
         IReadOnlyList<MapperHighlight>? visualGrids = null)
     {
-        // Explore also owns its selection while waiting for the recorder handoff.
-        if (_gridExplorationActive || _gridInspector?.IsExploring == true || _gridInspector?.IsReviewingSchema == true || _gridInspector?.Result is not null) return;
+        // Table review owns its selection from the initial candidate through naming.
+        // A passive refresh must not dismiss this modal flow before Explore starts.
+        // Explore still freshly validates the live target before any scrolling.
+        if (_gridExplorationActive || _gridInspector is not null) return;
         if (_mapperSurfaceHwnd != surfaceHwnd || _visibleLayerKey != layer) _mapperVisualEpoch++;
         _mapperRevision++;
         _mapperCaptureRoot = root;
@@ -276,6 +279,9 @@ internal sealed partial class RecordingHighlightOverlay
         if (_gridInspector is null)
         {
             var inspector = new MapperGridInspector(selected);
+            try { inspector.AutoAnalyze = new AzureHeaderSettingsStore().Load().AutoAnalyze; }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.Text.Json.JsonException or AzureHeaderException)
+            { Console.Error.WriteLine("Header reading preferences could not be loaded. Manual review remains available."); }
             inspector.SourceInitialized += (_, _) => ConfigureMapperWindow(inspector, noActivate: true);
             inspector.Explore = ExploreGridAsync;
             inspector.SaveDataGrid = (name, review) =>
@@ -285,14 +291,17 @@ internal sealed partial class RecordingHighlightOverlay
                 save(name, context, review);
             };
             inspector.NamingStarted += () => { ConfigureMapperWindow(inspector, noActivate: false); PositionInspector(); };
-            inspector.Finished += () => ResumeAfterGridInspector?.Invoke();
+            inspector.Finished += () => { GridReviewActiveChanged?.Invoke(false); ResumeAfterGridInspector?.Invoke(); };
             inspector.ExplorationStateChanged += () => { if (!inspector.IsExploring) PositionInspector(); };
             inspector.Closed += (_, _) => { if (ReferenceEquals(_gridInspector, inspector)) _gridInspector = null; };
             _gridInspector = inspector;
+            GridReviewActiveChanged?.Invoke(true);
         }
         else if (_gridInspector.Result is null && !_gridInspector.IsExploring && !_gridInspector.IsReviewingSchema) _gridInspector.Update(selected);
         PositionInspector();
         UpdateMapperWindowVisibility();
+        if (_gridInspector is { AutoAnalyze: true, Result: null, IsExploring: false } automatic)
+            automatic.Dispatcher.BeginInvoke(new Action(() => { if (automatic.IsVisible && automatic.Result is null) _ = automatic.StartExplorationAsync(); }));
     }
 
     private void PositionInspector()
@@ -369,7 +378,7 @@ internal sealed partial class RecordingHighlightOverlay
             else _gridInspector.Hide();
             SetMapperInputEnabled(_gridInspector, inputEnabled);
         }
-        if (sessionVisible && _mapperEnabled && _window is not null && !_gridExplorationActive)
+        if (sessionVisible && _mapperEnabled && _window is not null && !_gridExplorationActive && _gridInspector is null)
         {
             if (_mapperLegend is null)
             {

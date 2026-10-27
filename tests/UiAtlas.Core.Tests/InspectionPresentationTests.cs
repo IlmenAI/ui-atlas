@@ -122,8 +122,15 @@ public sealed class InspectionPresentationTests
                 Set("_parameterProposals", new[] { proposal, second }); Call("RefreshInspectionTitle");
                 Set("_parameterProposals", new[] { proposal }); Call("RefreshInspectionTitle");
                 Assert.True(Get<ScrollViewer>("_variantStripScroller").Height <= 50);
-                var variants = Get<ComboBox>("_inspectionVariantSelector");
+                var variants = Get<ListBox>("_inspectionVariantSelector");
+                Assert.True(variants.IsVisible);
                 Assert.Equal(2, variants.Items.Count);
+                viewer.UpdateLayout();
+                var firstVariant = Assert.IsType<ListBoxItem>(variants.ItemContainerGenerator.ContainerFromIndex(0));
+                var secondVariant = Assert.IsType<ListBoxItem>(variants.ItemContainerGenerator.ContainerFromIndex(1));
+                var firstPosition = firstVariant.TransformToAncestor(variants).Transform(new Point());
+                var secondPosition = secondVariant.TransformToAncestor(variants).Transform(new Point());
+                Assert.Equal(firstPosition.Y, secondPosition.Y, 1); Assert.True(secondPosition.X > firstPosition.X);
                 variants.SelectedItem = variants.Items.OfType<UiInspectionFrameGroup>().Single(group => group.Id == "semantic:v1");
                 Assert.Equal("Guest list", variants.SelectedItem.ToString());
                 Assert.Contains("semantic:v1", variants.ToolTip.ToString());
@@ -173,6 +180,7 @@ public sealed class InspectionPresentationTests
                 Assert.Equal("Controls", AutomationProperties.GetName((TreeViewItem)hierarchy["pane"].Parent));
                 Assert.Contains("Variant", AutomationProperties.GetName((TreeViewItem)((TreeViewItem)hierarchy["pane"].Parent).Parent));
                 Call("SelectSurfaceById", "raw");
+                Assert.True(variants.IsVisible); Assert.NotEmpty(variants.Items);
                 Call("BuildHierarchy", "", "raw-grid");
                 var rawControlBranch = (TreeViewItem)Get<Dictionary<string, TreeViewItem>>("_hierarchyItems")["raw-grid"].Parent;
                 Assert.Equal("Controls", AutomationProperties.GetName(rawControlBranch));
@@ -214,6 +222,11 @@ public sealed class InspectionPresentationTests
                 variants.SelectedItem = variants.Items.OfType<UiInspectionFrameGroup>().Single(g => g.Id == "semantic:v2");
                 Assert.Null(Get<UiMapVariantView?>("_selectedVariant"));
                 Assert.Contains("no eligible recorded frames", Get<string>("_inspectionUnavailableVariant"));
+                var streamSurface = graph.Nodes.Single(n => n.Id == "raw") with { Id = "streams", Properties = [new("layer", "raw-data-streams")] };
+                Set("_model", new UiMappingReadModel(graph with { Nodes = graph.Nodes.Append(streamSurface).ToArray() }));
+                Get<CheckBox>("_showExcludedRaw").IsChecked = true; Get<CheckBox>("_showSupplementaryRaw").IsChecked = true;
+                Call("RefreshAll"); Call("SelectSurfaceById", "streams"); Pump(20);
+                Assert.True(variants.IsVisible); Assert.NotEmpty(variants.Items);
             }
             finally { viewer.Close(); }
             void Set(string name, object value) => typeof(ExplorerWindow).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(viewer, value);

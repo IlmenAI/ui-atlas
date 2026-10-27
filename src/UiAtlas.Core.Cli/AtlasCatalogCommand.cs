@@ -46,6 +46,27 @@ internal static class AtlasCatalogCommand
         token.ThrowIfCancellationRequested();
         switch (request.Operation)
         {
+            case "header-settings-read": case "header-settings-save": case "header-providers-sync":
+                var headerStore = new UiAtlas.Core.Recording.Windows.AzureHeaderSettingsStore();
+                if (request.Operation == "header-providers-sync")
+                {
+                    var providers = request.HeaderSettingsUpdate?.Providers ?? throw new ArgumentException("Provider references are required.");
+                    headerStore.Update(current => current with { Providers = providers.Select(p =>
+                        new UiAtlas.Core.Recording.Windows.HeaderProviderReference(p.Id, p.Model, p.Endpoint, p.CredentialReference)).ToArray() }, validateConnection: false);
+                }
+                if (request.Operation == "header-settings-save")
+                {
+                    var update = request.HeaderSettingsUpdate ?? throw new ArgumentException("Header settings are required.");
+                    headerStore.Update(previous => new(update.Enabled, update.Endpoint, update.Deployment,
+                        update.Provider ?? "azure-openai", AutoAnalyze: update.AutoAnalyze,
+                        Providers: update.Providers?.Select(p => new UiAtlas.Core.Recording.Windows.HeaderProviderReference(p.Id, p.Model, p.Endpoint, p.CredentialReference)).ToArray() ?? previous.Providers), update.ApiKey);
+                }
+                var headerSettings = headerStore.Load();
+                var hasHeaderKey = false;
+                try { if (headerSettings.Enabled) hasHeaderKey = headerStore.HasKey(headerSettings); }
+                catch (UiAtlas.Core.Recording.Windows.AzureHeaderException) { }
+                return new() { Root = catalog.Root, HeaderSettings = new(headerSettings.Enabled, headerSettings.Endpoint, headerSettings.Deployment, hasHeaderKey,
+                    headerSettings.Enabled ? headerSettings.Provider : "local", headerSettings.AutoAnalyze), Message = "Header reading settings saved for the next read." };
             case "maps": return new() { Root = catalog.Root, Maps = LoadMaps(catalog, token) };
             case "maps-summary": return AtlasCatalogIndex.Read(catalog, request.KnownCatalogVersion, token);
             case "revision-read": case "revision-eligibility": return ReadRevision(catalog, request, token);
