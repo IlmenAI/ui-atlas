@@ -28,6 +28,9 @@ public sealed record CatalogImportCandidate(string Path, string Kind, long Bytes
 // Full immutable bytes with eligibility observed at this read, never a latest alias.
 public sealed record CatalogRevision(string RevisionRef, string CanonicalPayloadHash, string Payload,
     string MapId, string Generation, string Entry, bool Ready, bool Archived, string ReadAtUtc, int Version = 1);
+// Fresh eligibility of an integrity-checked immutable revision, without retransmitting its bytes.
+public sealed record CatalogRevisionEligibility(string RevisionRef, string CanonicalPayloadHash,
+    string MapId, string Generation, bool Ready, bool Archived, string ReadAtUtc, int Version = 1);
 // Original canonical source payloads whose hashes are embedded in the revision.
 // PayloadKind is "snapshot" (WorldStateSnapshot) or "survey" (SurveyScenePublication).
 public sealed record CatalogRawWorldSource(string SourceObservationSetRef, string PayloadKind, string PayloadSha256, string Payload);
@@ -61,6 +64,7 @@ public sealed record CatalogReply
     public CatalogImportCandidate[] Imports { get; init; } = [];
     public string? Revision { get; init; }
     public CatalogRevision? ExactRevision { get; init; }
+    public CatalogRevisionEligibility? RevisionEligibility { get; init; }
     public CatalogRawWorldSource[] RawWorldSources { get; init; } = [];
     public int RawWorldContractVersion { get; init; }
     public CatalogParameterPolicy? Parameterization { get; init; }

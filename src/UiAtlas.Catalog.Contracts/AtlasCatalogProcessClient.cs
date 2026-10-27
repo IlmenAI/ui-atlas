@@ -38,7 +38,7 @@ public sealed class AtlasCatalogProcessClient(string? root = null, string? execu
     public async Task<CatalogReply> RequestAsync(CatalogRequest request, CancellationToken token = default)
     {
         token.ThrowIfCancellationRequested();
-        if (request.Operation is not ("maps-summary" or "revision-read" or "profile-read"
+        if (request.Operation is not ("maps-summary" or "revision-read" or "revision-eligibility" or "profile-read"
             or "parameter-review-read" or "parameter-confirm" or "identity-review-read" or "identity-confirm"))
             throw new ArgumentException("This catalog adapter supports reads and scoped parameter confirmation only.");
         var path = Executable;

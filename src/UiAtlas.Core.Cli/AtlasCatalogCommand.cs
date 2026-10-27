@@ -48,7 +48,7 @@ internal static class AtlasCatalogCommand
         {
             case "maps": return new() { Root = catalog.Root, Maps = LoadMaps(catalog, token) };
             case "maps-summary": return AtlasCatalogIndex.Read(catalog, request.KnownCatalogVersion, token);
-            case "revision-read": return ReadRevision(catalog, request, token);
+            case "revision-read": case "revision-eligibility": return ReadRevision(catalog, request, token);
             case "identity-review-read": case "identity-confirm": case "parameter-review-read": case "parameter-confirm": return ReadRevision(catalog, request, token);
             case "profile-read":
                 if (request.ProfileId != "fast") throw new ArgumentException("This consumer supports the Fast profile.");
@@ -152,6 +152,10 @@ internal static class AtlasCatalogCommand
             var ready = entry is { IsReady: true, Archived: false };
             if ((request.RequireReady || request.Operation == "parameter-confirm") && !ready)
                 throw new InvalidOperationException("This exact revision is no longer a Ready published Atlas entry. Select an eligible revision; completed drafts retain their original map.");
+            if (request.Operation == "revision-eligibility")
+                return new CatalogReply { Root = catalog.Root, RevisionEligibility = new(reference, revision.CanonicalPayloadHash,
+                    Path.GetFileNameWithoutExtension(path), Path.GetFileName(workspace.DirectoryPath), ready,
+                    entry?.Archived ?? false, DateTimeOffset.UtcNow.ToString("O")) };
             if (request.Operation is "identity-review-read" or "identity-confirm")
                 return AtlasWorkflowIdentityReview.Execute(workspace, revision, entry, path, request, token);
             if (request.Operation is "parameter-review-read" or "parameter-confirm")
