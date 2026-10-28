@@ -70,3 +70,9 @@ public interface IShellOrganizationHost
     void SelectOrganization(string? id);
     FrameworkElement CreateOrganizationView(string route, Window owner, Action<string> navigate);
 }
+
+/// <summary>Optional chat entry point supplied by MapLock.</summary>
+public interface IShellAssistantHost
+{
+    Task OpenAssistantAsync(Window owner);
+}

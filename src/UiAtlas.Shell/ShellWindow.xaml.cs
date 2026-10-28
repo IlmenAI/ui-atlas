@@ -396,7 +396,10 @@ public partial class ShellWindow : Window
         MicroHudWindow? hud = null;
         try
         {
-            hud = new MicroHudWindow(scope.HudBounds, _activeProfile) { Title = _host.ProductName + " Micro HUD" };
+            var hudProfile = _host is IShellAssistantHost
+                ? _activeProfile with { HudCommands = _activeProfile.HudCommands.Where(command => command.Id != "hud.run-workflow").Append(new ExperienceCommand("hud.assistant", "Chat", "\uE8F2")).ToArray() }
+                : _activeProfile;
+            hud = new MicroHudWindow(scope.HudBounds, hudProfile) { Title = _host.ProductName + " Micro HUD" };
             _microHud = hud;
             hud.RecordUiMapRequested += MicroHud_RecordUiMapRequested;
             if (_host is IShellWorkSessionsHost work)
@@ -409,6 +412,13 @@ public partial class ShellWindow : Window
                 };
             if (_host is IShellWorkflowRunHost runtime)
                 hud.RunWorkflowRequested += async (_, _) => { hud.Close(); RestoreMainWindow(); await runtime.RunWorkflowAsync(this); };
+            if (_host is IShellAssistantHost assistant)
+                hud.AssistantRequested += async (_, _) =>
+                {
+                    hud.Close(); RestoreMainWindow();
+                    try { await assistant.OpenAssistantAsync(this); }
+                    catch (Exception error) { MessageBox.Show(this, error.Message, "Open chat", MessageBoxButton.OK, MessageBoxImage.Error); }
+                };
             hud.DiagnosticsRequested += (_, _) =>
             {
                 hud.Close(); RestoreMainWindow();
