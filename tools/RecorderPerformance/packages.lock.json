@@ -1,0 +1,64 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net10.0-windows10.0.19041": {
+      "uiatlas.core.build": {
+        "type": "Project",
+        "dependencies": {
+          "UiAtlas.Core.Contracts": "[1.0.0, )",
+          "UiAtlas.Core.Recording": "[1.0.0, )"
+        }
+      },
+      "uiatlas.core.contracts": {
+        "type": "Project"
+      },
+      "uiatlas.core.recording": {
+        "type": "Project",
+        "dependencies": {
+          "UiAtlas.Core.Contracts": "[1.0.0, )"
+        }
+      },
+      "uiatlas.core.recording.windows": {
+        "type": "Project",
+        "dependencies": {
+          "Interop.UIAutomationClient": "[10.19041.0, )",
+          "UIMaps.Perception.Core": "[1.0.0, )",
+          "UIMaps.Recorder.Windows": "[1.0.0, )",
+          "UiAtlas.Core.Build": "[1.0.0, )",
+          "UiAtlas.Core.Contracts": "[1.0.0, )",
+          "UiAtlas.Core.Recording": "[1.0.0, )"
+        }
+      },
+      "uimaps.perception.core": {
+        "type": "Project",
+        "dependencies": {
+          "UIMaps.Protocol": "[1.0.0, )"
+        }
+      },
+      "uimaps.protocol": {
+        "type": "Project",
+        "dependencies": {
+          "Google.Protobuf": "[3.27.1, )"
+        }
+      },
+      "uimaps.recorder.windows": {
+        "type": "Project",
+        "dependencies": {
+          "UIMaps.Protocol": "[1.0.0, )"
+        }
+      },
+      "Google.Protobuf": {
+        "type": "CentralTransitive",
+        "requested": "[3.27.1, )",
+        "resolved": "3.27.1",
+        "contentHash": "7IVz9TzhYCZ8qY0rPhXUnyJSXYdshUqmmxmTI763XmDDSJJFnyfKH43FFcMJu/CZgBcE98xlFztrKwhzcRkiPg=="
+      },
+      "Interop.UIAutomationClient": {
+        "type": "CentralTransitive",
+        "requested": "[10.19041.0, )",
+        "resolved": "10.19041.0",
+        "contentHash": "Me5vKNZ1JSg6txTsPQXaWx7fVNh+fmcUPPwtDKJtqvbMM0N8aoa/l/QPolkJIRnasCabCNt4v2zG4p1Q9HU98A=="
+      }
+    }
+  }
+}

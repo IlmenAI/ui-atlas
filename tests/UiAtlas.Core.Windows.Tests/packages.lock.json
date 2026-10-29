@@ -216,6 +216,12 @@
           "Google.Protobuf": "[3.27.1, )"
         }
       },
+      "uimaps.recorder.providerprobe": {
+        "type": "Project",
+        "dependencies": {
+          "UIMaps.Recorder.Windows": "[1.0.0, )"
+        }
+      },
       "uimaps.recorder.windows": {
         "type": "Project",
         "dependencies": {

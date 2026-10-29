@@ -109,7 +109,7 @@ public sealed class ProviderProcessRunner(string executablePath) : IProviderProc
 
     internal static ProbeRequest WithCooperativeDeadline(ProbeRequest request, TimeSpan timeout, long startedTimestamp)
     {
-        if (request.Operation is not ("uia" or "uia-interaction") || timeout == Timeout.InfiniteTimeSpan) return request;
+        if (request.Operation is not ("uia" or "uia-cached" or "uia-interaction" or "window-visual") || timeout == Timeout.InfiniteTimeSpan) return request;
         // Leave time to serialize and return a partial packet before containment's
         // hard deadline. The same monotonic clock is shared by parent and worker.
         var reserveMs = Math.Min(100d, timeout.TotalMilliseconds * .2d);
@@ -356,13 +356,13 @@ public sealed class IsolatedAccessibilityProbe(IProviderProcessRunner runner) : 
                     var attempt = new ProviderAttemptOutcome
                     {
                         AttemptId = Guid.NewGuid().ToString("N"), CaptureWindowId = captureWindowId, ProviderId = "uia",
-                        WorkerVersion = "0.9.0", WorkerArchitecture = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),
+                        WorkerVersion = policy.UseCachedUia ? "cached-uia/1.0.0" : "0.9.0", WorkerArchitecture = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),
                         StartedAt = started.ToString("O"),
                     };
                     try
                     {
                         var packet = await runner.RunAsync(
-                            new ProbeRequest("uia", 0, 0, 0, 0, hwnd, window.WindowEvidenceId, reservedNodes, policy.MaxUiaDepth, 0),
+                            new ProbeRequest(policy.UseCachedUia ? "uia-cached" : "uia", 0, 0, 0, 0, hwnd, window.WindowEvidenceId, reservedNodes, policy.MaxUiaDepth, 0),
                             AccessibilityPacket.Parser, policy.UiaPerWindowDeadline, aggregateCts.Token).ConfigureAwait(false);
                         cancellationToken.ThrowIfCancellationRequested();
                         attempt.EndedAt = DateTimeOffset.UtcNow.ToString("O"); attempt.Status = packet.Health.State == HealthState.Complete ? "completed" : "partial";
@@ -422,16 +422,17 @@ public sealed class IsolatedAccessibilityProbe(IProviderProcessRunner runner) : 
                     aggregateCts.Token.ThrowIfCancellationRequested();
                     var attempt = new ProviderAttemptOutcome { AttemptId = Guid.NewGuid().ToString("N"),
                         CaptureWindowId = captureWindowId, ProviderId = "msaa", StartedAt = DateTimeOffset.UtcNow.ToString("O"),
-                        WorkerVersion = "1.0.0", WorkerArchitecture = RuntimeInformation.ProcessArchitecture.ToString() };
+                        WorkerVersion = policy.ReuseMsaaClientRoot ? "msaa-root-reuse/1" : "1.0.0", WorkerArchitecture = RuntimeInformation.ProcessArchitecture.ToString() };
                     AccessibilityPacket response;
                     try
                     {
-                        response = await runner.RunAsync(new ProbeRequest("msaa", 0, 0, 0, 0, hwnd,
+                        response = await runner.RunAsync(new ProbeRequest(policy.ReuseMsaaClientRoot ? "msaa-root-reuse" : "msaa", 0, 0, 0, 0, hwnd,
                             window.WindowEvidenceId, reservedNodes, policy.MaxUiaDepth, 0), AccessibilityPacket.Parser,
                             policy.UiaPerWindowDeadline, aggregateCts.Token).ConfigureAwait(false);
                         cancellationToken.ThrowIfCancellationRequested();
                         attempt.Status = response.Health.State == HealthState.Complete ? "completed" : "partial";
                         attempt.NodesObserved = response.NodesObserved; attempt.NodesIncluded = response.NodesIncluded;
+                        attempt.ResourceUsageSummary.AddRange(response.ProviderAttempts.SelectMany(x => x.ResourceUsageSummary).Select(x => x.Clone()));
                     }
                     catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                     {
@@ -452,15 +453,33 @@ public sealed class IsolatedAccessibilityProbe(IProviderProcessRunner runner) : 
                     rawResponses.Add(new() { Attempt = attempt.Clone(), WindowEvidenceId = window.WindowEvidenceId, Packet = response.Clone() });
                     finalPacket.ProviderAttempts.Add(attempt);
                     finalPacket.TimeLimited |= response.TimeLimited;
-                    // Keep full provider responses independently inspectable. MSAA
-                    // supplements the derived view only when UIA supplied no tree.
-                    if (!finalPacket.Nodes.Any(node => node.ProviderId == "uia"))
+                    // The experimental worker can return a bounded UIA prefix.
+                    // Do not let that prefix hide an independently acquired MSAA
+                    // tree from the derived evidence. Keep provider identities and
+                    // ancestry separate; a shared HWND is not a control match.
+                    // Existing profiles retain their established merge behavior.
+                    var retainPartialFallback = policy.UseCachedUia &&
+                        (finalPacket.TimeLimited || finalPacket.NodeLimited || finalPacket.DepthLimited ||
+                         finalPacket.TraversalFrontier.Any(frontier => frontier.ProviderId == "uia"));
+                    if (retainPartialFallback || !finalPacket.Nodes.Any(node => node.ProviderId == "uia"))
                     {
                         var remaining = Math.Max(0, reservedNodes - finalPacket.Nodes.Count);
                         finalPacket.Nodes.AddRange(response.Nodes.Take(remaining).Select(node => node.Clone()));
                         finalPacket.NodesIncluded = finalPacket.Nodes.Count;
                         finalPacket.NodesObserved += response.NodesObserved;
                         finalPacket.NodeLimited |= response.Nodes.Count > remaining;
+                        if (retainPartialFallback && response.Nodes.Count > remaining)
+                        {
+                            finalPacket.TraversalFrontier.Add(new TraversalFrontier
+                            {
+                                FrontierId = Guid.NewGuid().ToString("N"), CaptureWindowId = captureWindowId,
+                                ProviderId = "msaa", ReasonKnown = true, StopReason = "cross_provider_node_limit",
+                                EstimatedChildCount = response.Nodes.Count - remaining,
+                                CreatedAt = DateTimeOffset.UtcNow.ToString("O"), TerminalState = "remaining",
+                            });
+                            healthValues.Add(ProtocolHealth.Single(HealthState.NodeLimited,
+                                "RECORDER_ACCESSIBILITY_NODE_LIMIT", "Independent provider evidence exceeded the shared node allowance.", "accessibility"));
+                        }
                     }
                     healthValues.Add(response.Health);
                 }

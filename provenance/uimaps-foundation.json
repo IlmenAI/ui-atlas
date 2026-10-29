@@ -4,6 +4,22 @@
   "sourceWorkspaceCommit": "c8fd44525a98497dc84364c7bb4d91828c6c4147",
   "files": [
     {
+      "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.ProviderProbe/UiaCachedCapture.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-recorder.git",
+      "commit": "feb951d9f69c3aac11ed4a293802040697f35009",
+      "source": "src/UIMaps.Recorder.ProviderProbe/UiaCachedCapture.cs",
+      "sha256": "1b2182f37f6208fdf630dc4bda582da963ab7a6caa7b260a579d46002361d13a",
+      "disposition": "imported for the opt-in capture-optimized profile; existing map profiles retain their original traversal"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.ProviderProbe/UiaCaptureTraversal.cs",
+      "repository": "https://github.com/AI-Successors/uimaps-recorder.git",
+      "commit": "feb951d9f69c3aac11ed4a293802040697f35009",
+      "source": "src/UIMaps.Recorder.ProviderProbe/UiaCaptureTraversal.cs",
+      "sha256": "258494836abcbc463a8256f7c9dea4ddbd77f5ab7217cd533db920511b7632ef",
+      "disposition": "imported for the opt-in capture-optimized profile; existing map profiles retain their original traversal"
+    },
+    {
       "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v1/capture_policy.proto",
       "repository": "https://github.com/IlmenAI/UI-Atlas",
       "commit": "8d6514273cfcb25f01feac2d492286f6fd88e89a",
@@ -395,8 +411,9 @@
       "repository": "https://github.com/IlmenAI/UI-Atlas",
       "commit": "8d6514273cfcb25f01feac2d492286f6fd88e89a",
       "source": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/CaptureProfiles.cs",
-      "sha256": "e68b70530699ba78d96f298b492ec329272238e3c7548ed41884baaad0ddfae5",
-      "disposition": "atlas-integrated-source"
+      "sha256": "40d1687edf5195f31ded6360b5456846a9ef339ec03b4be4f583c69e7fa8c446",
+      "disposition": "reviewed-adaptation: additional experimental capture profile only; existing profile definitions unchanged",
+      "reviewEvidence": "tests/UiAtlas.Core.Windows.Tests/MsaaRootAliasTests.cs; tests/UiAtlas.Core.Windows.Tests/OptimizedCaptureProfileTests.cs"
     },
     {
       "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/CaptureSessions.cs",
@@ -435,8 +452,9 @@
       "repository": "https://github.com/AI-Successors/uimaps-recorder",
       "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
       "source": "src/UIMaps.Recorder.Windows/NativeScreenCaptureProvider.cs",
-      "sha256": "a2813d51d218883a9c7977e0e0fbef497a30cc2159195fa0c3eccefd630c1677",
-      "disposition": "unmodified-source"
+      "sha256": "d98abeed6f0017ef83cf5fb9a3cbcd6504d54037c622d033220b440edd84c4ef",
+      "disposition": "reviewed-adaptation: optional lossless PNG encoder after fresh pixel acquisition; default encoder unchanged",
+      "reviewEvidence": "tests/UiAtlas.Core.Windows.Tests/MsaaRootAliasTests.cs; tests/UiAtlas.Core.Windows.Tests/OptimizedCaptureProfileTests.cs"
     },
     {
       "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/NativeWindowTopologyProvider.cs",
@@ -451,9 +469,9 @@
       "repository": "https://github.com/AI-Successors/uimaps-recorder",
       "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
       "source": "src/UIMaps.Recorder.Windows/ProviderIsolation.cs",
-      "sha256": "b986603f7e3b7664d1bbf79face7c4f8c04e74b00663bf984d66a321af99dc58",
-      "disposition": "reviewed-adaptation: bounded worker containment and cooperative deadlines; preserve portable DLL launch, exhaustive MSAA and immutable raw responses",
-      "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
+      "sha256": "02fd43b1e2c01d28cf7facf924cb9163a4741eeac3e0c8458b52be7754a3fb60",
+      "disposition": "reviewed-adaptation: candidate cached UIA and MSAA root reuse; explicit alias diagnostics; bounded visual cooperative deadline",
+      "reviewEvidence": "tests/UiAtlas.Core.Windows.Tests/MsaaRootAliasTests.cs; tests/UiAtlas.Core.Windows.Tests/OptimizedCaptureProfileTests.cs"
     },
     {
       "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/ProviderPropertyValue.cs",
@@ -476,24 +494,27 @@
       "repository": "https://github.com/AI-Successors/uimaps-recorder",
       "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
       "source": "src/UIMaps.Recorder.Windows/RecorderPolicy.cs",
-      "sha256": "f4b0e49f94ff5a23e5f32104a1573283fdec2e18dcd19a73eb59334e5c7f758d",
-      "disposition": "adapted-source: configurable capture sizes, 256 MiB defaults and 512 MiB reader capacity"
+      "sha256": "b0548ea4cae21a75441fd0487e6b72f5e6206d5826b924e9d54b15b5afdc717d",
+      "disposition": "reviewed-adaptation: opt-in candidate UIA cache and request-local MSAA root reuse",
+      "reviewEvidence": "tests/UiAtlas.Core.Windows.Tests/MsaaRootAliasTests.cs; tests/UiAtlas.Core.Windows.Tests/OptimizedCaptureProfileTests.cs"
     },
     {
       "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.ProviderProbe/Program.cs",
       "repository": "https://github.com/AI-Successors/uimaps-recorder",
       "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
       "source": "src/UIMaps.Recorder.ProviderProbe/Program.cs",
-      "sha256": "3dd9310a100ed9605fd0bfd2b31dfafffbefa03ba38cf17d3f6c91951c59cc9e",
-      "disposition": "adapted-source: mapping parity; immutable provider responses, bounded verified observations, window metadata and source validation"
+      "sha256": "dfb5ae3c2bcc794f201a11915fec1018c68cc257696b412f12291f24046e8872",
+      "disposition": "reviewed-adaptation: separate explicit candidate UIA and MSAA worker operations; original dispatch preserved",
+      "reviewEvidence": "tests/UiAtlas.Core.Windows.Tests/MsaaRootAliasTests.cs; tests/UiAtlas.Core.Windows.Tests/OptimizedCaptureProfileTests.cs"
     },
     {
       "target": "vendor/uimaps/uimaps-recorder/profiles/capture-profiles.v1.json",
       "repository": "https://github.com/IlmenAI/UI-Atlas",
       "commit": "8d6514273cfcb25f01feac2d492286f6fd88e89a",
       "source": "vendor/uimaps/uimaps-recorder/profiles/capture-profiles.v1.json",
-      "sha256": "f43baeb87d9d2cf596176de24b4197359c92079f9475d09ff49f8ea5a97aa1ab",
-      "disposition": "atlas-integrated-source"
+      "sha256": "470f66f06eb772d20e05447c75317f82be66a8c63834755dde2b31065a849e00",
+      "disposition": "reviewed-adaptation: adds experimental capture-optimized 1.2.0; eight existing profile objects unchanged",
+      "reviewEvidence": "tests/UiAtlas.Core.Windows.Tests/OptimizedCaptureProfileTests.cs"
     },
     {
       "target": "vendor/uimaps/uimaps-recorder/LICENSE.txt",
@@ -540,8 +561,9 @@
       "repository": "https://github.com/AI-Successors/uimaps-recorder",
       "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
       "source": "new shared implementation; not present at base commit",
-      "sha256": "7933ae83d21a5f4d8af59f884954602d9f4e976d3b58f4eb9e623662b538e79b",
-      "disposition": "new-shared-implementation"
+      "sha256": "c7f6cad123744d940ec54efd8d91278a9e97feceb0b7eb10170f5080eee27744",
+      "disposition": "reviewed-adaptation: opt-in, identity-proven client-root reuse within one capture; fresh independent alias IDs and complete fallback",
+      "reviewEvidence": "tests/UiAtlas.Core.Windows.Tests/MsaaRootAliasTests.cs; tests/UiAtlas.Core.Windows.Tests/OptimizedCaptureProfileTests.cs"
     },
     {
       "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/MappingObservationEvidence.cs",
@@ -611,6 +633,15 @@
       "source": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/AtlasIdentityEquivalence.cs",
       "sha256": "5f12603a83973a9a040079c684d28275e064ec784baf9bdf1fb1275748c1670d",
       "disposition": "atlas-integrated-source"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/Properties/AssemblyInfo.cs",
+      "repository": "https://github.com/IlmenAI/UI-Atlas",
+      "commit": "820fb4892b5461d46171c6c928abb094ed8c3556",
+      "source": "new test visibility declaration",
+      "sha256": "3c8d1a6bd70c62c46442878382d45cb19487035381f103d3122b55b1ae8475cb",
+      "disposition": "new-shared-implementation: test assembly visibility only",
+      "reviewEvidence": "tests/UiAtlas.Core.Windows.Tests/MsaaRootAliasTests.cs"
     }
   ]
 }
