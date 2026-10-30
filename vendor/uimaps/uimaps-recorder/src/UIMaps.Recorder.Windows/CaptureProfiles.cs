@@ -59,7 +59,9 @@ public sealed class CaptureProfileCatalogService
     private CaptureProfileDescriptor ToDescriptor(ProfileManifest value) => new()
     {
         ProfileId = value.Id, ProfileVersion = value.Version, DisplayName = value.Name,
-        Description = value.Id == "runtime-grounding"
+        Description = value.Id == "capture-optimized"
+            ? "Experimental cached UIA and identity-checked MSAA root reuse within each capture, with a 10-second per-window allowance and a 20-second acquisition budget. Performance and coverage require application qualification."
+            : value.Id == "runtime-grounding"
             ? "Passive grounding snapshot of the assigned window and its native owned windows, with deep UIA traversal and bounded live capture time."
             : value.Semantics == "survey" ? "Passive staged coverage with explicit intervals and omissions." : "Temporally coherent passive display snapshot.",
         CaptureSemantics = value.Semantics == "survey" ? CaptureSemantics.Survey : CaptureSemantics.Snapshot,
@@ -77,7 +79,7 @@ public sealed class CaptureProfileCatalogService
     internal static CaptureLimits DefaultLimitsFor(ProfileManifest value) => new()
     {
         OverallCaptureDeadlineMs = value.ExhaustiveCoverage ? 0 : value.BudgetMs,
-        ScreenCaptureDeadlineMs = Math.Min(value.Id is "mapping-checkpoint" or "runtime-grounding" ? 3_000 : 1_000, value.BudgetMs),
+        ScreenCaptureDeadlineMs = Math.Min(value.Id is "mapping-checkpoint" or "capture-optimized" or "runtime-grounding" ? 3_000 : 1_000, value.BudgetMs),
         WindowTopologyDeadlineMs = value.Semantics == "survey"
             ? Math.Clamp(value.BudgetMs / 5, 1_000L, Math.Min(15_000L, value.BudgetMs))
             : Math.Clamp(value.BudgetMs / 5, 1_000L, Math.Min(3_000L, value.BudgetMs)),
@@ -151,7 +153,7 @@ public sealed class CapturePolicyResolver(CaptureProfileCatalogService catalog)
         policy.ProviderBudgets.Add(new ProviderBudget { ProviderId = "screen", HardDurationMs = limits.ScreenCaptureDeadlineMs, MaxAttempts = 1, MaxBytes = maxSegment });
         policy.ProviderBudgets.Add(new ProviderBudget { ProviderId = "native-window-topology", HardDurationMs = limits.WindowTopologyDeadlineMs, MaxAttempts = 1 });
         policy.ProviderBudgets.Add(new ProviderBudget { ProviderId = "uia", HardDurationMs = limits.UiaPerWindowDeadlineMs, MaxAttempts = limits.MaxAttempts, MaxConcurrentGlobalContribution = limits.MaxConcurrentUiaWorkers, MaxNodes = limits.MaxNodesPerWindow, MaxDepth = limits.MaxDepth });
-        if (profile.Id == "mapping-checkpoint" || profile.ExhaustiveCoverage)
+        if (profile.Id is "mapping-checkpoint" or "capture-optimized" || profile.ExhaustiveCoverage)
             policy.ProviderBudgets.Add(new ProviderBudget { ProviderId = "msaa", HardDurationMs = limits.UiaPerWindowDeadlineMs,
                 MaxAttempts = 1, MaxConcurrentGlobalContribution = limits.MaxConcurrentUiaWorkers, MaxNodes = limits.MaxNodesPerWindow, MaxDepth = limits.MaxDepth });
         if (string.IsNullOrWhiteSpace(request.RequestedProfileId))

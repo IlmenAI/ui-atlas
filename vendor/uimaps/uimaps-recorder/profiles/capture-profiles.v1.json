@@ -1,5 +1,5 @@
 {
-  "catalogVersion": "1.1.1",
+  "catalogVersion": "1.2.0",
   "profiles": [
     {
       "id": "live",
@@ -137,6 +137,24 @@
       "maxMs": 20000,
       "budgetMs": 20000,
       "windowMs": 3000,
+      "maxWindows": 64,
+      "maxNodesPerWindow": 10000,
+      "maxNodesPerEpisode": 50000,
+      "maxDepth": 64,
+      "globalConcurrency": 3,
+      "perProcessConcurrency": 1,
+      "progressive": false,
+      "retries": 1
+    },
+    {
+      "id": "capture-optimized",
+      "version": "1.2.0",
+      "name": "Capture optimized (experimental)",
+      "semantics": "snapshot",
+      "minMs": 1000,
+      "maxMs": 20000,
+      "budgetMs": 20000,
+      "windowMs": 10000,
       "maxWindows": 64,
       "maxNodesPerWindow": 10000,
       "maxNodesPerEpisode": 50000,

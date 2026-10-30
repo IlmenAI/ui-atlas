@@ -174,7 +174,13 @@ public sealed class GridSchemaReviewWindowTests
                     Assert.False(inspector.SavedSchema.Schema.IsComplete); // Acceptance has not happened yet.
                     Assert.DoesNotContain(Descendants<TextBlock>(inspector), t => t.Text.StartsWith("Partial capture"));
                 }
-                if (status == GridCaptureStatus.Partial) Assert.Contains(Descendants<TextBlock>(inspector), t => t.Text.Contains("Additional columns may exist"));
+                if (status == GridCaptureStatus.Partial)
+                {
+                    Assert.Contains(Descendants<TextBlock>(inspector), t => t.Text.Contains("Additional columns may exist"));
+                    Assert.Contains(Descendants<TextBlock>(inspector), t => t.Text.StartsWith("Partial schema"));
+                    Assert.DoesNotContain(Descendants<TextBlock>(inspector), t => t.Text.StartsWith("Schema ready"));
+                    Assert.Contains(Descendants<Button>(inspector), b => Equals(b.Content, "Explore again"));
+                }
                 Click(Descendants<Button>(inspector).Single(b => Equals(b.Content, "Explore details"))); Pump(20);
                 Assert.NotNull(inspector.SchemaReviewWindow!.Draft); Assert.Null(inspector.SchemaReviewWindow.Draft.ReviewedUtc);
                 inspector.SchemaReviewWindow.Close(); Pump(20); Assert.Null(accepted);

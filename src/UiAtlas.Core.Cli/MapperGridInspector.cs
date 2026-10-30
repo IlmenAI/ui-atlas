@@ -109,7 +109,10 @@ internal sealed class MapperGridInspector : Window
         var stack = (StackPanel)shell.Child;
         if (SavedSchema is not null)
         {
-            stack.Children.Add(AtlasFluent.Badge($"Schema ready · {SavedSchema.Schema.Columns.Count} columns"));
+            var partial = SavedSchema.CaptureStatus != GridCaptureStatus.Complete || SavedSchema.Reasons.Contains("schema-width-unverified", StringComparer.Ordinal);
+            stack.Children.Add(AtlasFluent.Badge(partial
+                ? $"Partial schema · {SavedSchema.Schema.Columns.Count} captured columns"
+                : $"Schema ready · {SavedSchema.Schema.Columns.Count} columns"));
             stack.Children.Add(Label("Name this data grid", 18, AtlasFluent.Ink));
             if (SavedSchema.ReviewedUtc is null)
                 stack.Children.Add(Label("Automatically prepared · review the details if needed. Save accepts these column names.", 12, AtlasFluent.Muted));
@@ -123,8 +126,13 @@ internal sealed class MapperGridInspector : Window
             if (uncertain > 0) stack.Children.Add(AtlasFluent.Card(Label($"{uncertain} column names need review. Explore details to inspect them.", 12, AtlasFluent.Amber), "#FFF3DF"));
             stack.Children.Add(Label(string.Join(" · ", SavedSchema.Schema.Columns.Take(3).Select(c => c.Label)) +
                 (SavedSchema.Schema.Columns.Count > 3 ? $" · +{SavedSchema.Schema.Columns.Count - 3} more" : ""), 12, AtlasFluent.Muted));
-            if (SavedSchema.CaptureStatus != GridCaptureStatus.Complete || SavedSchema.Reasons.Contains("schema-width-unverified", StringComparer.Ordinal))
+            if (partial)
+            {
                 stack.Children.Add(AtlasFluent.Card(Label($"Partial capture · {SavedSchema.Schema.Columns.Count} captured columns. Additional columns may exist.", 12, AtlasFluent.Amber), "#FFF3DF"));
+                if (_result is not null) stack.Children.Add(Label(FriendlyReason(_result.Reasons.FirstOrDefault() ?? "capture-incomplete",
+                    _result.Capture.Joins.LastOrDefault()?.Axis), 12, AtlasFluent.Amber));
+                stack.Children.Add(ActionButton("Explore again", () => _ = StartExplorationAsync(), false));
+            }
             stack.Children.Add(Label("Recording resumes when you save or close.", 12, AtlasFluent.Muted));
             var error = Label("", 12, "#AF7200"); stack.Children.Add(error);
             var save = ActionButton("Save data grid", () =>

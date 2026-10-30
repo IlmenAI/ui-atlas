@@ -5,7 +5,7 @@ using UIMaps.Protocol.V1;
 
 namespace UIMaps.Recorder.Windows;
 
-public sealed class NativeScreenCaptureProvider : IScreenCaptureProvider
+public sealed class NativeScreenCaptureProvider(Func<Bitmap, ByteString>? encodePng = null) : IScreenCaptureProvider
 {
     public Task<ScreenshotPacket> CaptureAsync(DisplayDescriptor display, RecorderPolicy policy, CancellationToken cancellationToken)
     {
@@ -22,8 +22,7 @@ public sealed class NativeScreenCaptureProvider : IScreenCaptureProvider
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        using var buffer = new MemoryStream();
-        bitmap.Save(buffer, ImageFormat.Png);
+        var png = encodePng is null ? Encode(bitmap) : encodePng(bitmap);
         return Task.FromResult(new ScreenshotPacket
         {
             Display = display.Clone(),
@@ -32,8 +31,14 @@ public sealed class NativeScreenCaptureProvider : IScreenCaptureProvider
             HeightPx = display.HeightPx,
             Stride = display.WidthPx * 4,
             PixelFormat = "BGRA32_PREMULTIPLIED",
-            ImageBlob = ByteString.CopyFrom(buffer.ToArray()),
+            ImageBlob = png,
             Health = ProtocolHealth.Complete(),
         });
+    }
+
+    private static ByteString Encode(Bitmap bitmap)
+    {
+        using var buffer = new MemoryStream(); bitmap.Save(buffer, ImageFormat.Png);
+        return ByteString.CopyFrom(buffer.ToArray());
     }
 }
