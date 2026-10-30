@@ -193,6 +193,33 @@ public sealed class GridSchemaReviewWindowTests
     }
 
     [Fact]
+    public void MissingDividersRequireExplicitReviewBeforeQuickSave()
+    {
+        Sta(() =>
+        {
+            using var fixture = new Fixture(GridCaptureStatus.Complete, GridRestorationStatus.Succeeded, true);
+            var control = MapperHighlightTests.Control("Orders", "DataGrid", new(0, 0, 600, 120), "WPF", ["Grid"]);
+            var accepted = false;
+            var inspector = new MapperGridInspector(Assert.Single(MapperHighlightModel.Build(control.Bounds, [control])))
+            {
+                AutoAnalyze = true, Explore = (_, _, _) => Task.FromResult(fixture.Source),
+                SchemaExtractor = (source, header, dividers, token) => Task.FromResult(fixture.Review(header, []) with
+                    { Reasons = ["column-dividers-not-detected"] }),
+                SaveDataGrid = (_, _) => accepted = true
+            };
+            try
+            {
+                inspector.Show(); var work = inspector.StartExplorationAsync(); Await(() => work.IsCompleted); work.GetAwaiter().GetResult(); Pump(30);
+                Assert.False(Descendants<Button>(inspector).Single(b => Equals(b.Content, "Save data grid")).IsEnabled);
+                Assert.Contains(Descendants<TextBlock>(inspector), t => t.Text == "Column boundaries need review");
+                Assert.True(Descendants<Button>(inspector).Single(b => Equals(b.Content, "Explore details")).IsEnabled);
+                Assert.False(accepted);
+            }
+            finally { inspector.Close(); }
+        });
+    }
+
+    [Fact]
     public void ClosingDuringAutomaticReadingCancelsBeforeResumingAndNeverAcceptsALateDraft()
     {
         Sta(() =>

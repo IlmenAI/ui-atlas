@@ -43,7 +43,7 @@ internal sealed class MapperGridInspector : Window
         Width = 360; SizeToContent = SizeToContent.Height;
         WindowStyle = WindowStyle.None; ResizeMode = ResizeMode.NoResize;
         AllowsTransparency = true; Background = Brushes.Transparent;
-        ShowInTaskbar = false; ShowActivated = false; Topmost = true;
+        ShowInTaskbar = true; ShowActivated = false; Topmost = true;
         AtlasFluent.Apply(this);
         Render();
         PreviewKeyDown += (_, e) => { if (e.Key == Key.Escape) { if (IsExploring) _cancellation?.Cancel(); else Close(); } };
@@ -109,12 +109,16 @@ internal sealed class MapperGridInspector : Window
         var stack = (StackPanel)shell.Child;
         if (SavedSchema is not null)
         {
+            var boundariesNeedReview = SavedSchema.ReviewedUtc is null &&
+                SavedSchema.Reasons.Contains("column-dividers-not-detected", StringComparer.Ordinal);
             var partial = SavedSchema.CaptureStatus != GridCaptureStatus.Complete || SavedSchema.Reasons.Contains("schema-width-unverified", StringComparer.Ordinal);
-            stack.Children.Add(AtlasFluent.Badge(partial
+            stack.Children.Add(AtlasFluent.Badge(boundariesNeedReview ? "Column boundaries need review" : partial
                 ? $"Partial schema · {SavedSchema.Schema.Columns.Count} captured columns"
-                : $"Schema ready · {SavedSchema.Schema.Columns.Count} columns"));
+                : $"Schema ready · {SavedSchema.Schema.Columns.Count} columns", boundariesNeedReview || partial));
+            if (boundariesNeedReview) stack.Children.Add(Label(
+                "Column divisions were not detected. Open Explore details to check and confirm the boundaries before saving.", 12, AtlasFluent.Amber));
             stack.Children.Add(Label("Name this data grid", 18, AtlasFluent.Ink));
-            if (SavedSchema.ReviewedUtc is null)
+            if (SavedSchema.ReviewedUtc is null && !boundariesNeedReview)
                 stack.Children.Add(Label("Automatically prepared · review the details if needed. Save accepts these column names.", 12, AtlasFluent.Muted));
             stack.Children.Add(Label("Data grid name", 13, AtlasFluent.Muted));
             _gridName ??= SuggestGridName(Selection.Name, SavedSchema);
@@ -137,7 +141,7 @@ internal sealed class MapperGridInspector : Window
             var error = Label("", 12, "#AF7200"); stack.Children.Add(error);
             var save = ActionButton("Save data grid", () =>
             {
-                if (string.IsNullOrWhiteSpace(name.Text) || SaveDataGrid is null) return;
+                if (boundariesNeedReview || string.IsNullOrWhiteSpace(name.Text) || SaveDataGrid is null) return;
                 try
                 {
                     var accepted = SavedSchema.ReviewedUtc is null
@@ -147,8 +151,8 @@ internal sealed class MapperGridInspector : Window
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
                 { error.Text = "The data grid could not be saved. Try again or close to resume recording."; }
             }, true);
-            save.IsEnabled = SaveDataGrid is not null && !string.IsNullOrWhiteSpace(name.Text);
-            name.TextChanged += (_, _) => { _gridName = name.Text; save.IsEnabled = SaveDataGrid is not null && !string.IsNullOrWhiteSpace(name.Text); };
+            save.IsEnabled = !boundariesNeedReview && SaveDataGrid is not null && !string.IsNullOrWhiteSpace(name.Text);
+            name.TextChanged += (_, _) => { _gridName = name.Text; save.IsEnabled = !boundariesNeedReview && SaveDataGrid is not null && !string.IsNullOrWhiteSpace(name.Text); };
             stack.Children.Add(save);
             var edit = ActionButton(AutoAnalyze ? "Explore details" : "Edit schema", OpenSchemaReview, false); edit.Margin = new Thickness(0, 8, 0, 0); stack.Children.Add(edit);
             Content = shell;

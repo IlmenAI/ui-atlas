@@ -38,7 +38,7 @@ public sealed class UiMapConstructionEngine(StableMapRefAllocator? allocator = n
         };
         application.Matchers.AddRange(target.ProcessIdentityEvidence.Select(value => Matcher("processIdentity", "value", value, 1, true, false, ReviewState.ReviewAccepted)));
         if (!string.IsNullOrWhiteSpace(target.ExecutableName))
-            application.Matchers.Add(Matcher("process", "processName", Path.GetFileNameWithoutExtension(target.ExecutableName), 1, true, false, ReviewState.ReviewAccepted));
+            application.Matchers.Add(Matcher("process", "processName", UIMaps.Protocol.WindowsExecutableIdentity.ProcessName(target.ExecutableName), 1, true, false, ReviewState.ReviewAccepted));
         draft.Entities.Add(application);
         var state = new MapEntity
         {
@@ -1094,7 +1094,7 @@ public sealed class UiMapConstructionEngine(StableMapRefAllocator? allocator = n
         {
             var process = Property(window, "processName");
             var executable = Property(window, "executablePath");
-            if (!string.Equals(process, Path.GetFileNameWithoutExtension(target.ExecutableName), StringComparison.OrdinalIgnoreCase)
+            if (!string.Equals(process, UIMaps.Protocol.WindowsExecutableIdentity.ProcessName(target.ExecutableName), StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(process, target.ExecutableName, StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(Path.GetFileName(executable), target.ExecutableName, StringComparison.OrdinalIgnoreCase))
                 return false;
@@ -1167,7 +1167,7 @@ public sealed class UiMapConstructionEngine(StableMapRefAllocator? allocator = n
         if (string.IsNullOrWhiteSpace(target.ExecutableName)) return false;
         var process = Property(window, "processName");
         var executable = Property(window, "executablePath");
-        return string.Equals(process, Path.GetFileNameWithoutExtension(target.ExecutableName), StringComparison.OrdinalIgnoreCase)
+        return string.Equals(process, UIMaps.Protocol.WindowsExecutableIdentity.ProcessName(target.ExecutableName), StringComparison.OrdinalIgnoreCase)
             || string.Equals(process, target.ExecutableName, StringComparison.OrdinalIgnoreCase)
             || string.Equals(Path.GetFileName(executable), target.ExecutableName, StringComparison.OrdinalIgnoreCase);
     }
