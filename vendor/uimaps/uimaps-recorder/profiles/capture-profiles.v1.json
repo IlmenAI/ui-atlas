@@ -1,5 +1,5 @@
 {
-  "catalogVersion": "1.0.0",
+  "catalogVersion": "1.2.0",
   "profiles": [
     {
       "id": "live",
@@ -74,6 +74,24 @@
       "retries": 2
     },
     {
+      "id": "runtime-grounding",
+      "version": "1.0.1",
+      "name": "Runtime grounding",
+      "semantics": "snapshot",
+      "minMs": 1000,
+      "maxMs": 8000,
+      "budgetMs": 8000,
+      "windowMs": 5000,
+      "maxWindows": 8,
+      "maxNodesPerWindow": 50000,
+      "maxNodesPerEpisode": 100000,
+      "maxDepth": 64,
+      "globalConcurrency": 2,
+      "perProcessConcurrency": 1,
+      "progressive": false,
+      "retries": 1
+    },
+    {
       "id": "thorough",
       "version": "1.0.0",
       "name": "Thorough",
@@ -119,6 +137,24 @@
       "maxMs": 20000,
       "budgetMs": 20000,
       "windowMs": 3000,
+      "maxWindows": 64,
+      "maxNodesPerWindow": 10000,
+      "maxNodesPerEpisode": 50000,
+      "maxDepth": 64,
+      "globalConcurrency": 3,
+      "perProcessConcurrency": 1,
+      "progressive": false,
+      "retries": 1
+    },
+    {
+      "id": "capture-optimized",
+      "version": "1.2.0",
+      "name": "Capture optimized (experimental)",
+      "semantics": "snapshot",
+      "minMs": 1000,
+      "maxMs": 20000,
+      "budgetMs": 20000,
+      "windowMs": 10000,
       "maxWindows": 64,
       "maxNodesPerWindow": 10000,
       "maxNodesPerEpisode": 50000,

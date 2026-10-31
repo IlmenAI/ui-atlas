@@ -58,7 +58,7 @@
                     <Grid x:Name="AvailableWorkSessions" Margin="0,18,0,0" Visibility="Collapsed">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <TextBlock Text="&#xE7C3;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{StaticResource AccentBrush}" />
-                        <TextBlock Grid.Column="1" Text="Record work and review workflow drafts" FontSize="14.5" TextWrapping="Wrap" />
+                        <TextBlock Grid.Column="1" Text="Record a task, then review its Atlas projection and proposed replay steps" FontSize="14.5" TextWrapping="Wrap" />
                     </Grid>
                 </StackPanel>
 
@@ -70,8 +70,8 @@
                         <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                         <TextBlock Text="&#xE7C3;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{StaticResource AccentBrush}" />
                         <StackPanel Grid.Column="1">
-                            <TextBlock Text="Work Sessions" FontSize="14.5" />
-                            <TextBlock Text="Record work and review mapped workflow drafts." Margin="0,4,0,0" TextWrapping="Wrap"
+                            <TextBlock Text="Tasks" FontSize="14.5" />
+                            <TextBlock Text="Record tasks and review how they map to Atlas." Margin="0,4,0,0" TextWrapping="Wrap"
                                        FontSize="12.5" Foreground="{StaticResource MutedInkBrush}" />
                         </StackPanel>
                     </Grid>
@@ -80,7 +80,7 @@
                         <TextBlock Text="&#xE71B;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{StaticResource AccentBrush}" />
                         <StackPanel Grid.Column="1">
                             <TextBlock Text="Integrations" FontSize="14.5" />
-                            <TextBlock Text="Turn reviewed workflows into stable APIs." Margin="0,4,0,0"
+                            <TextBlock Text="Turn reviewed tasks into stable APIs." Margin="0,4,0,0"
                                        FontSize="12.5" Foreground="{StaticResource MutedInkBrush}" />
                         </StackPanel>
                     </Grid>

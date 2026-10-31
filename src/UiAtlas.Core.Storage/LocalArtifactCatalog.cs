@@ -94,6 +94,66 @@ public sealed class LocalArtifactCatalog
     public void ClearMapDeletionMarker(string id) =>
         DeleteFileIfPresent(MapDeletionMarkerPath(id), TrashDirectory);
 
+    private string LibraryDeletionPath(string id) => MapPath(id) + ".library-deletions.json";
+    private HashSet<string> RemovedEntries(string id)
+    {
+        EnsureCatalogDirectoriesSafe();
+        var path = LibraryDeletionPath(id);
+        if (!File.Exists(path)) return new(StringComparer.Ordinal);
+        if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0 || new FileInfo(path).Length > 1024 * 1024)
+            throw new InvalidDataException("Invalid Map library deletion record.");
+        return new(System.Text.Json.JsonSerializer.Deserialize<string[]>(File.ReadAllText(path)) ?? [], StringComparer.Ordinal);
+    }
+    public bool IsMapLibraryEntryDeleted(string id, string subject) => RemovedEntries(id).Contains(subject);
+    public void DeleteMapLibraryEntry(string id, string subject, Action validate)
+    {
+        if (string.IsNullOrWhiteSpace(subject) || subject.Length > 1024) throw new InvalidDataException("A stable Map library identity is required.");
+        EnsureCatalogDirectoriesSafe();
+        var map = MapPath(id); if (!File.Exists(map)) throw new FileNotFoundException("The map is no longer available.");
+        var root = MapBackendCompanion.PathFor(map);
+        if (Directory.Exists(root)) MapBackendCompanion.RejectLinks(root);
+        using var lease = Directory.Exists(root) ? new FileStream(Path.Combine(root, "write.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None) : null;
+        validate();
+        var removed = RemovedEntries(id); removed.Add(subject);
+        var target = LibraryDeletionPath(id); var temporary = target + "." + Guid.NewGuid().ToString("N");
+        try { File.WriteAllText(temporary, System.Text.Json.JsonSerializer.Serialize(removed.Order(StringComparer.Ordinal))); File.Move(temporary, target, true); }
+        finally { if (File.Exists(temporary)) DeleteFileIfPresent(temporary, MapsDirectory); }
+    }
+    public string RecordingStamp(string id)
+    {
+        EnsureCatalogDirectoriesSafe(); var path = RecordingPath(id);
+        if (!File.Exists(path) || (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0) throw new InvalidDataException("The recording is missing or is a link.");
+        var info = new FileInfo(path); return info.Length.ToString(CultureInfo.InvariantCulture) + ":" + info.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture);
+    }
+    public void DeleteRecordingPermanently(string id, string? expectedStamp)
+    {
+        EnsureCatalogDirectoriesSafe(); var path = RecordingPath(id);
+        if (string.IsNullOrWhiteSpace(expectedStamp) || RecordingStamp(id) != expectedStamp) throw new IOException("The recording changed. Refresh Recordings and try again.");
+        string? sourceId = null;
+        try { using var bundle = RecordingBundle.Open(path); sourceId = bundle.ReadJson<RecordingManifest>("manifest.json").SessionId; }
+        catch (Exception error) when (error is IOException or InvalidDataException or System.Text.Json.JsonException) { }
+        using var recordingLease = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Delete);
+        var leases = new List<FileStream>();
+        try
+        {
+            // Builders create their workspace and acquire its lease before reading source bundles.
+            foreach (var root in Directory.GetDirectories(MapsDirectory, "*.db.uimaps").Order(StringComparer.Ordinal))
+            {
+                MapBackendCompanion.RejectLinks(root);
+                leases.Add(new FileStream(Path.Combine(root, "write.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None));
+            }
+            var referenced = RecordingIdsReferencedByMaps(null, out var complete);
+            if (!complete || referenced.Contains(id) || sourceId is not null && referenced.Contains(sourceId)
+                || sourceId is null && ListMapPaths().Count > 0)
+                throw new InvalidOperationException("This recording is used by a saved map, or map references could not be checked. Its evidence must be retained.");
+            if (RecordingStamp(id) != expectedStamp) throw new IOException("The recording changed. Refresh Recordings and try again.");
+            _ = IsRecordingArchived(id);
+            DeleteFileIfPresent(path, RecordingsDirectory);
+            DeleteFileIfPresent(ResolveArtifactPath(RecordingsDirectory, id, ".archived"), RecordingsDirectory);
+        }
+        finally { foreach (var lease in leases) lease.Dispose(); }
+    }
+
     public IReadOnlyList<string> MatchingRecordingPaths(string id)
     {
         var mapPath = MapPath(id);
@@ -270,6 +330,31 @@ public sealed class LocalArtifactCatalog
     }
 
     public string ArchiveRecording(string id) => Archive(RecordingPath(id), "recordings");
+
+    // Library visibility is independent of evidence retention: maps may still reference this bundle.
+    public bool IsRecordingArchived(string id)
+    {
+        var path = ResolveArtifactPath(RecordingsDirectory, id, ".archived");
+        if (!File.Exists(path)) return false;
+        if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
+            throw new InvalidDataException("Recording archive markers cannot be links.");
+        return true;
+    }
+
+    public void SetRecordingArchived(string id, bool archived)
+    {
+        var recording = RecordingPath(id);
+        if (!File.Exists(recording)) throw new FileNotFoundException("Recording was not found.");
+        if ((File.GetAttributes(recording) & FileAttributes.ReparsePoint) != 0)
+            throw new InvalidDataException("Recording links cannot be archived.");
+        var path = ResolveArtifactPath(RecordingsDirectory, id, ".archived");
+        if (archived)
+        {
+            if (IsRecordingArchived(id)) return;
+            using var marker = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+        }
+        else DeleteFileIfPresent(path, RecordingsDirectory);
+    }
     public string ArchiveMap(string id)
     {
         var mapPath = MapPath(id);

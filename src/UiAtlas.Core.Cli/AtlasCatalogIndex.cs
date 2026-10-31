@@ -45,19 +45,20 @@ internal static class AtlasCatalogIndex
                 before = after;
             }
         }
-        if (changed) WriteCache(catalog, new(1, entries.ToArray()));
+        if (changed) WriteCache(catalog, new(3, entries.ToArray()));
         // Use the stamps associated with the actual rows, not newer state observed after reading them.
         version = Version(catalog.Root, entries.Select(entry => (Path: catalog.MapPath(entry.Id), entry.Stamp)));
         return new() { Root = catalog.Root, CatalogVersion = version, Maps = entries.SelectMany(entry => entry.Maps).ToArray() };
     }
 
     private static string Version(string root, IEnumerable<(string Path, string Stamp)> values) =>
-        Hash("map-list-v1\n" + root + "\n" + string.Join("\n", values.Select(value => value.Path + "|" + value.Stamp)));
+        Hash("map-list-v3\n" + root + "\n" + string.Join("\n", values.Select(value => value.Path + "|" + value.Stamp)));
 
     private static string Stamp(string path)
     {
         var value = new StringBuilder();
         AddFile(value, path);
+        AddFile(value, path + ".library-deletions.json");
         AddFile(value, path + "-wal");
         AddFile(value, path + "-shm");
         var root = AtlasMapWorkspace.RootFor(path);
@@ -100,7 +101,7 @@ internal static class AtlasCatalogIndex
         {
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
             var cache = JsonSerializer.Deserialize<Index>(stream);
-            return cache is { Version: 1, Entries: not null } && cache.Entries.All(entry => entry is not null && entry.Maps is not null
+            return cache is { Version: 3, Entries: not null } && cache.Entries.All(entry => entry is not null && entry.Maps is not null
                 && entry.Maps.All(map => map is not null)) ? cache.Entries : [];
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException) { return []; }

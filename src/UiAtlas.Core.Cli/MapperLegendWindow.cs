@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using UiAtlas.Core.Contracts;
+using UiAtlas.Presentation;
 
 namespace UiAtlas.Core.Cli;
 
@@ -30,7 +31,7 @@ internal sealed class MapperLegendWindow : Window
         ShowInTaskbar = false;
         ShowActivated = false;
         Topmost = true;
-        FontFamily = new FontFamily("Inter, Segoe UI");
+        AtlasFluent.Apply(this);
         RenderContent();
     }
 
@@ -74,11 +75,11 @@ internal sealed class MapperLegendWindow : Window
 
     private void RenderContent()
     {
-        Width = IsCollapsed ? 34 : 222;
-        Height = IsCollapsed ? 34 : 178;
+        Width = IsCollapsed ? 34 : 292;
+        Height = IsCollapsed ? 34 : 312;
         var shell = new Border { Background = MapperGridInspector.Brush("#F9F9FA"),
             BorderBrush = MapperGridInspector.Brush("#DCE1E9"), BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(IsCollapsed ? 12 : 14) };
+            CornerRadius = new CornerRadius(IsCollapsed ? 12 : 20) };
         if (IsCollapsed)
         {
             var restore = new Button { Content = "▦", FontSize = 20, Padding = new Thickness(0),
@@ -105,18 +106,18 @@ internal sealed class MapperLegendWindow : Window
         }
         else
         {
-            var stack = new StackPanel { Margin = new Thickness(12, 8, 12, 10) };
+            var stack = new StackPanel { Margin = new Thickness(16, 10, 16, 14) };
             var header = new DockPanel { Background = Brushes.Transparent, Cursor = Cursors.SizeAll };
-            var hide = new Button { Content = "−", Width = 26, Height = 26, FontSize = 19,
+            var hide = new Button { Content = "−", Width = 28, Height = 28, MinHeight = 0, Padding = new(0), FontSize = 19,
                 Background = Brushes.Transparent, BorderThickness = new Thickness(0), Cursor = Cursors.Hand,
                 ToolTip = "Hide legend" };
             System.Windows.Automation.AutomationProperties.SetName(hide, "Hide highlight legend");
             hide.Click += (_, _) => SetCollapsed(true);
             DockPanel.SetDock(hide, Dock.Right); header.Children.Add(hide);
-            header.Children.Add(new TextBlock { Text = "⠿  HIGHLIGHTS", FontSize = 11,
-                Foreground = MapperGridInspector.Brush("#697586"), VerticalAlignment = VerticalAlignment.Center });
+            header.Children.Add(AtlasFluent.Text("⠿  Highlights", 14));
             header.MouseLeftButtonDown += (_, _) => { UserPositioned = true; DragMove(); };
             stack.Children.Add(header);
+            stack.Children.Add(AtlasFluent.Text("Show on screen", 12, AtlasFluent.Muted));
             foreach (var (kind, symbol, label, color) in new[]
             {
                 (MapperHighlightKind.Uia, "━", "UIA / MSAA", "#0A84FF"),
@@ -125,10 +126,26 @@ internal sealed class MapperLegendWindow : Window
                 (MapperHighlightKind.GridCandidate, "┄", "Grid candidate", "#C98208")
             })
             {
-                var text = new TextBlock { Text = $"{symbol}  {label}",
-                    Foreground = MapperGridInspector.Brush(color), FontSize = 13 };
-                var toggle = new CheckBox { Content = text, IsChecked = _isOverlayVisible(kind),
-                    Margin = new Thickness(3, 9, 0, 0), Cursor = Cursors.Hand,
+                var text = new TextBlock { Text = label, Foreground = AtlasFluent.Brush(AtlasFluent.Ink), FontSize = 13 };
+                var row = new DockPanel();
+                var swatch = new Grid { Width = 26, Height = 20, Margin = new(0, 0, 10, 0), IsHitTestVisible = false };
+                var outline = new System.Windows.Shapes.Rectangle { Stroke = AtlasFluent.Brush(color), StrokeThickness = 1.5,
+                    Width = 24, Height = 16, RadiusX = 1, RadiusY = 1 };
+                if (kind == MapperHighlightKind.GridCandidate) outline.StrokeDashArray = new DoubleCollection { 3, 2 };
+                swatch.Children.Add(outline);
+                if (kind == MapperHighlightKind.NativeGrid)
+                {
+                    foreach (var x in new[] { 9d, 17d }) swatch.Children.Add(new System.Windows.Shapes.Line
+                        { X1 = x, X2 = x, Y1 = 2, Y2 = 18, Stroke = AtlasFluent.Brush(color), StrokeThickness = 1 });
+                    swatch.Children.Add(new System.Windows.Shapes.Line { X1 = 1, X2 = 25, Y1 = 10, Y2 = 10, Stroke = AtlasFluent.Brush(color), StrokeThickness = 1 });
+                }
+                else if (kind == MapperHighlightKind.ComputerVision)
+                {
+                    outline.StrokeDashArray = new DoubleCollection { 4, 3 };
+                }
+                row.Children.Add(swatch); row.Children.Add(text);
+                var toggle = new CheckBox { Content = row, IsChecked = _isOverlayVisible(kind),
+                    Margin = new Thickness(0, 5, 0, 5), Cursor = Cursors.Hand,
                     VerticalContentAlignment = VerticalAlignment.Center };
                 System.Windows.Automation.AutomationProperties.SetName(toggle, $"{label} overlays");
                 void UpdateAppearance()
@@ -141,6 +158,7 @@ internal sealed class MapperLegendWindow : Window
                 UpdateAppearance();
                 stack.Children.Add(toggle);
             }
+            stack.Children.Add(AtlasFluent.Text("Visibility only · Mapping continues", 11, AtlasFluent.Muted));
             shell.Child = stack;
         }
         Content = shell;

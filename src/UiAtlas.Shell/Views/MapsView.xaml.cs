@@ -6,7 +6,7 @@ using UIMaps.Application.Core;
 
 namespace UIMaps.Application.Views;
 
-public partial class MapsView : UserControl
+public partial class MapsView : UserControl, UiAtlas.Shell.IShellBackNavigation
 {
     private readonly IUiMapsCapabilityLauncher _launcher;
     private readonly IRecordableApplicationDiscovery _applicationDiscovery;
@@ -34,6 +34,8 @@ public partial class MapsView : UserControl
     internal MapsLibraryViewModel ViewModel { get; }
     public event EventHandler<CapabilityLaunchResult>? LaunchCompleted;
     public event EventHandler? CanGoBackChanged;
+    public string? InitialApplicationRef { get; init; }
+    public bool AllowRecording { get; init; } = true;
     public bool CanGoBack => !string.IsNullOrWhiteSpace(_selectedApplicationRef);
 
     private async void MapsView_Loaded(object sender, RoutedEventArgs e)
@@ -44,6 +46,8 @@ public partial class MapsView : UserControl
         _owner = Window.GetWindow(this);
         if (_owner is not null) _owner.Activated += OwnerActivated;
         await ViewModel.RefreshAsync(_load.Token);
+        if (InitialApplicationRef is { } applicationRef && ViewModel.FindApplication(applicationRef, false) is { } application)
+            ShowApplicationDetails(application);
     }
 
     private void MapsView_Unloaded(object sender, RoutedEventArgs e)
@@ -153,6 +157,7 @@ public partial class MapsView : UserControl
         }
         menu.Tag = target;
         var record = menu.Items.OfType<MenuItem>().First(value => Equals(value.Tag, "RecordNewMap"));
+        record.Visibility = AllowRecording ? Visibility.Visible : Visibility.Collapsed;
         record.IsEnabled = target is not null;
         record.ToolTip = target is not null
             ? $"Record the launched {application.DisplayName} window."
@@ -189,6 +194,37 @@ public partial class MapsView : UserControl
         await RunApplicationActionAsync(token => ViewModel.ArchiveApplicationAsync(application, token));
     }
 
+    private async void ContextDeleteApplication_Click(object sender, RoutedEventArgs e)
+    {
+        if (ContextMenuFor(sender)?.DataContext is not MapApplicationPresentation application) return;
+        if (!UiAtlas.Shell.DeleteConfirmationDialog.Confirm(Window.GetWindow(this), "UI Maps", application.DisplayName,
+            $"This removes {application.Maps.Count} UI Map entries from this library. Published revisions, source recordings and evidence are retained for existing skills and run history.")) return;
+        await RunApplicationActionAsync(token => ViewModel.DeleteApplicationAsync(application, token));
+    }
+    private void MapMenu_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: MapRowPresentation map } anchor) return;
+        e.Handled = true;
+        ShowMapMenu(anchor, map, PlacementMode.Bottom);
+    }
+    private void Map_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: MapRowPresentation map } anchor) return;
+        e.Handled = true; ShowMapMenu(anchor, map, e.CursorLeft < 0 ? PlacementMode.Bottom : PlacementMode.MousePoint);
+    }
+    private void ShowMapMenu(FrameworkElement anchor, MapRowPresentation map, PlacementMode placement)
+    {
+        var menu = new ContextMenu { PlacementTarget = anchor, Placement = placement };
+        var open = new MenuItem { Header = "Open UI Map" }; open.Click += (_, _) => OpenMapViewer(map.Record); menu.Items.Add(open); menu.Items.Add(new Separator());
+        var delete = new MenuItem { Header = "Delete UI Map…", Foreground = System.Windows.Media.Brushes.Firebrick };
+        delete.Click += async (_, _) =>
+        {
+            if (!UiAtlas.Shell.DeleteConfirmationDialog.Confirm(Window.GetWindow(this), "UI Map", map.Record.Entry.ApplicationDisplayName + " · " + map.Updated,
+                "This removes this UI Map from the library. Published revisions, source recordings and evidence are retained for existing skills and run history.")) return;
+            await RunMapActionAsync(token => ViewModel.DeleteAsync(map, token));
+        };
+        menu.Items.Add(delete); menu.IsOpen = true;
+    }
     private async void ContextRestoreApplication_Click(object sender, RoutedEventArgs e)
     {
         if (ContextMenuFor(sender)?.DataContext is MapApplicationPresentation application)
@@ -200,6 +236,7 @@ public partial class MapsView : UserControl
     private void OpenApplication_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: MapApplicationPresentation application }) return;
+        e.Handled = true;
         ShowApplicationDetails(application);
     }
 
@@ -242,6 +279,7 @@ public partial class MapsView : UserControl
         {
             discoveryError = ex.GetBaseException().Message;
         }
+        RecordNewMapForApplicationButton.Visibility = AllowRecording ? Visibility.Visible : Visibility.Collapsed;
         RecordNewMapForApplicationButton.Tag = target;
         RecordNewMapForApplicationButton.IsEnabled = target is not null;
         RecordNewMapForApplicationButton.ToolTip = target is not null

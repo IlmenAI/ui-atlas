@@ -46,9 +46,30 @@ internal static class AtlasCatalogCommand
         token.ThrowIfCancellationRequested();
         switch (request.Operation)
         {
+            case "header-settings-read": case "header-settings-save": case "header-providers-sync":
+                var headerStore = new UiAtlas.Core.Recording.Windows.AzureHeaderSettingsStore();
+                if (request.Operation == "header-providers-sync")
+                {
+                    var providers = request.HeaderSettingsUpdate?.Providers ?? throw new ArgumentException("Provider references are required.");
+                    headerStore.Update(current => current with { Providers = providers.Select(p =>
+                        new UiAtlas.Core.Recording.Windows.HeaderProviderReference(p.Id, p.Model, p.Endpoint, p.CredentialReference)).ToArray() }, validateConnection: false);
+                }
+                if (request.Operation == "header-settings-save")
+                {
+                    var update = request.HeaderSettingsUpdate ?? throw new ArgumentException("Header settings are required.");
+                    headerStore.Update(previous => new(update.Enabled, update.Endpoint, update.Deployment,
+                        update.Provider ?? "azure-openai", AutoAnalyze: update.AutoAnalyze,
+                        Providers: update.Providers?.Select(p => new UiAtlas.Core.Recording.Windows.HeaderProviderReference(p.Id, p.Model, p.Endpoint, p.CredentialReference)).ToArray() ?? previous.Providers), update.ApiKey);
+                }
+                var headerSettings = headerStore.Load();
+                var hasHeaderKey = false;
+                try { if (headerSettings.Enabled) hasHeaderKey = headerStore.HasKey(headerSettings); }
+                catch (UiAtlas.Core.Recording.Windows.AzureHeaderException) { }
+                return new() { Root = catalog.Root, HeaderSettings = new(headerSettings.Enabled, headerSettings.Endpoint, headerSettings.Deployment, hasHeaderKey,
+                    headerSettings.Enabled ? headerSettings.Provider : "local", headerSettings.AutoAnalyze), Message = "Header reading settings saved for the next read." };
             case "maps": return new() { Root = catalog.Root, Maps = LoadMaps(catalog, token) };
             case "maps-summary": return AtlasCatalogIndex.Read(catalog, request.KnownCatalogVersion, token);
-            case "revision-read": return ReadRevision(catalog, request, token);
+            case "revision-read": case "revision-eligibility": return ReadRevision(catalog, request, token);
             case "identity-review-read": case "identity-confirm": case "parameter-review-read": case "parameter-confirm": return ReadRevision(catalog, request, token);
             case "profile-read":
                 if (request.ProfileId != "fast") throw new ArgumentException("This consumer supports the Fast profile.");
@@ -59,15 +80,27 @@ internal static class AtlasCatalogCommand
                 policy.RequestedProfileVersion = profiles.Profiles.Single(value => value.ProfileId == "fast").ProfileVersion;
                 return new() { Root = catalog.Root, CaptureRequest = Encode(policy) };
             case "map-detail":
+            case "map-preview":
                 var details = LoadMap(catalog, request.MapId ?? throw new ArgumentException("Select a map."), false, token);
                 var selected = details.SingleOrDefault(map => map.Entry == request.Entry && map.Generation == request.Generation)
                     ?? throw new IOException("The selected map changed. Refresh Maps and retry.");
+                if (request.Operation == "map-preview")
+                {
+                    var preview = AtlasMapWorkspace.Exists(selected.Path) ? AtlasCatalogPresentation.Preview(AtlasMapWorkspace.Open(selected.Path)) : null;
+                    return new() { Root = catalog.Root, PreviewPng = preview is null ? null : Convert.ToBase64String(preview) };
+                }
                 return new() { Root = catalog.Root, Maps = [selected] };
             case "recordings":
                 var links = RecordingMapLinks(catalog, token);
                 return new() { Root = catalog.Root, Recordings = catalog.ListRecordings().Select(item => new CatalogRecording(item.Id,
                     item.StartedUtc, item.Outcome, item.ProcessName, item.FrameCount,
-                    File.Exists(catalog.MapPath(item.Id)) ? item.Id : links.GetValueOrDefault(item.Id))).ToArray() };
+                    File.Exists(catalog.MapPath(item.Id)) ? item.Id : links.GetValueOrDefault(item.Id), catalog.IsRecordingArchived(item.Id), catalog.RecordingStamp(item.Id))).ToArray() };
+            case "recording-delete":
+                catalog.DeleteRecordingPermanently(request.RecordingId ?? throw new ArgumentException("Select a recording."), request.ExpectedArtifactStamp);
+                return new() { Root = catalog.Root, Message = "Recording deleted." };
+            case "recording-archive": case "recording-restore":
+                catalog.SetRecordingArchived(request.RecordingId ?? throw new ArgumentException("Select a recording."), request.Operation == "recording-archive");
+                return new() { Root = catalog.Root, Message = request.Operation == "recording-archive" ? "Recording archived. Source evidence remains available to its maps." : "Recording restored." };
             case "build":
                 var recording = catalog.RecordingPath(request.RecordingId ?? throw new ArgumentException("Select a recording."));
                 var mapId = request.MapId ?? request.RecordingId!;
@@ -80,6 +113,16 @@ internal static class AtlasCatalogCommand
                     Message = $"Draft ready: {graph.Nodes.Count:N0} nodes and {graph.Edges.Count:N0} edges. Open map to review it." };
             case "legacy-inventory": return new() { Root = catalog.Root, Imports = AtlasCatalogImport.Inventory(request.SourcePath) };
             case "import": return AtlasCatalogImport.Import(catalog, request.SourcePath ?? throw new ArgumentException("Select an artifact to import."), token);
+            case "map-delete":
+                var selectedId = request.MapId ?? throw new ArgumentException("Select a UI Map.");
+                var reviewed = MapLibraryEntry.Parser.ParseFrom(Convert.FromBase64String(request.Entry ?? ""));
+                var subject = LibrarySubject(reviewed);
+                catalog.DeleteMapLibraryEntry(selectedId, subject, () =>
+                {
+                    if (!LoadMap(catalog, selectedId, false, token).Any(m => m.Generation == request.Generation && m.Entry == request.Entry))
+                        throw new IOException("The selected map changed. Refresh Maps and retry.");
+                });
+                return new() { Root = catalog.Root, Message = "UI Map removed from the library. Retained revisions and recordings were preserved." };
             case "archive": case "restore": case "ready": case "draft": case "publish":
                 return ChangeMap(catalog, request, token);
             default: throw new ArgumentException("Unknown Atlas catalog operation.");
@@ -130,6 +173,10 @@ internal static class AtlasCatalogCommand
             var ready = entry is { IsReady: true, Archived: false };
             if ((request.RequireReady || request.Operation == "parameter-confirm") && !ready)
                 throw new InvalidOperationException("This exact revision is no longer a Ready published Atlas entry. Select an eligible revision; completed drafts retain their original map.");
+            if (request.Operation == "revision-eligibility")
+                return new CatalogReply { Root = catalog.Root, RevisionEligibility = new(reference, revision.CanonicalPayloadHash,
+                    Path.GetFileNameWithoutExtension(path), Path.GetFileName(workspace.DirectoryPath), ready,
+                    entry?.Archived ?? false, DateTimeOffset.UtcNow.ToString("O")) };
             if (request.Operation is "identity-review-read" or "identity-confirm")
                 return AtlasWorkflowIdentityReview.Execute(workspace, revision, entry, path, request, token);
             if (request.Operation is "parameter-review-read" or "parameter-confirm")
@@ -198,29 +245,33 @@ internal static class AtlasCatalogCommand
                 catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException or JsonException) { }
                 var legacy = new MapLibraryEntry { ApplicationRef = "atlas:legacy:" + id, ApplicationDisplayName = id,
                     MapDraftRef = id, UpdatedAt = new DateTimeOffset(built).ToString("O"), Warnings = { "Legacy projection: open in Atlas to inspect retained evidence." } };
-                return [new(id, path, legacy.ApplicationRef, "", Encode(legacy)!, null, null, null, summaryOnly)];
+                return catalog.IsMapLibraryEntryDeleted(id, LibrarySubject(legacy)) ? [] : [new(id, path, legacy.ApplicationRef, "", Encode(legacy)!, null, null, null, summaryOnly)];
             }
             var workspace = AtlasMapWorkspace.Open(path);
             string continuation = "";
+            var presentation = AtlasCatalogPresentation.Read(workspace);
             do
             {
                 token.ThrowIfCancellationRequested();
                 var page = workspace.Service.ListLibrary(new ListMapLibraryRequest { IncludeArchived = true, PageSize = 500, ContinuationToken = continuation });
                 foreach (var entry in page.Entries)
                 {
+                    if (catalog.IsMapLibraryEntryDeleted(id, LibrarySubject(entry))) continue;
                     var draft = string.IsNullOrEmpty(entry.MapDraftRef) ? null : workspace.Service.GetDraft(entry.MapDraftRef);
                     var revision = string.IsNullOrEmpty(entry.LatestMapRevisionRef) ? null : workspace.Service.GetRevision(entry.LatestMapRevisionRef);
                     records.Add(new(id, path, "atlas:app:" + Uri.EscapeDataString(workspace.Index.ApplicationName.ToLowerInvariant()),
                         Path.GetFileName(workspace.DirectoryPath), Encode(entry)!,
                         Encode(string.IsNullOrEmpty(entry.MappingSessionRef) ? null : workspace.Service.GetSession(entry.MappingSessionRef)),
                         Encode(summaryOnly && draft is not null ? AtlasMapListProjection.Draft(draft) : draft),
-                        Encode(summaryOnly && revision is not null ? AtlasMapListProjection.Revision(revision) : revision), summaryOnly));
+                        Encode(summaryOnly && revision is not null ? AtlasMapListProjection.Revision(revision) : revision), summaryOnly, presentation));
                 }
                 continuation = page.ContinuationToken;
             } while (!string.IsNullOrEmpty(continuation));
         }
         return records.ToArray();
     }
+    private static string LibrarySubject(MapLibraryEntry entry) => !string.IsNullOrEmpty(entry.MappingSessionRef) ? entry.MappingSessionRef
+        : !string.IsNullOrEmpty(entry.MapDraftRef) ? entry.MapDraftRef : entry.LatestMapRevisionRef;
     private static CatalogReply ChangeMap(LocalArtifactCatalog catalog, CatalogRequest request, CancellationToken token)
     {
         var path = catalog.MapPath(request.MapId ?? throw new ArgumentException("Refresh Maps before changing this entry."));

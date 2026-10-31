@@ -4,13 +4,16 @@ namespace UIMaps.Perception.Core;
 
 public sealed class ObservationNormalizer
 {
+    private readonly bool _compactLiveHealth;
+    public ObservationNormalizer() : this(false) { }
+    public ObservationNormalizer(bool compactLiveHealth) => _compactLiveHealth = compactLiveHealth;
     public IReadOnlyList<Observation> Normalize(SensorEpisodeBundle bundle, long anchorTicks, DateTimeOffset publicationTime)
         => Normalize(bundle, anchorTicks, publicationTime, recorded: false, CancellationToken.None);
 
     public IReadOnlyList<Observation> NormalizeRecorded(SensorEpisodeBundle bundle, long anchorTicks, DateTimeOffset captureTime, CancellationToken cancellationToken)
         => Normalize(bundle, anchorTicks, captureTime, recorded: true, cancellationToken);
 
-    private static IReadOnlyList<Observation> Normalize(SensorEpisodeBundle bundle, long anchorTicks, DateTimeOffset publicationTime,
+    private IReadOnlyList<Observation> Normalize(SensorEpisodeBundle bundle, long anchorTicks, DateTimeOffset publicationTime,
         bool recorded, CancellationToken cancellationToken)
     {
         var observations = new List<Observation>();
@@ -109,7 +112,7 @@ public sealed class ObservationNormalizer
     private static IEnumerable<T> CheckCancellation<T>(IEnumerable<T> source, CancellationToken cancellationToken)
     { foreach (var value in source) { cancellationToken.ThrowIfCancellationRequested(); yield return value; } }
 
-    private static Observation Create(
+    private Observation Create(
         SensorEpisodeBundle bundle,
         SensorPacket packet,
         ObservationKind kind,
@@ -132,7 +135,7 @@ public sealed class ObservationNormalizer
             BoundsPx = bounds.Clone(),
             Role = role,
             ObservedName = name,
-            Health = ObservationHealth(packet.Health, recorded),
+            Health = ObservationHealth(packet.Health, recorded || _compactLiveHealth),
             Confidence = new Confidence { State = ConfidenceState.NotComputed, Rationale = "Direct source fact" },
             Freshness = freshness.Clone(),
             Lineage = new Lineage { SourcePacketIds = { packet.PacketId } },

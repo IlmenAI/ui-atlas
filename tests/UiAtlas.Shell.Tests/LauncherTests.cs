@@ -78,7 +78,37 @@ public sealed class LauncherTests
                 selector.SelectedItem = selector.Items.Cast<ExperienceProfileOption>().Single(value => value.Id == ExperienceProfileId.Maps);
                 Assert.Equal("maps", window.ActiveRoute);
                 window.Navigate("recordings");
-                Assert.IsType<AtlasRecordingsView>(page.Content);
+                var recordingsView = Assert.IsType<AtlasRecordingsView>(page.Content);
+                recordingsView.SetRecordings([
+                    new("word-1", DateTimeOffset.Now, "complete", "WINWORD", 128, "map-1"),
+                    new("booking-1", DateTimeOffset.Now.AddDays(-1), "complete", "prowin32", 96, "map-2"),
+                    new("slides-1", DateTimeOffset.Now.AddDays(-2), "complete", "POWERPNT", 84, "map-3"),
+                    new("excel-1", DateTimeOffset.Now.AddDays(-3), "complete", "EXCEL", 112, null),
+                    new("word-2", DateTimeOffset.Now.AddDays(-4), "complete", "WINWORD", 76, null),
+                    new("archived-1", DateTimeOffset.Now.AddDays(-5), "complete", "EXCEL", 64, null, true),
+                ]);
+                window.UpdateLayout();
+                var recordingList = Assert.IsType<ItemsControl>(recordingsView.FindName("RecordingList"));
+                Assert.Equal(5, recordingList.Items.Count);
+                if (Environment.GetEnvironmentVariable("UIATLAS_RECORDINGS_QA_DIR") is { Length: > 0 } recordingQa)
+                {
+                    Directory.CreateDirectory(recordingQa);
+                    var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap((int)window.ActualWidth,
+                        (int)window.ActualHeight, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+                    bitmap.Render(window);
+                    var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                    encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+                    using var image = File.Create(Path.Combine(recordingQa, "recordings-library.png"));
+                    encoder.Save(image);
+                }
+                var search = Assert.IsType<TextBox>(recordingsView.FindName("SearchBox"));
+                search.Text = "word";
+                Assert.Equal(2, recordingList.Items.Count);
+                search.Text = "";
+                var archiveTab = Assert.IsType<RadioButton>(recordingsView.FindName("ArchiveTab"));
+                archiveTab.IsChecked = true;
+                archiveTab.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                Assert.Single(recordingList.Items.Cast<object>());
                 window.Navigate("diagnostics");
                 Assert.IsType<DiagnosticsHubView>(page.Content);
                 window.Navigate("settings");

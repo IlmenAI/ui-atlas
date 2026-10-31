@@ -9,6 +9,24 @@ namespace UiAtlas.Core.Windows.Tests;
 public sealed class RecordingProfileSettingsTests
 {
     [Fact]
+    public void RuntimeGroundingIsASeparateDeepBoundedSnapshotAndPreservesFast()
+    {
+        var catalog = new CaptureProfileCatalogService(); var resolver = new CapturePolicyResolver(catalog);
+        var consumer = new ConsumerLimits(16 * 1024 * 1024, 128 * 1024 * 1024, false, false);
+        var scope = CapturePolicyResolver.PassiveScope("display");
+        scope.MinimumUiaDepth = 32; scope.TargetWindowHandleEvidence.Add("123"); scope.TargetProcessInstanceEvidence = "process-instance";
+        var grounding = resolver.Resolve(new CapturePolicyRequest { RequestedProfileId = "runtime-grounding", RequestedScope = scope }, consumer);
+        Assert.Equal(CaptureSemantics.Snapshot, grounding.CaptureSemantics); Assert.False(grounding.ExhaustiveCoverage);
+        Assert.Equal(64, grounding.MaxDepth); Assert.Equal(8_000, grounding.HardWallClockBudgetMs);
+        Assert.Equal(5_000, grounding.ProviderBudgets.Single(p => p.ProviderId == "uia").HardDurationMs);
+        Assert.Equal(scope, grounding.CaptureScope); Assert.False(grounding.CaptureScope.AllowInputInjection);
+        var fast = resolver.Resolve(new CapturePolicyRequest { RequestedProfileId = "fast", RequestedScope = CapturePolicyResolver.PassiveScope("display") }, consumer);
+        Assert.Equal(8, fast.MaxDepth); Assert.Equal(5_000, fast.HardWallClockBudgetMs);
+        Assert.Equal(500, fast.ProviderBudgets.Single(p => p.ProviderId == "uia").HardDurationMs);
+        Assert.Equal("balanced", catalog.GetCatalog().DefaultProfileRef.ProfileId);
+    }
+
+    [Fact]
     public void NewMappingRecordingUsesDeepSurveyWithoutCoverageOrAccessibilityTimeLimits()
     {
         var store = new RecordingProfileSettingsStore(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "profiles.json"));

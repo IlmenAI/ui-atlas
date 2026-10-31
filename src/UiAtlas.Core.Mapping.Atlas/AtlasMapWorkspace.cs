@@ -144,6 +144,10 @@ public sealed class AtlasMapWorkspace : IMappingReviewStore
                 var interactions = new AtlasInteractionAdapter(bundle, hash);
                 var identity = AtlasEpisodeAdapter.ProcessIdentity(manifest.Target);
                 var session = sessions.SingleOrDefault(value => value.ProcessIdentity == identity);
+                // Resuming a logical map after an application restart must append
+                // to its application draft. Process identity remains exact and
+                // observation-scoped below, never replaced with a name-only match.
+                if (session is null && sessions.Count == 1) session = sessions[0];
                 if (session is null)
                 {
                     var created = service.CreateSession(new CreateMappingSessionRequest
@@ -184,10 +188,17 @@ public sealed class AtlasMapWorkspace : IMappingReviewStore
                     else request.Survey = publication.Survey;
                     request.ControlDetectionPolicy = new UIMaps.Protocol.V3.ControlDetectionPolicy
                     { VisualControlDetectionEnabled = true, OcrOnVisualControlsEnabled = true };
+                    var recordedTarget = service.GetSession(session.SessionRef).Target.Clone();
+                    recordedTarget.ProcessIdentityEvidence.Clear();
+                    recordedTarget.ProcessIdentityEvidence.Add(identity);
+                    recordedTarget.ProcessIdentityEvidence.Add($"pid:{manifest.Target.ProcessId}:started:{manifest.Target.ProcessStartedUtc.UtcDateTime:O}");
+                    recordedTarget.WindowIdentityEvidence.Clear();
+                    recordedTarget.WindowIdentityEvidence.Add(manifest.Target.SelectedHwnd.ToString());
+                    recordedTarget.WindowIdentityEvidence.Add(manifest.Target.RootOwnerHwnd.ToString());
                     request.ReviewedGridMap = AtlasGridReviewAdapter.Bind(gridReviews ?? [], retainedGrids, manifest.SessionId,
-                        frame.Sequence, publication, service.GetSession(session.SessionRef).Target);
+                        frame.Sequence, publication, recordedTarget);
                     request.RecordingContext = interactions.ForFrame(frame.Sequence, service.GetDraft(session.DraftRef), sources);
-                    var attached = service.AttachObservation(request);
+                    var attached = service.AttachObservationFromSelectedRecording(request, recordedTarget);
                     if (request.ReviewedGridMap is { } gridMap)
                         foreach (var grid in gridMap.DataGrids)
                         {
@@ -264,7 +275,7 @@ public sealed class AtlasMapWorkspace : IMappingReviewStore
             ?? throw new ArgumentException("The selected draft does not belong to this workspace.");
         var session = Service.GetSession(selected.SessionRef);
         UiMapRevision revision;
-        if (!string.IsNullOrEmpty(session.PublishedMapRevisionRef))
+        if (Service.IsPublishedDraftCurrent(draftRef))
         {
             revision = Service.GetRevision(session.PublishedMapRevisionRef);
         }

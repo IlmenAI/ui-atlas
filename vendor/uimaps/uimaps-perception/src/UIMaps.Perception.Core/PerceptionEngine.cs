@@ -7,7 +7,7 @@ public sealed partial class PerceptionEngine
 {
     private readonly PerceptionPolicy _policy;
     private readonly PacketValidator _validator;
-    private readonly ObservationNormalizer _normalizer = new();
+    private readonly ObservationNormalizer _normalizer;
     private readonly VisualTextObservationProvider _visualText;
     private readonly FrameSynchronizer _synchronizer;
     private readonly WorldObjectBuilder _objectBuilder;
@@ -16,6 +16,7 @@ public sealed partial class PerceptionEngine
     private readonly SemaphoreSlim _publisher = new(1, 1);
     private readonly SortedDictionary<ulong, byte[]> _snapshots = [];
     private readonly Dictionary<string, byte[]> _publications = new(StringComparer.Ordinal);
+    private readonly Queue<string> _publicationOrder = new();
     private readonly object _waiterLock = new();
     private readonly List<TaskCompletionSource<IngestResult>> _waiters = [];
     private ulong _version;
@@ -24,6 +25,7 @@ public sealed partial class PerceptionEngine
     public PerceptionEngine(PerceptionPolicy? policy = null, VisualTextObservationProvider? visualText = null)
     {
         _policy = policy ?? PerceptionPolicy.Default;
+        _normalizer = new ObservationNormalizer(_policy.CompactLiveDiagnostics);
         _visualText = visualText ?? new VisualTextObservationProvider();
         _validator = new PacketValidator(_policy);
         _synchronizer = new FrameSynchronizer(_policy);
@@ -82,7 +84,7 @@ public sealed partial class PerceptionEngine
                 EffectivePolicy = bundle.EffectiveCapturePolicy?.Clone(), CoverageReport = bundle.CoverageReport?.Clone(),
                 WorldStateSnapshot = snapshot.Clone(), Health = snapshot.Health.Clone(),
             };
-            lock (_publications) _publications[publicationId] = new GetPublicationResponse { Snapshot = publication }.ToByteArray();
+            RememberPublication(publicationId, new GetPublicationResponse { Snapshot = publication });
             var result = new IngestResult { PerceptionEpoch = Epoch, WorldStateVersion = version, PublicationId = publicationId, PublicationKind = PublicationKind.Snapshot, Health = snapshot.Health.Clone() };
             TaskCompletionSource<IngestResult>[] waiters;
             lock (_waiterLock)
@@ -143,9 +145,18 @@ public sealed partial class PerceptionEngine
         foreach (var observation in observations)
             survey.ObservationIntervals.Add(new SurveyObservationInterval { SourceRef = observation.SourceEvidenceId, WindowScopeRef = observation.WindowEvidenceId, Interval = observation.SourceInterval?.Clone() });
         survey.SegmentLineage.AddRange(bundle.SegmentDescriptors.Select(x => new SegmentLineage { SegmentId = x.SegmentId, SequenceNumber = x.SequenceNumber, Checksum = x.Checksum }));
-        lock (_publications) _publications[publicationId] = new GetPublicationResponse { Survey = survey }.ToByteArray();
+        RememberPublication(publicationId, new GetPublicationResponse { Survey = survey });
         Volatile.Write(ref _surveyVersion, version);
         return new IngestResult { PerceptionEpoch = Epoch, SurveyVersion = version, PublicationId = publicationId, PublicationKind = PublicationKind.Survey, Health = survey.Health.Clone() };
+    }
+
+    private void RememberPublication(string id, GetPublicationResponse publication)
+    {
+        lock (_publications)
+        {
+            _publications[id] = publication.ToByteArray(); _publicationOrder.Enqueue(id);
+            while (_publicationOrder.Count > Math.Max(1, _policy.SnapshotRetentionLimit)) _publications.Remove(_publicationOrder.Dequeue());
+        }
     }
 
     public WorldStateSnapshot Get(string epoch, ulong version)

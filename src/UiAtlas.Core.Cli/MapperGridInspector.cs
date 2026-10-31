@@ -7,6 +7,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using UiAtlas.Core.Contracts;
 using UiAtlas.Core.Recording.Windows;
+using UiAtlas.Presentation;
 
 namespace UiAtlas.Core.Cli;
 
@@ -19,7 +20,8 @@ internal sealed class MapperGridInspector : Window
     internal string? Error => _error;
     internal GridSchemaReviewWindow? SchemaReviewWindow { get; private set; }
     internal GridSchemaReview? SavedSchema { get; private set; }
-    internal bool IsReviewingSchema => SchemaReviewWindow is not null || _settingsWindow is not null;
+    internal bool IsReviewingSchema => SchemaReviewWindow is not null || _openingSettings;
+    internal bool AutoAnalyze { get; set; }
     internal Func<MapperHighlight, IProgress<AcquisitionProgress>, CancellationToken, Task<GridImageExplorationResult>>? Explore { get; set; }
     internal Func<GridImageExplorationResult, RectI, IReadOnlyList<int>?, CancellationToken, Task<GridSchemaReview>>? SchemaExtractor { get; set; }
     internal event Action? ExplorationStateChanged;
@@ -33,7 +35,7 @@ internal sealed class MapperGridInspector : Window
     private GridImageExplorationResult? _result;
     private string? _error;
     private TextBlock? _progress;
-    private RecorderSettingsWindow? _settingsWindow;
+    private bool _openingSettings;
 
     internal MapperGridInspector(MapperHighlight selection)
     {
@@ -42,7 +44,7 @@ internal sealed class MapperGridInspector : Window
         WindowStyle = WindowStyle.None; ResizeMode = ResizeMode.NoResize;
         AllowsTransparency = true; Background = Brushes.Transparent;
         ShowInTaskbar = false; ShowActivated = false; Topmost = true;
-        FontFamily = new FontFamily("Inter, Segoe UI"); FontSize = 13;
+        AtlasFluent.Apply(this);
         Render();
         PreviewKeyDown += (_, e) => { if (e.Key == Key.Escape) { if (IsExploring) _cancellation?.Cancel(); else Close(); } };
         Closed += (_, _) => { _closed = true; _cancellation?.Cancel(); if (!IsExploring) Finished?.Invoke(); };
@@ -51,7 +53,7 @@ internal sealed class MapperGridInspector : Window
     internal void Update(MapperHighlight selection)
     {
         if (Selection.Id == selection.Id && Selection.Bounds == selection.Bounds) { Selection = selection; return; }
-        SchemaReviewWindow?.Close(); _settingsWindow?.Close(); SavedSchema = null;
+        SchemaReviewWindow?.Close(); SavedSchema = null; _gridName = null;
         _cancellation?.Cancel(); Selection = selection; _result = null; _error = null;
         if (!IsExploring) Render();
     }
@@ -71,58 +73,95 @@ internal sealed class MapperGridInspector : Window
                     ? "Returning to the starting view…" : $"{p.TileCount} views captured · {p.ElapsedMs / 1000}s";
             });
             var result = await Explore(selection, progress, cancellation.Token);
-            if (Selection.Id == selection.Id) _result = result;
+            cancellation.Token.ThrowIfCancellationRequested();
+            if (_closed || Selection.Id != selection.Id) return;
+            _result = result;
+            if (AutoAnalyze && result.Capture.Tiles.Count > 0)
+            {
+                if (_progress is not null) _progress.Text = "Reading column names and preparing a data grid name…";
+                var source = GridSchemaExtractor.PrepareReviewSource(result);
+                var draft = await (SchemaExtractor ?? GridSchemaReviewWindow.ExtractConfiguredAsync)(source, source.HeaderBounds, null, cancellation.Token);
+                cancellation.Token.ThrowIfCancellationRequested();
+                if (!_closed && Selection.Id == selection.Id)
+                {
+                    SavedSchema = draft; _gridName = SuggestGridName(selection.Name, draft);
+                }
+            }
         }
         catch (OperationCanceledException) { _error = "Exploration stopped."; }
-        catch (Exception ex) { Console.Error.WriteLine($"Table exploration: {ex.Message}"); _error = FriendlyReason(ex.Message); }
+        catch (Exception ex) { Console.Error.WriteLine($"Table exploration: {ex.Message}"); _error = _result is null ? FriendlyReason(ex.Message) : "Automatic header analysis could not finish. Explore details to review the retained capture, or check the selected provider in Settings."; }
         finally
         {
             _cancellation = null;
             if (_closed) Finished?.Invoke();
-            else if (!Dispatcher.HasShutdownStarted) { Render(); ExplorationStateChanged?.Invoke(); }
+            else if (!Dispatcher.HasShutdownStarted) { Render(); ExplorationStateChanged?.Invoke(); if (SavedSchema is not null) NamingStarted?.Invoke(); }
         }
     }
 
     private void Render()
     {
-        Width = _result?.ImagePath is null ? 360 : 510;
+        Width = SavedSchema is not null || _result?.ImagePath is not null ? 520 : 410;
         var shell = BuildContent(Selection, Close, (_, e) =>
         {
             if (e.ChangedButton != MouseButton.Left || IsExploring) return;
             UserPositioned = true; DragMove();
-        }, includeAction: false);
+        }, includeAction: false, exploring: IsExploring);
         var stack = (StackPanel)shell.Child;
         if (SavedSchema is not null)
         {
-            stack.Children.Add(Label($"Schema ready · {SavedSchema.Schema.Columns.Count} columns", 16, "#087D6D"));
-            stack.Children.Add(Label("Data grid name", 13, "#333943"));
+            var partial = SavedSchema.CaptureStatus != GridCaptureStatus.Complete || SavedSchema.Reasons.Contains("schema-width-unverified", StringComparer.Ordinal);
+            stack.Children.Add(AtlasFluent.Badge(partial
+                ? $"Partial schema · {SavedSchema.Schema.Columns.Count} captured columns"
+                : $"Schema ready · {SavedSchema.Schema.Columns.Count} columns"));
+            stack.Children.Add(Label("Name this data grid", 18, AtlasFluent.Ink));
+            if (SavedSchema.ReviewedUtc is null)
+                stack.Children.Add(Label("Automatically prepared · review the details if needed. Save accepts these column names.", 12, AtlasFluent.Muted));
+            stack.Children.Add(Label("Data grid name", 13, AtlasFluent.Muted));
             _gridName ??= SuggestGridName(Selection.Name, SavedSchema);
             var name = new TextBox { Text = _gridName, MaxLength = 200, Padding = new Thickness(8), Margin = new Thickness(0, 6, 0, 8) };
             System.Windows.Automation.AutomationProperties.SetName(name, "Data grid name");
             stack.Children.Add(name);
-            stack.Children.Add(Label("Save this data grid for the current screen. Recording resumes when you save or close this window.", 12, "#697386"));
+            stack.Children.Add(Label("Save to associate this data grid with the current screen.", 12, AtlasFluent.Muted));
+            var uncertain = SavedSchema.HeaderReadings.Count(reading => reading.Status == GridCellReadStatus.Unreadable);
+            if (uncertain > 0) stack.Children.Add(AtlasFluent.Card(Label($"{uncertain} column names need review. Explore details to inspect them.", 12, AtlasFluent.Amber), "#FFF3DF"));
+            stack.Children.Add(Label(string.Join(" · ", SavedSchema.Schema.Columns.Take(3).Select(c => c.Label)) +
+                (SavedSchema.Schema.Columns.Count > 3 ? $" · +{SavedSchema.Schema.Columns.Count - 3} more" : ""), 12, AtlasFluent.Muted));
+            if (partial)
+            {
+                stack.Children.Add(AtlasFluent.Card(Label($"Partial capture · {SavedSchema.Schema.Columns.Count} captured columns. Additional columns may exist.", 12, AtlasFluent.Amber), "#FFF3DF"));
+                if (_result is not null) stack.Children.Add(Label(FriendlyReason(_result.Reasons.FirstOrDefault() ?? "capture-incomplete",
+                    _result.Capture.Joins.LastOrDefault()?.Axis), 12, AtlasFluent.Amber));
+                stack.Children.Add(ActionButton("Explore again", () => _ = StartExplorationAsync(), false));
+            }
+            stack.Children.Add(Label("Recording resumes when you save or close.", 12, AtlasFluent.Muted));
             var error = Label("", 12, "#AF7200"); stack.Children.Add(error);
-            var save = ActionButton("Save", () =>
+            var save = ActionButton("Save data grid", () =>
             {
                 if (string.IsNullOrWhiteSpace(name.Text) || SaveDataGrid is null) return;
-                try { SaveDataGrid(name.Text.Trim(), SavedSchema); Close(); }
+                try
+                {
+                    var accepted = SavedSchema.ReviewedUtc is null
+                        ? GridSchemaExtractor.Confirm(SavedSchema, SavedSchema.Schema.Columns.Select(c => c.Label).ToArray()) : SavedSchema;
+                    SaveDataGrid(name.Text.Trim(), accepted); SavedSchema = accepted; Close();
+                }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
                 { error.Text = "The data grid could not be saved. Try again or close to resume recording."; }
             }, true);
             save.IsEnabled = SaveDataGrid is not null && !string.IsNullOrWhiteSpace(name.Text);
             name.TextChanged += (_, _) => { _gridName = name.Text; save.IsEnabled = SaveDataGrid is not null && !string.IsNullOrWhiteSpace(name.Text); };
             stack.Children.Add(save);
-            var edit = ActionButton("Edit schema", OpenSchemaReview, false); edit.Margin = new Thickness(0, 8, 0, 0); stack.Children.Add(edit);
+            var edit = ActionButton(AutoAnalyze ? "Explore details" : "Edit schema", OpenSchemaReview, false); edit.Margin = new Thickness(0, 8, 0, 0); stack.Children.Add(edit);
             Content = shell;
             return;
         }
         if (IsExploring)
         {
-            stack.Children.Clear();
+            stack.Children.Add(AtlasFluent.Badge("Exploring"));
             stack.Children.Add(Label("Exploring table…", 16, "#17191D"));
             _progress = Label("Identifying the table and header row…", 12, "#697386"); stack.Children.Add(_progress);
-            stack.Children.Add(new ProgressBar { IsIndeterminate = true, Height = 3, Margin = new Thickness(0, 12, 0, 12) });
-            stack.Children.Add(ActionButton("Stop", () => _cancellation?.Cancel(), primary: false));
+            stack.Children.Add(new ProgressBar { IsIndeterminate = true, Height = 5, Margin = new Thickness(0, 12, 0, 12) });
+            stack.Children.Add(AtlasFluent.Card(Label("Stops if you take control. Partial results may be available if you stop.", 12, AtlasFluent.Muted), "#E9F4FF"));
+            stack.Children.Add(ActionButton("Stop exploration", () => _cancellation?.Cancel(), primary: false));
         }
         else if (_result?.ImagePath is { } path)
         {
@@ -130,6 +169,7 @@ internal sealed class MapperGridInspector : Window
             var rowBand = _result.Capture.Scope == GridCaptureScope.VisibleRowBand;
             stack.Children.Add(Label(complete ? rowBand ? "Columns explored" : "Table captured" : "Partial capture", 16, complete ? "#087D6D" : "#AF7200"));
             stack.Children.Add(Label(complete ? rowBand ? "Full width captured; rows are a sample" : "Table and header row identified" : "Only the verified area is shown", 12, "#697386"));
+            if (_error is not null) stack.Children.Add(AtlasFluent.Card(Label(_error, 12, AtlasFluent.Amber), "#FFF3DF"));
             stack.Children.Add(BuildPreview(path, _result.HeaderBounds));
             var restore = _result.Capture.Restoration;
             stack.Children.Add(Label(restore.Status == GridRestorationStatus.Succeeded ? "Returned to the starting view" :
@@ -142,7 +182,7 @@ internal sealed class MapperGridInspector : Window
             actions.ColumnDefinitions.Add(new()); actions.ColumnDefinitions.Add(new()); actions.ColumnDefinitions.Add(new());
             var again = ActionButton("Explore again", () => _ = StartExplorationAsync(), false); again.Margin = new Thickness(0, 0, 8, 0);
             var save = ActionButton("Save image", SaveImage, false); save.Margin = new Thickness(0, 0, 8, 0); Grid.SetColumn(save, 1);
-            var extract = ActionButton("Extract", OpenSchemaReview, true); Grid.SetColumn(extract, 2);
+            var extract = ActionButton(AutoAnalyze ? "Explore details" : "Analyze headers", OpenSchemaReview, true); Grid.SetColumn(extract, 2);
             actions.Children.Add(again); actions.Children.Add(save); actions.Children.Add(extract); stack.Children.Add(actions);
             if (SavedSchema is not null) stack.Children.Add(Label($"Schema saved · {SavedSchema.Schema.Columns.Count} columns", 12, "#087D6D"));
         }
@@ -153,7 +193,7 @@ internal sealed class MapperGridInspector : Window
             AddReady(stack, () => _ = StartExplorationAsync());
             if (_result is not null)
             {
-                var extract = ActionButton("Extract", OpenSchemaReview, true);
+                var extract = ActionButton("Analyze headers", OpenSchemaReview, true);
                 extract.IsEnabled = _result.Capture.Tiles.Count > 0;
                 extract.Margin = new Thickness(0, 8, 0, 0); stack.Children.Add(extract);
                 stack.Children.Add(Label(extract.IsEnabled ? "Review headers from a retained view." :
@@ -164,20 +204,18 @@ internal sealed class MapperGridInspector : Window
         {
             var settings = ActionButton("Header reading settings", OpenHeaderSettings, false);
             settings.Margin = new Thickness(0, 8, 0, 0);
-            settings.ToolTip = "Choose Local OCR or Azure OpenAI for reading column headers.";
+            settings.ToolTip = "Choose Local OCR or a saved OpenAI / Azure OpenAI connection for reading column headers.";
             stack.Children.Add(settings);
         }
         Content = shell;
     }
 
-    private void OpenHeaderSettings()
+    private async void OpenHeaderSettings()
     {
-        if (IsExploring) return;
-        if (_settingsWindow is { } existing) { existing.Activate(); return; }
-        var settings = new RecorderSettingsWindow { Owner = this };
-        _settingsWindow = settings;
-        try { settings.ShowDialog(); }
-        finally { _settingsWindow = null; }
+        if (IsExploring || _openingSettings) return;
+        _openingSettings = true;
+        try { await AtlasHeaderSettings.OpenAsync(this); }
+        finally { _openingSettings = false; }
     }
 
     internal void OpenSchemaReview()
@@ -212,6 +250,7 @@ internal sealed class MapperGridInspector : Window
         var bitmap = new BitmapImage(); bitmap.BeginInit(); bitmap.CacheOption = BitmapCacheOption.OnLoad;
         bitmap.UriSource = new Uri(path); bitmap.EndInit(); bitmap.Freeze();
         var panel = new StackPanel { Margin = new Thickness(0, 12, 0, 10) };
+        panel.Children.Add(Label("Captured image", 13, AtlasFluent.Ink));
         var canvas = new Canvas { Width = bitmap.PixelWidth, Height = bitmap.PixelHeight, Background = Brush("#E9EDF3") };
         canvas.Children.Add(new Image { Source = bitmap, Width = bitmap.PixelWidth, Height = bitmap.PixelHeight });
         var tableOutline = new Rectangle { Width = bitmap.PixelWidth, Height = bitmap.PixelHeight,
@@ -220,7 +259,7 @@ internal sealed class MapperGridInspector : Window
             Stroke = Brush("#D48A00"), Fill = new SolidColorBrush(Color.FromArgb(35, 255, 181, 44)), StrokeThickness = 2, IsHitTestVisible = false };
         Canvas.SetLeft(headerOutline, header.X); Canvas.SetTop(headerOutline, header.Y);
         canvas.Children.Add(tableOutline); canvas.Children.Add(headerOutline);
-        var fit = Math.Min(1, Math.Min(432d / bitmap.PixelWidth, 215d / bitmap.PixelHeight));
+        var fit = Math.Min(1, Math.Min(448d / bitmap.PixelWidth, 215d / bitmap.PixelHeight));
         var scale = new ScaleTransform(fit, fit); canvas.LayoutTransform = scale;
         panel.Children.Add(new ScrollViewer { Content = canvas, Height = 235, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto, BorderBrush = Brush("#E1E5EC"), BorderThickness = new Thickness(1) });
@@ -256,7 +295,7 @@ internal sealed class MapperGridInspector : Window
     }
 
     internal static Border BuildContent(MapperHighlight selection, Action? close = null,
-        MouseButtonEventHandler? drag = null, bool includeAction = true)
+        MouseButtonEventHandler? drag = null, bool includeAction = true, bool exploring = false)
     {
         var stack = new StackPanel { Margin = new Thickness(20, 12, 20, 18) };
         var grip = new Border { Width = 30, Height = 4, CornerRadius = new CornerRadius(2), Background = Brush("#CDD3DD"), IsHitTestVisible = false };
@@ -265,36 +304,27 @@ internal sealed class MapperGridInspector : Window
             Padding = new Thickness(20, 12, 20, 10), Child = grip };
         if (drag is not null) { dragArea.MouseLeftButtonDown += drag; dragArea.Cursor = Cursors.SizeAll; }
         stack.Children.Add(dragArea);
-        var heading = new DockPanel { Background = Brushes.Transparent };
-        if (drag is not null) heading.MouseLeftButtonDown += drag;
-        var closeButton = new Button { Content = "×", Width = 26, Height = 26, FontSize = 20,
-            BorderThickness = new Thickness(0), Background = Brushes.Transparent, ToolTip = "Close table explorer" };
-        closeButton.Click += (_, _) => close?.Invoke(); DockPanel.SetDock(closeButton, Dock.Right); heading.Children.Add(closeButton);
-        heading.Children.Add(Label("TABLE EXPLORER", 11, "#7F8896")); stack.Children.Add(heading);
-        stack.Children.Add(Label("▦  " + selection.Name, 19, "#17191D"));
-        stack.Children.Add(Label(selection.Classification, 12, selection.Color));
-        stack.Children.Add(new Border { Height = 1, Background = Brush("#E1E5EC"), Margin = new Thickness(0, 12, 0, 12) });
+        stack.Children.Add(AtlasFluent.Header("Table Explorer", exploring ? null : () => close?.Invoke(), drag));
+        stack.Children.Add(AtlasFluent.Identity(selection.Name, "Current screen"));
+        if (!exploring) stack.Children.Add(AtlasFluent.Badge(selection.Classification, selection.Kind == MapperHighlightKind.GridCandidate));
         if (includeAction) AddReady(stack, () => { });
-        return new Border { Background = Brush("#F9F9FA"), BorderBrush = Brush("#DCE1E9"), BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(22), Child = stack, Margin = new Thickness(6),
-            Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 10, ShadowDepth = 2, Opacity = .16 } };
+        return AtlasFluent.Shell(stack);
     }
 
     private static void AddReady(StackPanel stack, Action explore)
     {
-        stack.Children.Add(Label("Capture the table and identify its header row.", 13, "#333943"));
-        stack.Children.Add(Label("Explore scrolls horizontally to identify all columns, using the visible rows as a sample. Up to 60s / 24 views. Stops if you take control and returns to the starting view when safe.", 11, "#697386"));
-        var button = ActionButton("Explore", explore, true); button.Margin = new Thickness(0, 12, 0, 0); stack.Children.Add(button);
+        stack.Children.Add(Label("Explore this table", 17, AtlasFluent.Ink));
+        stack.Children.Add(Label("Capture the table and identify its header row.", 13, AtlasFluent.Ink));
+        stack.Children.Add(Label("Scrolls horizontally to find columns, using visible rows as a sample.", 12, AtlasFluent.Muted));
+        stack.Children.Add(Label("Up to 60 seconds · 24 views", 12, AtlasFluent.Muted));
+        stack.Children.Add(AtlasFluent.Card(Label("Stops if you take control. Returns to the starting view when safe.", 12, AtlasFluent.Muted), "#E9F4FF"));
+        var button = ActionButton("Explore table", explore, true); button.Margin = new Thickness(0, 10, 0, 0); stack.Children.Add(button);
     }
     private static TextBlock Label(string text, double size, string color) => new()
         { Text = text, FontSize = size, Foreground = Brush(color), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 3) };
     private static Button ActionButton(string text, Action action, bool primary)
     {
-        var button = new Button { Content = text, Height = 36, FontSize = 13, Cursor = Cursors.Hand,
-            Background = Brush(primary ? "#1769E0" : "#FFFFFF"), Foreground = primary ? Brushes.White : Brush("#333943"),
-            BorderBrush = Brush(primary ? "#1769E0" : "#DCE1E9"), BorderThickness = new Thickness(1) };
-        System.Windows.Automation.AutomationProperties.SetName(button, text);
-        button.Click += (_, _) => action(); return button;
+        return AtlasFluent.Button(text, action, primary);
     }
     internal static string FriendlyReason(string reason, GridScrollAxis? axis = null) => reason switch
     {

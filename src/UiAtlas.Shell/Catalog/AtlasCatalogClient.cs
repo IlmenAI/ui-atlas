@@ -40,6 +40,8 @@ public sealed class AtlasCatalogClient(string? root = null, string? executable =
         if (path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)) start.ArgumentList.Add(path);
         foreach (var argument in arguments) start.ArgumentList.Add(argument);
         start.Environment["UI-ATLAS_DATA_HOME"] = Root;
+        if (UiAtlas.Presentation.AtlasSettingsNavigation.CurrentPipeName is { } settingsPipe)
+            start.Environment[UiAtlas.Presentation.AtlasSettingsNavigation.EnvironmentKey] = settingsPipe;
         return start;
     }
     public async Task<CatalogReply> RequestAsync(CatalogRequest request, CancellationToken token = default)

@@ -33,6 +33,16 @@ public sealed class AtlasExactRevisionTests
         var read = new CatalogRequest("revision-read", root, RevisionRef: revision.MapRevisionRef, RequireReady: true);
         var exact = (await AtlasCatalogCommand.ExecuteAsync(read)).ExactRevision!;
         Assert.True(exact.Ready); Assert.Equal(before, Convert.FromBase64String(exact.Payload));
+        var eligibilityRead = read with { Operation = "revision-eligibility", MapId = selected.Id };
+        var eligibilityReply = await AtlasCatalogCommand.ExecuteAsync(eligibilityRead);
+        var eligibility = Assert.IsType<CatalogRevisionEligibility>(eligibilityReply.RevisionEligibility);
+        Assert.True(eligibility.Ready); Assert.False(eligibility.Archived);
+        Assert.Equal(exact.RevisionRef, eligibility.RevisionRef); Assert.Equal(exact.CanonicalPayloadHash, eligibility.CanonicalPayloadHash);
+        Assert.Equal(exact.MapId, eligibility.MapId); Assert.Equal(exact.Generation, eligibility.Generation);
+        Assert.Null(eligibilityReply.ExactRevision); Assert.Empty(eligibilityReply.RawWorldSources);
+        var processEligibility = await new AtlasCatalogProcessClient(root, typeof(Program).Assembly.Location).RequestAsync(eligibilityRead);
+        Assert.Equal(eligibility.RevisionRef, processEligibility.RevisionEligibility!.RevisionRef);
+        Assert.True(processEligibility.RevisionEligibility.Ready); Assert.Null(processEligibility.ExactRevision);
         var grounding = await AtlasCatalogCommand.ExecuteAsync(read with { IncludeRawWorld = true });
         Assert.Equal(1, grounding.RawWorldContractVersion);
         Assert.Equal(revision.Sources.Count, grounding.RawWorldSources.Length);
@@ -47,6 +57,9 @@ public sealed class AtlasExactRevisionTests
         selected = (await AtlasCatalogCommand.ExecuteAsync(new("maps", root))).Maps.Single(value => value.Id == selected.Id && MapLibraryEntry.Parser.ParseFrom(Convert.FromBase64String(value.Entry)).MapDraftRef == entry.MapDraftRef);
         await AtlasCatalogCommand.ExecuteAsync(new("archive", root, MapId: selected.Id, DraftRef: entry.MapDraftRef, Entry: selected.Entry, Generation: selected.Generation));
         await Assert.ThrowsAsync<InvalidOperationException>(() => AtlasCatalogCommand.ExecuteAsync(read));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => AtlasCatalogCommand.ExecuteAsync(eligibilityRead));
+        var archivedEligibility = (await AtlasCatalogCommand.ExecuteAsync(eligibilityRead with { RequireReady = false })).RevisionEligibility!;
+        Assert.True(archivedEligibility.Archived); Assert.False(archivedEligibility.Ready);
         var archived = (await AtlasCatalogCommand.ExecuteAsync(read with { RequireReady = false })).ExactRevision!;
         Assert.True(archived.Archived); Assert.False(archived.Ready); Assert.Equal(before, Convert.FromBase64String(archived.Payload));
         // Publication changes the current reference, never the old immutable bytes.
@@ -56,6 +69,7 @@ public sealed class AtlasExactRevisionTests
             CommandKind = ReviewCommandKind.ReviewRenameEntity, SubjectRef = changed.Entities[0].MapEntityRef, Value = "New reviewed label", ReviewedBy = "qualification", Reason = "Fixture second revision." });
         _ = workspace.Publish("qualification");
         var old = (await AtlasCatalogCommand.ExecuteAsync(read with { RequireReady = false })).ExactRevision!;
+        await Assert.ThrowsAsync<InvalidOperationException>(() => AtlasCatalogCommand.ExecuteAsync(eligibilityRead));
         Assert.Equal(before, Convert.FromBase64String(old.Payload));
         var retainedSource = workspace.Index.Sources.First(value => revision.Sources.Any(source => source.SourceObservationSetRef == value.SourceRef));
         File.Delete(workspace.Resolve(retainedSource.PublicationFile));

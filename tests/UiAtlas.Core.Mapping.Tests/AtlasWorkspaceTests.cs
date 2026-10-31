@@ -241,6 +241,52 @@ public sealed class AtlasWorkspaceTests : IDisposable
         Assert.Equal(pointer, File.ReadAllBytes(Path.Combine(AtlasMapWorkspace.RootFor(Map), "active.json")));
         Assert.Throws<InvalidOperationException>(() => workspace.Review(Command(draft, ReviewCommandKind.ReviewAcceptAllBlocking)));
     }
+
+    [Fact]
+    public async Task RestartedApplicationRecordingExtendsOneDraftAndPreservesPriorReview()
+    {
+        var first = await Record();
+        await AtlasMapWorkspace.BuildAsync([first], Map);
+        var original = AtlasMapWorkspace.Open(Map);
+        var draft = Assert.Single(original.Drafts);
+        var entity = draft.Entities.First(e => e.EntityKind == MapEntityKind.MapControl);
+        original.Review(Command(draft, ReviewCommandKind.ReviewRenameEntity, entity.MapEntityRef, "Retained review"));
+        var firstRevision = original.MarkReady(draft.MapDraftRef, "test", requireReview: false);
+        Assert.True(original.Service.IsPublishedDraftCurrent(draft.MapDraftRef));
+        var second = Path.Combine(_root, "restarted.mlrec");
+        using (var bundle = UiAtlas.Core.Recording.RecordingBundle.Open(first))
+        using (var writer = new UiAtlas.Core.Recording.RecordingBundleWriter(Path.Combine(_root, "restart-staging")))
+        {
+            foreach (var entry in bundle.Entries.Where(e => e is not ("manifest.json" or "hashes.sha256")))
+                writer.WriteBytes(entry, bundle.ReadBytes(entry));
+            var manifest = bundle.ReadJson<RecordingManifest>("manifest.json");
+            writer.WriteJson("manifest.json", manifest with
+            {
+                SessionId = "second-process-recording",
+                Target = manifest.Target with { ProcessStartedUtc = manifest.Target.ProcessStartedUtc.AddHours(1) },
+                Files = writer.DescribeEntries(),
+            });
+            writer.Complete(second);
+        }
+        var bytes = File.ReadAllBytes(second);
+        await AtlasMapWorkspace.BuildAsync([first, second], Map);
+        var resumed = AtlasMapWorkspace.Open(Map);
+        Assert.Single(resumed.Index.Sessions);
+        var combined = Assert.Single(resumed.Drafts);
+        Assert.Equal(draft.MapDraftRef, combined.MapDraftRef);
+        Assert.Equal(4, combined.Sources.Count);
+        Assert.Equal("Retained review", combined.Entities.Single(e => e.MapEntityRef == entity.MapEntityRef).DisplayName);
+        Assert.Equal(bytes, File.ReadAllBytes(second));
+        Assert.Equal(2, resumed.Index.BundleFiles.Count);
+        Assert.Single(resumed.Service.ListLibrary(new ListMapLibraryRequest()).Entries);
+        Assert.False(resumed.Service.IsPublishedDraftCurrent(draft.MapDraftRef));
+        var nextRevision = resumed.MarkReady(draft.MapDraftRef, "test", requireReview: false);
+        Assert.NotEqual(firstRevision.MapRevisionRef, nextRevision.MapRevisionRef);
+        Assert.Equal(4, nextRevision.Sources.Count);
+        Assert.Equal(2, resumed.Service.GetRevision(firstRevision.MapRevisionRef).Sources.Count);
+        Assert.True(resumed.Service.IsPublishedDraftCurrent(draft.MapDraftRef));
+        Assert.Equal(nextRevision.MapRevisionRef, resumed.MarkReady(draft.MapDraftRef, "test").MapRevisionRef);
+    }
     [Fact]
     public async Task ConversionCannotOverwriteAndCliRequiresCurrentEtagAndExplicitPublisher()
     {
