@@ -7,7 +7,9 @@ public sealed record CatalogRequest(string Operation, string Root, string? Recor
     string? RevisionRef = null, bool RequireReady = false, string? ProfileId = null, bool IncludeRawWorld = false,
     long? ExpectedReviewRevision = null, string? ExpectedReviewSha256 = null,
     CatalogParameterConfirmation[]? ParameterConfirmations = null, string? ExpectedDraftEtag = null, string[]? IdentityConfirmations = null, string? ExpectedArtifactStamp = null,
-    CatalogHeaderSettingsUpdate? HeaderSettingsUpdate = null);
+    CatalogHeaderSettingsUpdate? HeaderSettingsUpdate = null, CatalogSimulationCaptureRequest? SimulationCapture = null);
+public sealed record CatalogSimulationCaptureRequest(int ProcessId, long ProcessCreatedUtcTicks, long RootWindow);
+public sealed record CatalogSimulationCapture(string Directory, string ObservationFile, CatalogEvidenceFile[] Files);
 public sealed record CatalogHeaderSettings(bool Enabled, string Endpoint, string Deployment, bool HasKey,
     string Provider = "local", bool AutoAnalyze = false);
 public sealed record CatalogHeaderProvider(string Id, string Model, string Endpoint, string CredentialReference);
@@ -60,6 +62,8 @@ public sealed record CatalogIdentityCandidate(string Fingerprint, string Canonic
 public sealed record CatalogIdentityReview(string MapId, string Generation, string RevisionRef, string DraftRef, string DraftEtag, CatalogIdentityCandidate[] Candidates);
 public sealed record CatalogReply
 {
+    public CatalogSimulationEvidence? SimulationEvidence { get; init; }
+    public CatalogSimulationCapture? SimulationCapture { get; init; }
     public CatalogHeaderSettings? HeaderSettings { get; init; }
     public int Version { get; init; } = 1;
     public bool Success { get; init; } = true;
@@ -85,6 +89,13 @@ public sealed record CatalogReply
     public int Edges { get; init; }
     public string? PreviewPng { get; init; }
 }
+// Local immutable export. Paths are relative to Directory; originals never become AI inputs implicitly.
+public sealed record CatalogEvidenceFile(string Path, string Sha256, long Bytes, string Kind);
+public sealed record CatalogSimulationObservation(string SourceRef, string BundleId, long Frame,
+    string ObservationFile, string? EpisodeFile, string[] ImageFiles, string[] Gaps);
+public sealed record CatalogSimulationEvidence(string Directory, string MapId, string RevisionRef,
+    string RevisionHash, string Generation, CatalogSimulationObservation[] Observations,
+    CatalogEvidenceFile[] Files, string[] Gaps, string Format = "atlas-simulation-evidence/1");
 public static class AtlasCatalogLocation
 {
     public static string Resolve(string? root = null) => Path.GetFullPath(root

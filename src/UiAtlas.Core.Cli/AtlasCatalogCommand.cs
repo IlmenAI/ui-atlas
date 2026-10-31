@@ -46,6 +46,10 @@ internal static class AtlasCatalogCommand
         token.ThrowIfCancellationRequested();
         switch (request.Operation)
         {
+            case "simulation-capture":
+                return new CatalogReply { Root = catalog.Root, SimulationCapture = await AtlasSimulationEvidence.CaptureAsync(
+                    request.SimulationCapture ?? throw new ArgumentException("An owned simulation process is required."),
+                    request.SourcePath ?? throw new ArgumentException("A capture directory is required."), token) };
             case "header-settings-read": case "header-settings-save": case "header-providers-sync":
                 var headerStore = new UiAtlas.Core.Recording.Windows.AzureHeaderSettingsStore();
                 if (request.Operation == "header-providers-sync")
@@ -69,6 +73,7 @@ internal static class AtlasCatalogCommand
                     headerSettings.Enabled ? headerSettings.Provider : "local", headerSettings.AutoAnalyze), Message = "Header reading settings saved for the next read." };
             case "maps": return new() { Root = catalog.Root, Maps = LoadMaps(catalog, token) };
             case "maps-summary": return AtlasCatalogIndex.Read(catalog, request.KnownCatalogVersion, token);
+            case "simulation-evidence":
             case "revision-read": case "revision-eligibility": return ReadRevision(catalog, request, token);
             case "identity-review-read": case "identity-confirm": case "parameter-review-read": case "parameter-confirm": return ReadRevision(catalog, request, token);
             case "profile-read":
@@ -177,6 +182,9 @@ internal static class AtlasCatalogCommand
                 return new CatalogReply { Root = catalog.Root, RevisionEligibility = new(reference, revision.CanonicalPayloadHash,
                     Path.GetFileNameWithoutExtension(path), Path.GetFileName(workspace.DirectoryPath), ready,
                     entry?.Archived ?? false, DateTimeOffset.UtcNow.ToString("O")) };
+            if (request.Operation == "simulation-evidence")
+                return new CatalogReply { Root = catalog.Root, SimulationEvidence = AtlasSimulationEvidence.Export(workspace, revision,
+                    request.SourcePath ?? throw new ArgumentException("An export directory is required."), token) };
             if (request.Operation is "identity-review-read" or "identity-confirm")
                 return AtlasWorkflowIdentityReview.Execute(workspace, revision, entry, path, request, token);
             if (request.Operation is "parameter-review-read" or "parameter-confirm")
