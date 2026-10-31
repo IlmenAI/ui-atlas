@@ -165,7 +165,7 @@ public partial class ShellWindow : Window
     public static IReadOnlyList<ExperienceNavigationItem> OrganizationNavigation(string? organizationId, ExperienceProfileId profile)
     {
         List<ExperienceNavigationItem> items = organizationId is null ? [new("organizations", "Organizations", "\uE80F")]
-            : [new("skills", "Skills", "\uE945"), new("organization-maps", "UI maps", "\uE81E"),
+            : [new("skills", "Skills", "\uE945"), new("evaluations", "Evals", "\uE9D9"), new("simulations", "Simulations", "\uE7F4"), new("organization-maps", "UI maps", "\uE81E"),
                 new("organization-knowledge", "Knowledge", "\uE8F1"), new("organization-about", "About", "\uE946")];
         items.Add(new("maps", "Shared UI Maps", "\uE81E", StartsNewSection: true));
         if (profile == ExperienceProfileId.Diagnostics) items.Add(new("recordings", "UI Map Recordings", "\uE714"));
@@ -236,7 +236,7 @@ public partial class ShellWindow : Window
             return;
         }
         _activeRoute = item.Route;
-        if (_host is IShellOrganizationHost organizations && item.Route is "organizations" or "skills" or "organization-maps" or "organization-knowledge" or "organization-about")
+        if (_host is IShellOrganizationHost organizations && item.Route is "organizations" or "skills" or "evaluations" or "simulations" or "organization-maps" or "organization-knowledge" or "organization-about")
         {
             ShowPage(organizations.CreateOrganizationView(item.Route, this, Navigate)); return;
         }
