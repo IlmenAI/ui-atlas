@@ -116,8 +116,11 @@ public static class WindowsApplicationClassifier
         return new(WindowsApplicationKind.InstalledApp, FriendlyProcessName(process));
     }
 
-    private static string NormalizeProcessName(string? executableName) =>
-        Path.GetFileNameWithoutExtension((executableName ?? string.Empty).Trim());
+    private static string NormalizeProcessName(string? executableName)
+    {
+        var name = Path.GetFileName((executableName ?? string.Empty).Trim());
+        return name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? name[..^4] : name;
+    }
 
     private static string FriendlyProcessName(string processName)
     {

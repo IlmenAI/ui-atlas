@@ -159,6 +159,17 @@ public sealed class GridSchemaExtractor
         if (bodyRules.Count(x => x > header.X + 3 && x < header.X + header.Width - 3) >= 2 &&
             rows.Count >= 3 && rows.Zip(rows.Skip(1)).All(pair => pair.Second - pair.First >= 8))
             return bodyRules;
+        // A short result may contain one ruled row followed by blank canvas.
+        // Do not require its dividers to extend through that unused area. A full
+        // horizontal boundary bounds the sample; header and original-tile support
+        // are still required, so header glyphs and mosaic seams cannot add columns.
+        var firstRowEnd = rows.FirstOrDefault(y => y >= below.Y + 8);
+        if (firstRowEnd > below.Y && firstRowEnd < below.Y + below.Height)
+        {
+            var firstRow = below with { Height = firstRowEnd - below.Y };
+            var shortRules = TableViewportDescriber.FindRules(frame, firstRow, vertical: true);
+            bodyRules = bodyRules.Concat(shortRules).Distinct().ToArray();
+        }
         return headerRules.Where(x => bodyRules.Any(rule => Math.Abs(rule - x) <= 2)).ToArray();
     }
 

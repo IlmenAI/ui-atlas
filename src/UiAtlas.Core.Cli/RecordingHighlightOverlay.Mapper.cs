@@ -343,7 +343,10 @@ internal sealed partial class RecordingHighlightOverlay
     private static void ConfigureMapperWindow(Window window, bool noActivate)
     {
         var hwnd = new WindowInteropHelper(window).Handle;
-        var style = GetWindowLong(hwnd, GwlExStyle) | WsExToolWindow;
+        var style = GetWindowLong(hwnd, GwlExStyle);
+        // Review is an interactive app window even while the recorder HUD is hidden.
+        // Pure drawing/hit overlays remain tool windows excluded from app switching.
+        style = window is MapperGridInspector ? style & ~WsExToolWindow : style | WsExToolWindow;
         if (noActivate) style |= WsExNoActivate;
         else style &= ~WsExNoActivate;
         _ = SetWindowLong(hwnd, GwlExStyle, style);

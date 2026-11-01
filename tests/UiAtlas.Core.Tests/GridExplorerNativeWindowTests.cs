@@ -88,12 +88,12 @@ public sealed class GridExplorerNativeWindowTests
                 {
                     if (stopped) return;
                     stopped = true;
-                    dispatcher.Invoke(() => Descendants<Button>(inspector).Single(b => Equals(b.Content, "Stop"))
+                    dispatcher.Invoke(() => Descendants<Button>(inspector).Single(b => Equals(b.Content, "Stop exploration"))
                         .RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent)));
                 };
                 if (zeroPage) overlay.ExplorationRunner = async (action, token) =>
                 { await handoff.Task.WaitAsync(token); return await action(token); };
-                dispatcher.Invoke(() => Descendants<Button>(inspector).Single(b => Equals(b.Content, "Explore"))
+                dispatcher.Invoke(() => Descendants<Button>(inspector).Single(b => Equals(b.Content, "Explore table"))
                     .RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent)));
                 if (zeroPage)
                 {
