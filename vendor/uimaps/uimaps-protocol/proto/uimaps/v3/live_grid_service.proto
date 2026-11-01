@@ -113,6 +113,22 @@ message LiveGridCell {
 
 message LiveGridRow { repeated LiveGridCell cells = 1; }
 
+// A temporary location backed by one original screen viewport. Consumers must
+// match the viewport pixels again at dispatch; row_index is not a business ID.
+message LiveGridRowLocation {
+  int32 row_index = 1;
+  int32 x = 2;
+  int32 y = 3;
+  int32 viewport_x = 4;
+  int32 viewport_y = 5;
+  int32 viewport_width = 6;
+  int32 viewport_height = 7;
+  string pixel_hash = 8;
+  string captured_at = 9;
+}
+
+
+
 message LiveGridCoverageResult {
   string traversal = 1;
   string extraction = 2;
@@ -154,4 +170,7 @@ message DataGridAcquisitionResponse {
   repeated CapturedGridSchemaColumn schema_columns = 15;
   string schema_image_sha256 = 16;
   string schema_source = 17;
+  repeated LiveGridRowLocation row_locations = 18;
+  bool row_coverage_complete = 19;
+  repeated int32 complete_column_ordinals = 20;
 }

@@ -284,6 +284,10 @@ message GridAnalysisResult {
   repeated string provisional_grid_candidate_refs = 17;
   repeated string fusion_conflicts = 18;
   ReviewedGridImageSchema reviewed_image_schema = 19;
+  // Separate from whole-table extraction; required fields may be complete
+  // while unrelated cells remain unread. Missing rows invalidate this witness.
+  bool physical_row_coverage_complete = 20;
+  repeated int32 complete_column_ordinals = 21;
 }
 
 // IPC envelope. Pixels remain observation evidence and never become Map identity.
