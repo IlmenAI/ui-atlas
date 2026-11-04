@@ -59,6 +59,12 @@ public interface IShellHomeHost
     FrameworkElement CreateHomeView(Action<string> navigate);
 }
 
+/// <summary>Optional shared-business platform; legacy workspaces remain separate.</summary>
+public interface IShellPlatformHost
+{
+    FrameworkElement CreatePlatformView(string route, Window owner);
+}
+
 public sealed record ShellOrganization(string Id, string Name);
 /// <summary>Optional MapLock workspace; standalone Atlas retains its existing navigation.</summary>
 public interface IShellOrganizationHost

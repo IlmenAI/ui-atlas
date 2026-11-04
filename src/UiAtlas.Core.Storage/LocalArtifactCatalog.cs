@@ -357,6 +357,9 @@ public sealed class LocalArtifactCatalog
     }
     public string ArchiveMap(string id)
     {
+        // This legacy archive physically relocates the authority. Keep externally referenced maps addressable by their original ID.
+        using var references = UiAtlas.Catalog.CatalogExternalReferenceLease.Acquire(Root);
+        references.DemandUnreferenced(id);
         var mapPath = MapPath(id);
         var destination = Archive(mapPath, "maps");
         try { MapBackendCompanion.Move(mapPath, destination); }
@@ -379,6 +382,11 @@ public sealed class LocalArtifactCatalog
     }
 
     public bool DeleteUiAtlasmanently(string id)
+    {
+        using var references = UiAtlas.Catalog.CatalogExternalReferenceLease.Acquire(Root);
+        references.DemandUnreferenced(id); return DeleteMapCore(id);
+    }
+    private bool DeleteMapCore(string id)
     {
         EnsureCatalogDirectoriesSafe();
 
@@ -415,6 +423,8 @@ public sealed class LocalArtifactCatalog
 
     public LocalMapDeletionResult DeleteMapAndUnusedRecordingsPermanently(string id)
     {
+        using var references = UiAtlas.Catalog.CatalogExternalReferenceLease.Acquire(Root);
+        references.DemandUnreferenced(id);
         EnsureCatalogDirectoriesSafe();
 
         var mapPath = MapPath(id);
@@ -431,7 +441,7 @@ public sealed class LocalArtifactCatalog
             : [];
         var sharedRecordingsKept = sourceRecordingIds.Length - removableRecordingIds.Length;
 
-        var mapDeleted = DeleteUiAtlasmanently(id);
+        var mapDeleted = DeleteMapCore(id);
         var recordingsDeleted = 0;
         var recordingDeleteFailures = 0;
         foreach (var recordingId in removableRecordingIds)

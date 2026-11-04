@@ -153,8 +153,13 @@ public partial class ShellWindow : Window
     private void ApplyProfile(ExperienceProfileId requestedProfile)
     {
         _activeProfile = _profiles.GetDefinition(requestedProfile);
-        NavigationList.ItemsSource = _host is IShellOrganizationHost organizations
+        var navigation = _host is IShellOrganizationHost organizations
             ? OrganizationNavigation(organizations.OrganizationId, _activeProfile.Option.Id) : _activeProfile.Navigation;
+        NavigationList.ItemsSource = _host is IShellPlatformHost
+            ? new ExperienceNavigationItem[] { new("platform-home", "Home", "\uE80F"), new("platform-ontology", "Shared ontology", "\uE8F1"),
+                new("platform-data", "Data explorer", "\uE9D9"), new("platform-integrations", "Integrations", "\uE774"),
+                new("platform-settings", "Connection", "\uE713") }.Concat(navigation).ToArray()
+            : navigation;
 
         if (_host is IShellOrganizationHost && _activeRoute == "recordings" && _activeProfile.Option.Id != ExperienceProfileId.Diagnostics) _activeRoute = "maps";
         var retained = Navigation.FirstOrDefault(item =>
@@ -236,6 +241,10 @@ public partial class ShellWindow : Window
             return;
         }
         _activeRoute = item.Route;
+        if (_host is IShellPlatformHost platform && item.Route.StartsWith("platform-", StringComparison.Ordinal))
+        {
+            ShowPage(platform.CreatePlatformView(item.Route, this)); return;
+        }
         if (_host is IShellOrganizationHost organizations && item.Route is "organizations" or "skills" or "evaluations" or "simulations" or "organization-maps" or "organization-knowledge" or "organization-about")
         {
             ShowPage(organizations.CreateOrganizationView(item.Route, this, Navigate)); return;
