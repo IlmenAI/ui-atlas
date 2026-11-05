@@ -7,6 +7,7 @@ using System.Windows.Automation;
 using Google.Protobuf;
 using UIMaps.Protocol.V1;
 using UIMaps.Recorder.Windows;
+using UIMaps.Recorder.ProviderProbe;
 
 if (args.Length != 1)
 {
@@ -27,7 +28,9 @@ try
             ToDisplay(request), request.WindowHandle, RecorderPolicy.Default, CancellationToken.None),
         "native-accessibility" => CaptureNativeAccessibility(request),
         "uia" => CaptureAccessibility(request),
+        "uia-cached" => UiaCachedCapture.Capture(request),
         "msaa" => NativeMsaaProvider.Capture(request.WindowHandle, request.WindowEvidenceId, request.MaxNodes, request.MaxDepth),
+        "msaa-root-reuse" => NativeMsaaProvider.Capture(request.WindowHandle, request.WindowEvidenceId, request.MaxNodes, request.MaxDepth, reuseClientRoot: true),
         _ => throw new InvalidDataException("Unknown provider operation."),
     };
     Console.Out.Write(Convert.ToBase64String(response.ToByteArray()));

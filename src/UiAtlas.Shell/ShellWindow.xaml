@@ -34,6 +34,13 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">
+                        <StackPanel>
+                        <Border x:Name="SectionDivider" Height="1" Margin="12,2,10,10"
+                                Background="{StaticResource LineBrush}" Visibility="Collapsed" />
+                        <StackPanel x:Name="UnitSectionLabel" Visibility="Collapsed" Margin="12,0,10,10">
+                            <TextBlock Text="CURRENT BUSINESS UNIT" FontSize="10" Foreground="{StaticResource MutedInkBrush}"/>
+                            <TextBlock Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ListBox}}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                        </StackPanel>
                         <Border x:Name="ItemSurface" MinHeight="43" CornerRadius="7" Background="{TemplateBinding Background}">
                             <Grid>
                                 <Border x:Name="SelectionIndicator" Width="3" Height="25" Margin="0,0,0,0"
@@ -43,7 +50,12 @@
                                 <ContentPresenter Margin="12,0,10,0" VerticalAlignment="Center" />
                             </Grid>
                         </Border>
+                        </StackPanel>
                         <ControlTemplate.Triggers>
+                            <DataTrigger Binding="{Binding StartsNewSection}" Value="True">
+                                <Setter TargetName="SectionDivider" Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Route}" Value="platform-unit"><Setter TargetName="UnitSectionLabel" Property="Visibility" Value="Visible"/></DataTrigger>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="ItemSurface" Property="Background" Value="#EDF3F9" />
                             </Trigger>
@@ -166,6 +178,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
@@ -191,7 +204,11 @@
                         </ComboBox.ItemTemplate>
                     </ComboBox>
 
-                    <ListBox x:Name="NavigationList" Grid.Row="2" Margin="0,20,0,0"
+                    <ComboBox x:Name="OrganizationSelector" Grid.Row="2" Height="42" Margin="0,12,0,0"
+                              Visibility="Collapsed" DisplayMemberPath="Name" AutomationProperties.Name="Organization"
+                              SelectionChanged="OrganizationSelector_SelectionChanged" />
+
+                    <ListBox x:Name="NavigationList" Grid.Row="3" Margin="0,20,0,0"
                              Background="Transparent" BorderThickness="0"
                              ItemContainerStyle="{StaticResource NavigationItemStyle}"
                              SelectionChanged="NavigationList_SelectionChanged">
@@ -214,8 +231,12 @@
                 </Grid>
             </Border>
 
-            <Grid Grid.Column="1" Margin="48,52,48,34">
-                <ContentControl x:Name="PageHost" />
+            <Grid Grid.Column="1" Margin="32,32,32,24">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <Border x:Name="BreadcrumbBar" Visibility="Collapsed" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="0,0,0,14" Margin="0,0,0,22">
+                    <WrapPanel x:Name="BreadcrumbItems" />
+                </Border>
+                <ContentControl x:Name="PageHost" Grid.Row="1" />
             </Grid>
         </Grid>
     </Grid>

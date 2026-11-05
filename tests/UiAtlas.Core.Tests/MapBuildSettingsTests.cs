@@ -8,6 +8,30 @@ namespace UiAtlas.Core.Tests;
 public sealed class MapBuildSettingsTests
 {
     [Fact]
+    public void SqliteReadersShareTheMultiRecordingMapSizeLimit()
+    {
+        using var temp = new TempDirectory();
+        var graph = new RecordingGraphBuilder().Build(SyntheticBundleFactory.Create(temp.Path));
+        var path = Path.Combine(temp.Path, "multi-recording-size.db");
+        SqliteGraphStore.Save(graph, path);
+        // Trailing unused pages exercise the file-size guard without creating
+        // hundreds of MiB of irrelevant synthetic node properties.
+        using (var file = new FileStream(path, FileMode.Open, FileAccess.Write))
+            file.SetLength(512L * 1024 * 1024 + 4096);
+        Assert.Equal(graph.Nodes.Count, SqliteGraphStore.Load(path).Nodes.Count);
+        Assert.Equal(graph.Nodes.Count, SqliteGraphStore.ReadSummary(path).NodeCount);
+        Assert.Equal(graph.Metadata.SemanticHash, SqliteGraphStore.ReadCatalogMetadata(path).SemanticHash);
+        Assert.NotEmpty(SqliteGraphStore.ReadLayerNodes(path, "semantic-world"));
+
+        using (var file = new FileStream(path, FileMode.Open, FileAccess.Write))
+            file.SetLength(GraphContractLimits.MaxSqliteBytes + 1);
+        Assert.Throws<InvalidDataException>(() => SqliteGraphStore.Load(path));
+        Assert.Throws<InvalidDataException>(() => SqliteGraphStore.ReadSummary(path));
+        Assert.Throws<InvalidDataException>(() => SqliteGraphStore.ReadCatalogMetadata(path));
+        Assert.Throws<InvalidDataException>(() => SqliteGraphStore.ReadLayerNodes(path, "semantic-world"));
+    }
+
+    [Fact]
     public void BuildLimitsAreIndependentAndPersistWithoutAcceptingInvalidValues()
     {
         using var temp = new TempDirectory();

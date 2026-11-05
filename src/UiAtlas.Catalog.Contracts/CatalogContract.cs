@@ -6,15 +6,41 @@ public sealed record CatalogRequest(string Operation, string Root, string? Recor
     string? Generation = null, int Version = 1, string? KnownCatalogVersion = null,
     string? RevisionRef = null, bool RequireReady = false, string? ProfileId = null, bool IncludeRawWorld = false,
     long? ExpectedReviewRevision = null, string? ExpectedReviewSha256 = null,
-    CatalogParameterConfirmation[]? ParameterConfirmations = null, string? ExpectedDraftEtag = null, string[]? IdentityConfirmations = null);
+    CatalogParameterConfirmation[]? ParameterConfirmations = null, string? ExpectedDraftEtag = null, string[]? IdentityConfirmations = null, string? ExpectedArtifactStamp = null,
+    CatalogHeaderSettingsUpdate? HeaderSettingsUpdate = null, CatalogSimulationCaptureRequest? SimulationCapture = null,
+    string? SemanticAfter = null, int SemanticLimit = 30, string? ExternalConsumerId = null, string? SemanticFieldId = null);
+public sealed record CatalogSimulationCaptureRequest(int ProcessId, long ProcessCreatedUtcTicks, long RootWindow);
+public sealed record CatalogSimulationCapture(string Directory, string ObservationFile, CatalogEvidenceFile[] Files);
+public sealed record CatalogHeaderSettings(bool Enabled, string Endpoint, string Deployment, bool HasKey,
+    string Provider = "local", bool AutoAnalyze = false);
+public sealed record CatalogHeaderProvider(string Id, string Model, string Endpoint, string CredentialReference);
+// Only transported over redirected stdin to the local settings owner; keys never appear in replies or arguments.
+public sealed record CatalogHeaderSettingsUpdate(bool Enabled, string Endpoint, string Deployment, string? ApiKey = null,
+    string? Provider = null, bool AutoAnalyze = false, CatalogHeaderProvider[]? Providers = null);
 public sealed record CatalogRecording(string Id, DateTimeOffset StartedUtc, string Outcome,
-    string ProcessName, int FrameCount, string? MapId);
+    string ProcessName, int FrameCount, string? MapId, bool Archived = false, string? Stamp = null);
 public sealed record CatalogMap(string Id, string Path, string ApplicationGroup, string Generation,
-    string Entry, string? Session, string? Draft, string? Revision, bool SummaryOnly = false);
+    string Entry, string? Session, string? Draft, string? Revision, bool SummaryOnly = false, CatalogApplicationInfo? Application = null);
+public sealed record CatalogApplicationInfo(string ProductName, string Executable, string ApplicationVersion,
+    string WindowTitle, string[] RecordingIds, DateTimeOffset? LastRecorded)
+{
+    public bool Equals(CatalogApplicationInfo? other) => other is not null && ProductName == other.ProductName
+        && Executable == other.Executable && ApplicationVersion == other.ApplicationVersion && WindowTitle == other.WindowTitle
+        && LastRecorded == other.LastRecorded && (RecordingIds ?? []).SequenceEqual(other.RecordingIds ?? [], StringComparer.Ordinal);
+    public override int GetHashCode()
+    {
+        var hash = new HashCode(); hash.Add(ProductName); hash.Add(Executable); hash.Add(ApplicationVersion); hash.Add(WindowTitle); hash.Add(LastRecorded);
+        foreach (var id in RecordingIds ?? []) hash.Add(id, StringComparer.Ordinal);
+        return hash.ToHashCode();
+    }
+}
 public sealed record CatalogImportCandidate(string Path, string Kind, long Bytes);
 // Full immutable bytes with eligibility observed at this read, never a latest alias.
 public sealed record CatalogRevision(string RevisionRef, string CanonicalPayloadHash, string Payload,
     string MapId, string Generation, string Entry, bool Ready, bool Archived, string ReadAtUtc, int Version = 1);
+// Fresh eligibility of an integrity-checked immutable revision, without retransmitting its bytes.
+public sealed record CatalogRevisionEligibility(string RevisionRef, string CanonicalPayloadHash,
+    string MapId, string Generation, bool Ready, bool Archived, string ReadAtUtc, int Version = 1);
 // Original canonical source payloads whose hashes are embedded in the revision.
 // PayloadKind is "snapshot" (WorldStateSnapshot) or "survey" (SurveyScenePublication).
 public sealed record CatalogRawWorldSource(string SourceObservationSetRef, string PayloadKind, string PayloadSha256, string Payload);
@@ -37,6 +63,12 @@ public sealed record CatalogIdentityCandidate(string Fingerprint, string Canonic
 public sealed record CatalogIdentityReview(string MapId, string Generation, string RevisionRef, string DraftRef, string DraftEtag, CatalogIdentityCandidate[] Candidates);
 public sealed record CatalogReply
 {
+    public CatalogSemanticPage? SemanticSource { get; init; }
+    public CatalogExternalReference? ExternalReference { get; init; }
+    public CatalogRetainedFieldInspection? RetainedField { get; init; }
+    public CatalogSimulationEvidence? SimulationEvidence { get; init; }
+    public CatalogSimulationCapture? SimulationCapture { get; init; }
+    public CatalogHeaderSettings? HeaderSettings { get; init; }
     public int Version { get; init; } = 1;
     public bool Success { get; init; } = true;
     public string Message { get; init; } = "";
@@ -48,6 +80,7 @@ public sealed record CatalogReply
     public CatalogImportCandidate[] Imports { get; init; } = [];
     public string? Revision { get; init; }
     public CatalogRevision? ExactRevision { get; init; }
+    public CatalogRevisionEligibility? RevisionEligibility { get; init; }
     public CatalogRawWorldSource[] RawWorldSources { get; init; } = [];
     public int RawWorldContractVersion { get; init; }
     public CatalogParameterPolicy? Parameterization { get; init; }
@@ -58,7 +91,15 @@ public sealed record CatalogReply
     public string? MapId { get; init; }
     public int Nodes { get; init; }
     public int Edges { get; init; }
+    public string? PreviewPng { get; init; }
 }
+// Local immutable export. Paths are relative to Directory; originals never become AI inputs implicitly.
+public sealed record CatalogEvidenceFile(string Path, string Sha256, long Bytes, string Kind);
+public sealed record CatalogSimulationObservation(string SourceRef, string BundleId, long Frame,
+    string ObservationFile, string? EpisodeFile, string[] ImageFiles, string[] Gaps);
+public sealed record CatalogSimulationEvidence(string Directory, string MapId, string RevisionRef,
+    string RevisionHash, string Generation, CatalogSimulationObservation[] Observations,
+    CatalogEvidenceFile[] Files, string[] Gaps, string Format = "atlas-simulation-evidence/1");
 public static class AtlasCatalogLocation
 {
     public static string Resolve(string? root = null) => Path.GetFullPath(root

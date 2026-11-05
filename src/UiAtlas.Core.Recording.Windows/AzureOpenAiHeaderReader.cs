@@ -22,12 +22,12 @@ public sealed class AzureOpenAiHeaderReader : IGridSchemaHeaderReader
     private readonly AzureHeaderSettings _settings;
     private readonly string _key;
     private readonly HttpClient _client;
-    public string Name => "azure-openai/" + _settings.Deployment + "/low";
+    public string Name => _settings.Provider + "/" + _settings.Deployment + "/low";
 
     public AzureOpenAiHeaderReader(AzureHeaderSettings settings, string key, HttpClient? client = null)
     {
         _settings = settings.Normalize();
-        if (string.IsNullOrWhiteSpace(key)) throw new AzureHeaderException("Enter an Azure API key in Recorder settings.");
+        if (string.IsNullOrWhiteSpace(key)) throw new AzureHeaderException("Configure the selected connection in Settings → AI providers.");
         _key = key; _client = client ?? Client;
     }
 
@@ -79,17 +79,18 @@ public sealed class AzureOpenAiHeaderReader : IGridSchemaHeaderReader
                         }
                     } } }
                 };
-                using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(_settings.Endpoint + "/openai/v1/responses"))
+                using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(_settings.Endpoint + (_settings.Provider == "openai" ? "/v1/responses" : "/openai/v1/responses")))
                     { Content = JsonContent.Create(payload) };
-                request.Headers.Add("api-key", _key);
+                if (_settings.Provider == "openai") request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _key);
+                else request.Headers.Add("api-key", _key);
                 using var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
                 if (!response.IsSuccessStatusCode) throw new AzureHeaderException((int)response.StatusCode switch
                 {
-                    401 or 403 => "Azure rejected the API key or access permissions. Check Recorder settings.",
-                    404 => "Azure could not find the endpoint or deployment. Check Recorder settings.",
-                    429 => "Azure is rate limited or has no available quota. Try again later.",
-                    400 => "Azure rejected the image-reading request (HTTP 400). Check the request limits and deployment capabilities.",
-                    _ => $"Azure header reading failed (HTTP {(int)response.StatusCode}). Try again later."
+                    401 or 403 => "The AI provider rejected the API key or access permissions. Check Settings → AI providers.",
+                    404 => "The AI provider could not find the model or deployment. Check Settings → AI providers.",
+                    429 => "The AI provider is rate limited or has no available quota. Try again later.",
+                    400 => "The AI provider rejected the image-reading request (HTTP 400). Check the request limits and deployment capabilities.",
+                    _ => $"AI header reading failed (HTTP {(int)response.StatusCode}). Try again later."
                 });
                 // Never surface response bodies, which can echo submitted images or credentials.
                 await response.Content.LoadIntoBufferAsync(1_048_576, timeout.Token).ConfigureAwait(false);
@@ -98,8 +99,8 @@ public sealed class AzureOpenAiHeaderReader : IGridSchemaHeaderReader
             }
         }
         catch (OperationCanceledException) when (!cancellation.IsCancellationRequested)
-        { throw new AzureHeaderException("Azure header reading timed out. Try again or switch to Local OCR in Recorder settings."); }
-        catch (HttpRequestException) { throw new AzureHeaderException("Could not reach Azure. Check the endpoint and network connection."); }
+        { throw new AzureHeaderException("AI header reading timed out. Try again or switch to Local OCR in Recorder settings."); }
+        catch (HttpRequestException) { throw new AzureHeaderException("Could not reach the selected AI provider. Check the endpoint and network connection."); }
         catch (JsonException) { throw InvalidResponse(); }
         catch (InvalidOperationException) { throw InvalidResponse(); }
         return readings;
@@ -110,9 +111,7 @@ public sealed class AzureOpenAiHeaderReader : IGridSchemaHeaderReader
         using var document = JsonDocument.Parse(json); var root = document.RootElement;
         if (!root.TryGetProperty("status", out var state) || state.GetString() != "completed") throw InvalidResponse();
         var model = root.TryGetProperty("model", out var m) ? m.GetString() ?? "" : "";
-        if (!(model == "gpt-5.6" || model.StartsWith("gpt-5.6-sol", StringComparison.Ordinal) ||
-              model.StartsWith("gpt-5.6-20", StringComparison.Ordinal)))
-            throw new AzureHeaderException("The deployment did not report GPT-5.6 Sol. Check the deployment in Recorder settings.");
+        if (string.IsNullOrWhiteSpace(model)) throw InvalidResponse();
         if (!root.TryGetProperty("output", out var output) || output.ValueKind != JsonValueKind.Array) throw InvalidResponse();
         var text = new List<string>();
         foreach (var item in output.EnumerateArray())
@@ -146,5 +145,5 @@ public sealed class AzureOpenAiHeaderReader : IGridSchemaHeaderReader
         return headers.Select(h => readings[h.ColumnKey]).ToArray();
     }
 
-    private static AzureHeaderException InvalidResponse() => new("Azure did not return a complete, valid header reading. No column names were accepted; try again.");
+    private static AzureHeaderException InvalidResponse() => new("The AI provider did not return a complete, valid header reading. No column names were accepted; try again.");
 }

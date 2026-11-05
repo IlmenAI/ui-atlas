@@ -13,6 +13,23 @@ public sealed class AzureHeaderReaderTests
     private static readonly GridHeaderImage[] Headers = [new("column-0", [1, 2, 3]), new("column-1", [4, 5, 6])];
 
     [Fact]
+    public async Task DirectOpenAiUsesBearerAndTheSavedModelWithoutAzureHeaders()
+    {
+        using var client = Client(async request =>
+        {
+            Assert.Equal("https://api.openai.com/v1/responses", request.RequestUri!.AbsoluteUri);
+            Assert.Equal("Bearer", request.Headers.Authorization!.Scheme);
+            Assert.Equal("shared-reference-secret", request.Headers.Authorization.Parameter);
+            Assert.False(request.Headers.Contains("api-key"));
+            using var payload = JsonDocument.Parse(await request.Content!.ReadAsStringAsync());
+            Assert.Equal("gpt-6.1", payload.RootElement.GetProperty("model").GetString());
+            return Response("""{"headers":[{"key":"column-0","status":"text","text":"Code"},{"key":"column-1","status":"empty","text":""}]}""");
+        });
+        var result = await new AzureOpenAiHeaderReader(new(true, "https://api.openai.com", "gpt-6.1", Provider: "openai"), "shared-reference-secret", client).ReadAsync(Headers, default);
+        Assert.Equal("Code", result[0].Text); Assert.Equal(GridCellReadStatus.Empty, result[1].Status);
+    }
+
+    [Fact]
     public async Task UsesAzureResponsesLightProfileAndFixedColumnKeys()
     {
         using var client = Client(async request =>

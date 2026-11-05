@@ -58,12 +58,21 @@ public sealed class MapVersionPresentation
     public bool IsArchived => Maps.Count > 0 && Maps.All(value => value.IsArchived);
     public string Status => IsArchived ? "Archived" : HasReadyMap ? "Ready" : "No Ready map";
     public string StatusTone => IsArchived ? "Archived" : HasReadyMap ? "Ready" : "Draft";
-    public string RecordingSummary => $"{Maps.Count} {(Maps.Count == 1 ? "recording" : "recordings")}";
+    public string RecordingSummary => $"{Maps.Count} UI {(Maps.Count == 1 ? "Map" : "Maps")}";
     public bool IsExpanded { get; set; } = true;
 }
 
 public sealed class MapApplicationPresentation
 {
+    public MapsLibraryRecord CurrentRecord => Maps.OrderByDescending(m => DateTimeOffset.TryParse(m.Record.Entry.UpdatedAt, out var at) ? at : m.UpdatedAt).First().Record;
+    public string IconText => System.IO.Path.GetFileNameWithoutExtension(ExecutableName).ToLowerInvariant() switch { "winword" => "W", "excel" => "X", "powerpnt" => "P", _ => Initials };
+    public string IconColor => ApplicationMapIdentity.Color(ExecutableName);
+    public string ProductVersion => ExecutableName.StartsWith("prowin", StringComparison.OrdinalIgnoreCase) ? "Unavailable" : new[] { CurrentRecord.ApplicationInfo?.ApplicationVersion, CurrentRecord.Entry.ApplicationVersion, CurrentRecord.Session?.Target.ApplicationVersion, CurrentRecord.Revision?.Target.ApplicationVersion }.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v)) ?? "Unavailable";
+    public string LastRecorded => ApplicationMapIdentity.Date(Maps.Select(m => m.Record.ApplicationInfo?.LastRecorded).Max());
+    public string MapUpdated => ApplicationMapIdentity.Date(Maps.Select(m => DateTimeOffset.TryParse(m.Record.Entry.UpdatedAt, out var at) ? at : m.UpdatedAt).Max());
+    public string LibraryStatusColor => LibraryStatus == "Ready" ? "#147B46" : LibraryStatus == "Archived" ? "#64748B" : "#A65D00";
+    public string LibraryStatus => IsArchived ? "Archived" : HasReadyMap ? "Ready" : NeedsReview ? "Review needed" : "Draft only";
+
     public required string ApplicationRef { get; init; }
     public required string DisplayName { get; init; }
     public required string ExecutableName { get; init; }
@@ -97,6 +106,7 @@ public sealed class MapApplicationPresentation
 public sealed class MapsLibraryViewModel : INotifyPropertyChanged
 {
     private readonly IMapsLibrarySource _source;
+    private readonly SemaphoreSlim _operations = new(1, 1);
     private IReadOnlyList<MapsLibraryRecord> _allRecords = [];
     private IReadOnlyList<MapApplicationPresentation> _allGroups = [];
     private string _searchText = "";
@@ -114,7 +124,8 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
         [
             new(MapLibraryFilter.All, "All statuses"),
             new(MapLibraryFilter.Ready, "Ready"),
-            new(MapLibraryFilter.Drafts, "Draft only"),
+            new(MapLibraryFilter.Drafts, "Drafts"),
+            new(MapLibraryFilter.NeedsReview, "Review needed"),
         ];
         SortOptions =
         [
@@ -129,7 +140,7 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
     public IReadOnlyList<MapLibraryFilterOption> Filters { get; }
     public IReadOnlyList<MapLibrarySortOption> SortOptions { get; }
     public int ApplicationCount => Groups.Count;
-    public int MapCount => Groups.Sum(value => value.Maps.Count);
+    public int MapCount => Groups.Sum(group => group.Maps.Count);
     public int AttentionCount => _allGroups.Count(value => value.NeedsReview || value.HasWarnings);
     public bool HasAttention => AttentionCount > 0;
     public bool HasGroups => Groups.Count > 0;
@@ -158,7 +169,8 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
 
     public async Task RefreshAsync(CancellationToken cancellationToken)
     {
-        if (IsBusy) return;
+        // Activation refreshes are opportunistic; confirmed actions share this gate and wait for an in-flight read.
+        if (!_operations.Wait(0)) return;
         IsBusy = true;
         LastRefreshSucceeded = false;
         Status = "Loading recorded maps…";
@@ -175,7 +187,7 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
             LastRefreshSucceeded = true;
             Status = _allGroups.Count == 0
                 ? "No recorded UI Maps yet. Create one to begin building application knowledge."
-                : $"Loaded {_allGroups.Count} applications and {_allGroups.Sum(value => value.Maps.Count)} maps.";
+                : $"Loaded {_allGroups.Count} applications and {_allGroups.Sum(group => group.Maps.Count)} UI Maps.";
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -187,6 +199,7 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
         finally
         {
             IsBusy = false;
+            _operations.Release();
         }
     }
 
@@ -286,6 +299,15 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
             cancellationToken);
     }
 
+    public Task DeleteAsync(MapRowPresentation map, CancellationToken token) => ExecuteLibraryActionAsync("Deleting UI Map…", ct => _source.DeleteAsync(map.Record, ct), token);
+    public Task DeleteApplicationAsync(MapApplicationPresentation application, CancellationToken token)
+    {
+        var records = application.Maps.Select(m => m.Record).ToArray();
+        return ExecuteLibraryActionAsync("Deleting UI Maps…", async ct =>
+        {
+            foreach (var record in records) { ct.ThrowIfCancellationRequested(); await _source.DeleteAsync(record, ct); }
+        }, token);
+    }
     public Task RestoreApplicationAsync(MapApplicationPresentation application, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(application);
@@ -307,7 +329,7 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
         return _allRecords
             .Where(value => string.Equals(value.ApplicationGroupRef, application.ApplicationRef, StringComparison.Ordinal))
             .Where(value => !requireDraft || value.Draft is not null)
-            .OrderByDescending(value => ParseDate(value.Draft?.UpdatedAt ?? value.Session?.UpdatedAt ?? value.Entry.UpdatedAt))
+            .OrderByDescending(value => ParseDate(MapUpdatedValue(value)))
             .FirstOrDefault()
             ?? throw new InvalidOperationException(requireDraft
                 ? "The completed UI Map draft is no longer available. Refresh Maps and try again."
@@ -319,7 +341,7 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
         Func<CancellationToken, Task> action,
         CancellationToken cancellationToken)
     {
-        if (IsBusy) throw new InvalidOperationException("The Map Library is already busy.");
+        await _operations.WaitAsync(cancellationToken);
         IsBusy = true;
         Status = progress;
         try
@@ -330,11 +352,12 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
             _allRecords = records;
             _allGroups = groups;
             ApplyView();
-            Status = $"Loaded {_allGroups.Count} applications and {_allGroups.Sum(value => value.Maps.Count)} maps.";
+            Status = $"Loaded {_allGroups.Count} applications and {_allGroups.Sum(group => group.Maps.Count)} UI Maps.";
         }
         finally
         {
             IsBusy = false;
+            _operations.Release();
         }
     }
 
@@ -346,7 +369,7 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
             : fileName;
     }
 
-    internal static IReadOnlyList<MapApplicationPresentation> BuildGroups(IReadOnlyList<MapsLibraryRecord> records)
+    public static IReadOnlyList<MapApplicationPresentation> BuildGroups(IReadOnlyList<MapsLibraryRecord> records)
     {
         return records
             .GroupBy(value => (value.ApplicationGroupRef, value.Entry.Archived))
@@ -365,6 +388,10 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
         var executable = records.Select(value => value.Session?.Target.ExecutableName ?? value.Revision?.Target.ExecutableName)
             .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? applicationRef;
 
+        var info = records.OrderByDescending(r => r.ApplicationInfo?.LastRecorded).Select(r => r.ApplicationInfo).FirstOrDefault(i => i is not null);
+        executable = string.IsNullOrWhiteSpace(info?.Executable) ? executable : info.Executable;
+        displayName = ApplicationMapIdentity.Name(executable, displayName, info);
+        var recordingIds = records.SelectMany(r => r.ApplicationInfo?.RecordingIds ?? []).Distinct(StringComparer.Ordinal).ToArray();
         foreach (var record in records)
         {
             var warnings = record.Entry.Warnings.Concat(record.Session?.Warnings ?? [])
@@ -410,8 +437,8 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
                     Reference = record.Draft?.MapDraftRef ?? record.Session?.MappingSessionRef ?? record.Entry.MapDraftRef,
                     Status = record.Entry.Archived ? "Archived" : "Draft",
                     StatusTone = record.Entry.Archived ? "Archived" : "Draft",
-                    UpdatedAt = ParseDate(record.Draft?.UpdatedAt ?? record.Session?.UpdatedAt ?? record.Entry.UpdatedAt),
-                    Updated = FormatDate(record.Draft?.UpdatedAt ?? record.Session?.UpdatedAt ?? record.Entry.UpdatedAt),
+                    UpdatedAt = ParseDate(MapUpdatedValue(record)),
+                    Updated = FormatDate(MapUpdatedValue(record)),
                     Counts = Counts(record.Draft?.Entities, record.Draft?.Sources),
                     Detail = Detail(draftBlockers, draftWarnings, draftSources),
                     Glyph = "\uE8A5",
@@ -458,16 +485,16 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
             DisplayName = displayName,
             ExecutableName = executable,
             Initials = Initials(displayName),
-            UpdatedAt = orderedMaps.Select(value => value.UpdatedAt).DefaultIfEmpty(DateTimeOffset.MinValue).Max(),
+            UpdatedAt = orderedMaps.Select(value => DateTimeOffset.TryParse(value.Record.Entry.UpdatedAt, out var at) ? at : value.UpdatedAt).DefaultIfEmpty(DateTimeOffset.MinValue).Max(),
             Maps = new ObservableCollection<MapRowPresentation>(orderedMaps),
             Versions = new ObservableCollection<MapVersionPresentation>(versions),
             Counts = counts,
-            MapSummary = $"{orderedMaps.Length} {(orderedMaps.Length == 1 ? "map" : "maps")}",
+            MapSummary = $"{orderedMaps.Length} UI {(orderedMaps.Length == 1 ? "Map" : "Maps")}",
             AttentionStatus = blockers > 0 ? $"{blockers} blocking" : warningCount > 0 ? $"{warningCount} warnings" : "Up to date",
             Status = records.All(value => value.Entry.Archived) ? "Archived" : hasReady ? "Ready" : "Draft only",
             StatusTone = records.All(value => value.Entry.Archived) ? "Archived" : hasReady ? "Ready" : "Draft",
             VersionSummary = $"{versions.Length} {(versions.Length == 1 ? "version" : "versions")}",
-            RecordingSummary = $"{orderedMaps.Length} {(orderedMaps.Length == 1 ? "recording" : "recordings")}",
+            RecordingSummary = info is null ? "Source count unavailable" : $"{recordingIds.Length} source recordings",
             LatestActivity = orderedMaps.Length == 0 ? "Update time unavailable" : orderedMaps[0].Updated,
             IsArchived = records.All(value => value.Entry.Archived),
             HasReadyMap = hasReady,
@@ -483,10 +510,8 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
     }
 
     private static string ApplicationVersion(MapsLibraryRecord record) =>
-        (record.Entry.ApplicationVersion
-            ?? record.Session?.Target?.ApplicationVersion
-            ?? record.Revision?.Target?.ApplicationVersion
-            ?? string.Empty).Trim();
+        new[] { record.Entry.ApplicationVersion, record.Session?.Target.ApplicationVersion, record.Revision?.Target.ApplicationVersion }
+            .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))?.Trim() ?? "";
 
     private static IReadOnlyList<MappedSurfacePresentation> BuildSurfacePresentations(IReadOnlyList<MapEntity> entities)
     {
@@ -538,8 +563,8 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
         values = SelectedFilter.Value switch
         {
             MapLibraryFilter.NeedsReview => values.Where(value => value.NeedsReview),
-            MapLibraryFilter.Drafts => values.Where(value => !value.HasReadyMap),
-            MapLibraryFilter.Ready => values.Where(value => value.HasReadyMap),
+            MapLibraryFilter.Drafts => values.Where(value => value.LibraryStatus != "Ready"),
+            MapLibraryFilter.Ready => values.Where(value => value.LibraryStatus == "Ready"),
             MapLibraryFilter.Warnings => values.Where(value => value.HasWarnings),
             _ => values,
         };
@@ -598,6 +623,9 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
     }
 
     private static string SourceCount(int sources) => $"{sources} {(sources == 1 ? "source" : "sources")}";
+
+    private static string MapUpdatedValue(MapsLibraryRecord record) =>
+        new[] { record.Draft?.UpdatedAt, record.Session?.UpdatedAt, record.Entry.UpdatedAt }.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? "";
 
     private static DateTimeOffset ParseDate(string? value) => DateTimeOffset.TryParse(value, out var parsed) ? parsed : DateTimeOffset.MinValue;
     private static string FormatDate(string? value)

@@ -17,6 +17,8 @@ public sealed record RecorderPolicy(
     public CaptureSemantics CaptureSemantics { get; init; } = CaptureSemantics.Snapshot;
     public bool ExhaustiveCoverage { get; init; }
     public bool MappingCheckpoint { get; init; }
+    public bool UseCachedUia { get; init; }
+    public bool ReuseMsaaClientRoot { get; init; }
     public bool CaptureMsaa { get; init; }
     public int MaxNodesPerEpisode { get; init; } = 10_000;
     public int PerProcessConcurrency { get; init; } = 1;
@@ -24,6 +26,7 @@ public sealed record RecorderPolicy(
     public long MaxBytesPerSegment { get; init; } = 16L * 1024 * 1024;
     public IReadOnlySet<string> TargetWindowHandleEvidence { get; init; } = new HashSet<string>(StringComparer.Ordinal);
     public string TargetProcessInstanceEvidence { get; init; } = string.Empty;
+    public bool RuntimeGroundingWindowScope { get; init; }
     public static RecorderPolicy Default { get; } = new(
         TimeSpan.FromSeconds(5),
         TimeSpan.FromSeconds(1),
@@ -93,6 +96,9 @@ public sealed record RecorderPolicy(
         {
             CaptureSemantics = value.CaptureSemantics,
             MappingCheckpoint = value.ResolvedProfileRef?.ProfileId == "mapping-checkpoint",
+            UseCachedUia = value.ResolvedProfileRef?.ProfileId == "capture-optimized",
+            ReuseMsaaClientRoot = value.ResolvedProfileRef?.ProfileId == "capture-optimized",
+            RuntimeGroundingWindowScope = value.ResolvedProfileRef?.ProfileId == "runtime-grounding",
             CaptureMsaa = value.ProviderBudgets.Any(budget => budget.ProviderId == "msaa"),
             ExhaustiveCoverage = exhaustive,
             MaxNodesPerEpisode = exhaustive ? int.MaxValue : value.MaxNodesPerEpisode,

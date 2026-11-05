@@ -36,7 +36,7 @@ public sealed class AzureOpenAiTableReader
             var bytes = await File.ReadAllBytesAsync(image.ImagePath, timeout.Token).ConfigureAwait(false);
             var hash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
             var frame = OpaqueSurfaceScanner.PixelFrame.Decode(bytes);
-            Report("Reading column headers with Azure", 0);
+            Report("Reading column headers with the selected AI provider", 0);
             var draft = await new GridSchemaExtractor(_headers).ExtractAsync(image, image.HeaderBounds,
                 cancellationToken: timeout.Token).ConfigureAwait(false);
             string? selector = null;
@@ -119,7 +119,7 @@ public sealed class AzureOpenAiTableReader
                     readings.Add(cell.Key, new(cell.Column.ColumnKey, value.Status, value.Text,
                         value.Status == GridCellReadStatus.Unreadable ? "azure-cell-unreadable" : null, cell.Sources));
                 }
-                Report($"Read {readings.Count} of {pending.Count} cells with Azure", readings.Count / schema.Columns.Count);
+                Report($"Read {readings.Count} of {pending.Count} cells with the selected AI provider", readings.Count / schema.Columns.Count);
             }
             foreach (var region in regions.Where(r => !r.IsPartial).Take(1000))
             {

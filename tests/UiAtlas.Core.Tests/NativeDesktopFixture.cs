@@ -10,10 +10,14 @@ internal static class NativeDesktopFixture
     [ModuleInitializer]
     internal static void Initialize()
     {
-        if (Environment.GetEnvironmentVariable("UI_ATLAS_NATIVE_TEST_LEFT") is null
-            && Environment.GetEnvironmentVariable("UI_ATLAS_NATIVE_TEST_TOP") is null) return;
-        // All fixture and overlay threads must share the production app's physical
-        // coordinate context. A thread-only override leaves background probes virtualized.
+        // Desktop fixtures must not inherit a real user's automatic cloud-reading
+        // preference or read/write the production recorder settings file.
+        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("UIATLAS_HEADER_SETTINGS_PATH")))
+            Environment.SetEnvironmentVariable("UIATLAS_HEADER_SETTINGS_PATH", System.IO.Path.Combine(System.IO.Path.GetTempPath(),
+                "uiatlas-desktop-tests", Guid.NewGuid().ToString("N"), "header-settings.json"));
+        // Match the production manifest for every desktop fixture, including default
+        // placement. Otherwise Show/layout can revirtualize a hit HWND after a native
+        // physical move on monitors with different scales.
         if (!SetProcessDpiAwarenessContext((nint)(-4))
             && !AreDpiAwarenessContextsEqual(GetThreadDpiAwarenessContext(), (nint)(-4)))
             throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error(), "Native qualification requires PerMonitorV2 before WPF starts.");

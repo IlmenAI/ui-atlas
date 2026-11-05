@@ -37,7 +37,10 @@ public static class MappingObservationEvidence
                 plane.Png = ByteString.CopyFrom(png); bytes += png.Length; plane.Status = "ok";
             }
             catch (OperationCanceledException) { throw; }
-            catch (Exception ex) when (ex is ExternalException or InvalidOperationException or TimeoutException
+            // InvalidDataException is a SystemException, not an IOException. A
+            // rejected image remains unavailable evidence, just like a failed
+            // capture; it must not abort the other independently scoped windows.
+            catch (Exception ex) when (ex is InvalidDataException or ExternalException or InvalidOperationException or TimeoutException
                 or IOException or ArgumentException or NotSupportedException or UnauthorizedAccessException)
             { plane.Status = ex is TimeoutException ? "timeout" : "unavailable"; }
             plane.EndedAtUtc = DateTimeOffset.UtcNow.ToString("O");

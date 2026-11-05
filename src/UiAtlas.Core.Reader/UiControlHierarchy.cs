@@ -28,8 +28,7 @@ public static class UiControlHierarchy
         if (string.IsNullOrWhiteSpace(query)) return parents;
         var included = new HashSet<string>(StringComparer.Ordinal);
         foreach (var control in controls.Where(c => c.Id == revealedId ||
-                     c.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                     c.CanonicalKind.Contains(query, StringComparison.OrdinalIgnoreCase)))
+                     UiInspectionPresentation.Matches(c, query)))
         {
             var id = control.Id;
             while (id.Length > 0 && included.Add(id)) id = parents[id];

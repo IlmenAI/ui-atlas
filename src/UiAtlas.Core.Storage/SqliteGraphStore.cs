@@ -49,7 +49,13 @@ public static class SqliteGraphStore
     {
         var validation = GraphValidator.Validate(graph);
         if (!validation.IsValid) throw new InvalidDataException("Graph failed validation.");
-        AtomicFile.Publish(path, temp => WriteDatabase(graph, temp));
+        AtomicFile.Publish(path, temp =>
+        {
+            WriteDatabase(graph, temp);
+            // Never replace a readable map with one our readers will reject.
+            if (new FileInfo(temp).Length > GraphContractLimits.MaxSqliteBytes)
+                throw new InvalidDataException("Graph database exceeds size limit.");
+        });
     }
 
     public static UiKnowledgeGraph Load(string path)
@@ -79,7 +85,7 @@ public static class SqliteGraphStore
     {
         var fullPath = Path.GetFullPath(path);
         using var lockedInput = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        if (lockedInput.Length > 512L * 1024 * 1024) throw new InvalidDataException("Graph database is missing or exceeds size limit.");
+        if (lockedInput.Length > GraphContractLimits.MaxSqliteBytes) throw new InvalidDataException("Graph database is missing or exceeds size limit.");
         if (File.Exists(fullPath + "-wal") || File.Exists(fullPath + "-shm")) throw new InvalidDataException("Graph database sidecars are not accepted.");
         var builder = new SqliteConnectionStringBuilder { DataSource = fullPath, Mode = SqliteOpenMode.ReadOnly, Pooling = false };
         using var connection = new SqliteConnection(builder.ToString());
@@ -100,7 +106,7 @@ public static class SqliteGraphStore
     {
         var fullPath = Path.GetFullPath(path);
         using var lockedInput = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        if (lockedInput.Length > 512L * 1024 * 1024) throw new InvalidDataException("Graph database is missing or exceeds size limit.");
+        if (lockedInput.Length > GraphContractLimits.MaxSqliteBytes) throw new InvalidDataException("Graph database is missing or exceeds size limit.");
         if (File.Exists(fullPath + "-wal") || File.Exists(fullPath + "-shm")) throw new InvalidDataException("Graph database sidecars are not accepted.");
         var builder = new SqliteConnectionStringBuilder { DataSource = fullPath, Mode = SqliteOpenMode.ReadOnly, Pooling = false };
         using var connection = new SqliteConnection(builder.ToString());
@@ -120,7 +126,7 @@ public static class SqliteGraphStore
     {
         var fullPath = Path.GetFullPath(path);
         using var input = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        if (input.Length > 512L * 1024 * 1024) throw new InvalidDataException("Graph database exceeds size limit.");
+        if (input.Length > GraphContractLimits.MaxSqliteBytes) throw new InvalidDataException("Graph database exceeds size limit.");
         if (File.Exists(fullPath + "-wal") || File.Exists(fullPath + "-shm")) throw new InvalidDataException("Graph database sidecars are not accepted.");
         using var connection = new SqliteConnection(new SqliteConnectionStringBuilder
             { DataSource = fullPath, Mode = SqliteOpenMode.ReadOnly, Pooling = false }.ToString());
@@ -133,7 +139,7 @@ public static class SqliteGraphStore
     {
         var fullPath = Path.GetFullPath(path);
         using var lockedInput = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        if (lockedInput.Length > 512L * 1024 * 1024)
+        if (lockedInput.Length > GraphContractLimits.MaxSqliteBytes)
             throw new InvalidDataException("Graph database is missing or exceeds size limit.");
         if (File.Exists(fullPath + "-wal") || File.Exists(fullPath + "-shm"))
             throw new InvalidDataException("Graph database sidecars are not accepted.");

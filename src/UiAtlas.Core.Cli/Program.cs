@@ -438,6 +438,7 @@ internal static class Program
             workspace,
             panel,
             catalog.EnsureSafe,
+            initialMode: SessionLaunchMode.Manual,
             createNewWorkspace: CreateNewCatalogWorkspace).ConfigureAwait(false);
     }
 
@@ -528,10 +529,9 @@ internal static class Program
             workspace,
             panel,
             () => { },
-            initialMode: manualReview ? SessionLaunchMode.Manual : null,
+            initialMode: SessionLaunchMode.Manual,
             restoreExistingHighlights: true,
-            createNewWorkspace: CreateNewCatalogWorkspace,
-            showResumeChooserInitially: !manualReview).ConfigureAwait(false);
+            createNewWorkspace: CreateNewCatalogWorkspace).ConfigureAwait(false);
     }
 
     private static RecorderWorkspace CreateNewCatalogWorkspace(WindowTarget target)
@@ -956,6 +956,7 @@ internal static class Program
         using var panel = new RecordingControlPanel(Path.GetFileNameWithoutExtension(output), target.ProcessName, target, allowTargetSelection: false);
         panel.Start();
         return await RunRecorderWorkflow(target, workspace, panel,
+            initialMode: SessionLaunchMode.Manual,
             completedHandoff: resultPath is null ? null : map => AtlasRecordingHandoff.Complete(requestId!, resultPath, target, map)).ConfigureAwait(false);
     }
 
@@ -1073,6 +1074,7 @@ internal static class Program
                 using var overlay = new RecordingHighlightOverlay(target);
                 overlay.HideRecorderForExploration = panel.HideForScreenshotAsync;
                 overlay.RestoreRecorderAfterExploration = panel.RestoreAfterScreenshot;
+                overlay.GridReviewActiveChanged = panel.SetGridReviewActive;
                 overlay.Start();
                 IReadOnlyList<MappedSurfaceHighlightSnapshot> mappedSurfacesForSession = [];
                 if (restoreHighlightsForSession)
@@ -1379,6 +1381,11 @@ internal static class Program
         panel.CancelRequested += CancelFromPanel;
         panel.AutoPassStopRequested += StopAutoPassFromPanel;
         overlay.SaveReviewedDataGrid = (name, context, review) => workspace.SaveDataGrid(name, context with { SourceBundleId = sessionId }, review);
+        overlay.GridReviewActiveChanged = active =>
+        {
+            panel.SetGridReviewActive(active);
+            if (active) { PauseInputCapture(); StopAutoPassFromPanel(); }
+        };
         overlay.ResumeAfterGridInspector = () =>
         {
             if (!cancellation.IsCancellationRequested && Volatile.Read(ref pauseRequested) != 0)
@@ -7039,6 +7046,16 @@ internal static class WindowActivation
 internal sealed class RecordingControlPanel : IDisposable
 {
     private const double MapContextMenuItemWidth = 204;
+    private int _gridReviewVisibilityHold;
+    public void SetGridReviewActive(bool active)
+    {
+        if (active)
+        {
+            if (Interlocked.Exchange(ref _gridReviewVisibilityHold, 1) == 0)
+                _ = HideForScreenshotAsync(CancellationToken.None);
+        }
+        else if (Interlocked.Exchange(ref _gridReviewVisibilityHold, 0) != 0) RestoreAfterScreenshot();
+    }
     private const double MapContextMenuItemHeight = 40;
     internal event Action? PauseRequested;
     internal event Action? CancelRequested;
