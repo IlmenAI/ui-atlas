@@ -20,7 +20,7 @@
 
     <Grid>
         <ScrollViewer x:Name="ApplicationsPanel" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <Grid MaxWidth="1040" HorizontalAlignment="Stretch">
+            <Grid HorizontalAlignment="Stretch">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -31,11 +31,12 @@
 
                 <Grid>
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                    <Grid>
+                    <Grid SizeChanged="ResponsiveHeader_SizeChanged">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                         <StackPanel>
                             <TextBlock Text="Shared UI Maps" FontSize="38" FontWeight="Light" Foreground="{StaticResource InkBrush}" />
-                            <TextBlock Margin="0,9,0,0" Text="Applications and their Ready and Draft UI Maps." FontSize="15.5" Foreground="{StaticResource MutedInkBrush}" />
+                            <TextBlock Margin="0,9,0,0" Text="Applications and their Ready and Draft UI Maps." TextWrapping="Wrap" FontSize="15.5" Foreground="{StaticResource MutedInkBrush}" />
                         </StackPanel>
                         <Button Grid.Column="1" VerticalAlignment="Bottom" MinWidth="165" Style="{StaticResource PrimaryActionButtonStyle}"
                                 Click="NewMap_Click" AutomationProperties.Name="Record UI Map">
@@ -123,20 +124,21 @@
         </ScrollViewer>
 
         <ScrollViewer x:Name="ApplicationDetailsPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <Grid MaxWidth="1040" HorizontalAlignment="Stretch">
+            <Grid HorizontalAlignment="Stretch">
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                <Grid>
+                <Grid SizeChanged="ResponsiveHeader_SizeChanged">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="78"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                     <Border Width="58" Height="58" Background="{StaticResource AccentBrush}" CornerRadius="9" HorizontalAlignment="Left">
                         <TextBlock Text="{Binding IconText}" Foreground="White" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="{Binding DisplayName}" FontSize="32" FontWeight="Light" TextTrimming="CharacterEllipsis"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,7,0,0">
+                        <WrapPanel Margin="0,7,0,0">
                             <TextBlock Text="{Binding ExecutableName}" Foreground="{StaticResource MutedInkBrush}"/>
                             <TextBlock Text="  ·  " Foreground="{StaticResource MutedInkBrush}"/><TextBlock Text="{Binding VersionSummary}" Foreground="{StaticResource MutedInkBrush}"/>
                             <TextBlock Text="  ·  " Foreground="{StaticResource MutedInkBrush}"/><TextBlock Text="{Binding RecordingSummary}" Foreground="{StaticResource MutedInkBrush}"/>
-                        </StackPanel>
+                        </WrapPanel>
                     </StackPanel>
                     <StackPanel x:Name="ActiveDetailsActions" Grid.Column="2" Orientation="Horizontal">
                         <StackPanel.Style>
@@ -160,10 +162,10 @@
                 </Grid>
 
                 <Border Grid.Row="1" Margin="0,28,0,0" Padding="16,13" CornerRadius="8" Background="#EDF6FF" BorderBrush="#BBD9F5" BorderThickness="1">
-                    <StackPanel Orientation="Horizontal">
+                    <DockPanel>
                         <TextBlock Text="&#xE946;" FontFamily="Segoe Fluent Icons" FontSize="18" Foreground="#2477C9" Margin="0,0,12,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="Ready maps are available for task recording. Draft maps remain available for review." Foreground="{StaticResource MutedInkBrush}" VerticalAlignment="Center"/>
-                    </StackPanel>
+                        <TextBlock TextWrapping="Wrap" Text="Ready maps are available for task recording. Draft maps remain available for review." Foreground="{StaticResource MutedInkBrush}" VerticalAlignment="Center"/>
+                    </DockPanel>
                 </Border>
 
                 <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,24,0,0">
