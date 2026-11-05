@@ -193,7 +193,7 @@ public partial class ShellWindow : Window
             items.Add(new("organization-maps", "UI Maps", "\uE81E"));
             items.Add(new("organization-knowledge", "Knowledge", "\uE8F1"));
             items.Add(new("platform-unit-ontology", "Ontology", "\uE8F1"));
-            items.Add(new("platform-unit-data", "Collected data", "\uE9D9"));
+            items.Add(new("platform-unit-data", "Data Explorer", "\uE9D9"));
             items.Add(new("platform-unit-plans", "Collection plans", "\uE8FD"));
             items.Add(new("platform-unit-actions", "Actions", "\uE768"));
             items.Add(new("evaluations", "Evals", "\uE9D9"));
