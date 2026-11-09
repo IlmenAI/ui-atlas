@@ -37,9 +37,13 @@
                         <StackPanel>
                         <Border x:Name="SectionDivider" Height="1" Margin="12,2,10,10"
                                 Background="{StaticResource LineBrush}" Visibility="Collapsed" />
+                        <StackPanel x:Name="OrganizationSectionLabel" Visibility="Collapsed" Margin="12,0,10,10">
+                            <TextBlock Text="CURRENT ORGANIZATION" FontSize="10" Foreground="{StaticResource MutedInkBrush}"/>
+                            <TextBlock Text="{Binding Tag.Organization, RelativeSource={RelativeSource AncestorType=ListBox}}" FontSize="14" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                        </StackPanel>
                         <StackPanel x:Name="UnitSectionLabel" Visibility="Collapsed" Margin="12,0,10,10">
                             <TextBlock Text="CURRENT BUSINESS UNIT" FontSize="10" Foreground="{StaticResource MutedInkBrush}"/>
-                            <TextBlock Text="{Binding Tag, RelativeSource={RelativeSource AncestorType=ListBox}}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                            <TextBlock Text="{Binding Tag.Unit, RelativeSource={RelativeSource AncestorType=ListBox}}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0"/>
                         </StackPanel>
                         <Border x:Name="ItemSurface" MinHeight="43" CornerRadius="7" Background="{TemplateBinding Background}">
                             <Grid>
@@ -55,6 +59,7 @@
                             <DataTrigger Binding="{Binding StartsNewSection}" Value="True">
                                 <Setter TargetName="SectionDivider" Property="Visibility" Value="Visible" />
                             </DataTrigger>
+                            <DataTrigger Binding="{Binding Route}" Value="platform-home"><Setter TargetName="OrganizationSectionLabel" Property="Visibility" Value="Visible"/></DataTrigger>
                             <DataTrigger Binding="{Binding Route}" Value="platform-unit"><Setter TargetName="UnitSectionLabel" Property="Visibility" Value="Visible"/></DataTrigger>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="ItemSurface" Property="Background" Value="#EDF3F9" />

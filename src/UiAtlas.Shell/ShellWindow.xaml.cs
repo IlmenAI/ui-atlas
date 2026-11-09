@@ -73,11 +73,21 @@ public partial class ShellWindow : Window
             RefreshOrganizations();
             organizations.OrganizationChanged += (_, _) => Dispatcher.Invoke(() =>
             {
-                _routeBack.Clear(); RefreshOrganizations(); if (_activeRoute != "settings") _activeRoute = organizations.OrganizationId is null ? (_host is IShellBusinessUnitHost ? "platform-home" : "organizations") : (_host is IShellBusinessUnitHost ? "platform-unit" : "skills");
+                _routeBack.Clear(); RefreshOrganizations(); if (_activeRoute != "settings") _activeRoute = organizations.OrganizationId is null ? (_host is IShellBusinessUnitHost ? (_activeRoute == "platform-organizations" ? "platform-organizations" : "platform-home") : "organizations") : (_host is IShellBusinessUnitHost ? "platform-unit" : "skills");
                 ApplyProfile(ActiveProfileId);
             });
         }
-        if (host is IShellBusinessBreadcrumbHost context) context.BusinessContextChanged += (_, _) => Dispatcher.Invoke(UpdateBreadcrumbs);
+        if (host is IShellBusinessBreadcrumbHost context) context.BusinessContextChanged += (_, _) => Dispatcher.Invoke(() =>
+        {
+            if (_host is IShellBusinessUnitHost unit)
+            {
+                _navigation = BusinessUnitNavigation(unit.BusinessUnitLabel is not null, ActiveProfileId, unit.BusinessOrganizationName is not null);
+                _restoringNavigation = true;
+                try { RefreshNavigationItems(); NavigationList.SelectedItem = Navigation.FirstOrDefault(i => i.Route == _activeRoute); }
+                finally { _restoringNavigation = false; }
+            }
+            UpdateBreadcrumbs();
+        });
         Closing += (_, args) =>
         {
             if (!CanLeaveCurrentPage()) args.Cancel = true;
@@ -168,7 +178,7 @@ public partial class ShellWindow : Window
         var navigation = _host is IShellOrganizationHost organizations
             ? OrganizationNavigation(organizations.OrganizationId, _activeProfile.Option.Id) : _activeProfile.Navigation;
         _navigation = _host is IShellBusinessUnitHost unitHost
-            ? BusinessUnitNavigation(unitHost.BusinessUnitLabel is not null, _activeProfile.Option.Id)
+            ? BusinessUnitNavigation(unitHost.BusinessUnitLabel is not null, _activeProfile.Option.Id, unitHost.BusinessOrganizationName is not null)
             : _host is IShellPlatformHost
                 ? new ExperienceNavigationItem[] { new("platform-home", "Home", "\uE80F"), new("platform-ontology", "Shared ontology", "\uE8F1"),
                     new("platform-data", "Data explorer", "\uE9D9"), new("platform-integrations", "Integrations", "\uE774") }.Concat(navigation).ToArray()
@@ -183,9 +193,10 @@ public partial class ShellWindow : Window
         SelectNavigation(retained ?? Navigation.First(item => item.IsAvailable));
     }
 
-    public static IReadOnlyList<ExperienceNavigationItem> BusinessUnitNavigation(bool selected, ExperienceProfileId profile)
+    public static IReadOnlyList<ExperienceNavigationItem> BusinessUnitNavigation(bool selected, ExperienceProfileId profile, bool organizationSelected = true)
     {
-        List<ExperienceNavigationItem> items = [new("platform-home", "All business units", "\uE80F")];
+        List<ExperienceNavigationItem> items = [new("platform-organizations", "Home", "\uE80F")];
+        if (organizationSelected || selected) items.Add(new("platform-home", "Business units", "\uE81E", StartsNewSection: true));
         if (selected)
         {
             items.Add(new("platform-unit", "Home", "\uE80F", StartsNewSection: true));
@@ -224,7 +235,7 @@ public partial class ShellWindow : Window
         {
             OrganizationSelector.Visibility = Visibility.Collapsed;
             ProductTitle.Text = _host.ProductName;
-            NavigationList.Tag = unit.BusinessUnitName;
+            NavigationList.Tag = new { Unit = unit.BusinessUnitName, Organization = unit.BusinessOrganizationName };
             UpdateBreadcrumbs();
             return;
         }
@@ -297,9 +308,9 @@ public partial class ShellWindow : Window
             _restoringNavigation = false;
             return;
         }
-        if (item.Route == "platform-home" && _host is IShellBusinessUnitHost { BusinessUnitLabel: not null } unit)
+        if (item.Route is "platform-home" or "platform-organizations" && _host is IShellBusinessUnitHost { BusinessUnitLabel: not null } unit)
         {
-            _activeRoute = "platform-home"; unit.LeaveBusinessUnit(); return;
+            _activeRoute = item.Route; unit.LeaveBusinessUnit(); return;
         }
         if (!_goingBack && item.Route != _activeRoute && _host is IShellBusinessUnitHost { BusinessUnitLabel: not null })
             _routeBack.Push(_activeRoute);
@@ -380,6 +391,7 @@ public partial class ShellWindow : Window
         {
             if (CanLeaveCurrentPage()) _pageBackNavigation.GoBack();
         }
+        else if (_activeRoute == "platform-home") Navigate("platform-organizations");
         else if (_activeRoute == "platform-unit" && _host is IShellBusinessUnitHost { BusinessUnitLabel: not null })
             Navigate("platform-home");
         else if (_routeBack.Count != 0)
@@ -396,7 +408,7 @@ public partial class ShellWindow : Window
     private void UpdateBackButton()
     {
         if (BackButton is not null)
-            BackButton.Visibility = _pageBackNavigation?.CanGoBack == true || _routeBack.Count != 0 || _host is IShellBusinessUnitHost { BusinessUnitLabel: not null }
+            BackButton.Visibility = _pageBackNavigation?.CanGoBack == true || _activeRoute == "platform-home" || _routeBack.Count != 0 || _host is IShellBusinessUnitHost { BusinessUnitLabel: not null }
                 ? Visibility.Visible
                 : Visibility.Collapsed;
     }

@@ -17,36 +17,12 @@ public partial class ShellWindow
         BreadcrumbItems.Children.Clear();
         if (_host is not IShellBusinessUnitHost unit) { BreadcrumbBar.Visibility = Visibility.Collapsed; return; }
         BreadcrumbBar.Visibility = Visibility.Visible;
-        NavigationList.Tag = unit.BusinessUnitName;
-        var organization = Crumb(unit.BusinessOrganizationName ?? "Organizations", null);
-        if (_host is IShellBusinessBreadcrumbHost context)
+        NavigationList.Tag = new { Unit = unit.BusinessUnitName, Organization = unit.BusinessOrganizationName };
+        Crumb("Home", () => Navigate("platform-organizations"));
+        if (_activeRoute == "platform-organizations") return;
+        if (unit.BusinessOrganizationName is { } organizationName)
         {
-            organization.Content += "  ▾";
-            organization.Click += async (_, _) =>
-            {
-                organization.IsEnabled = false;
-                try
-                {
-                    var menu = new ContextMenu { PlacementTarget = organization };
-                    foreach (var org in await context.BusinessOrganizationsAsync())
-                    {
-                        var choice = new MenuItem { Header = org.Name };
-                        choice.Click += async (_, _) =>
-                        {
-                            if (!CanLeaveCurrentPage()) return;
-                            try { await context.SelectBusinessOrganizationAsync(org.Id); Navigate("platform-home"); }
-                            catch (Exception error) { MessageBox.Show(this, error.GetBaseException().Message, "Organization", MessageBoxButton.OK, MessageBoxImage.Information); }
-                        };
-                        menu.Items.Add(choice);
-                    }
-                    menu.Items.Add(new Separator());
-                    var manage = new MenuItem { Header = "Manage organizations…" };
-                    manage.Click += (_, _) => Navigate("platform-home"); menu.Items.Add(manage);
-                    organization.ContextMenu = menu; menu.IsOpen = true;
-                }
-                catch (Exception error) { MessageBox.Show(this, error.GetBaseException().Message, "Organizations", MessageBoxButton.OK, MessageBoxImage.Information); }
-                finally { organization.IsEnabled = true; }
-            };
+            AddSeparator(); Crumb(organizationName, () => Navigate("platform-home"));
         }
         var scoped = _activeRoute is "platform-unit" or "platform-unit-ontology" or "platform-unit-data" or "platform-unit-plans" or "platform-unit-actions"
             or "skills" or "evaluations" or "simulations" or "organization-maps" or "organization-knowledge" or "organization-about";
