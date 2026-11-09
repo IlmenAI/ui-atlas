@@ -14,6 +14,7 @@ internal static class UiaCachedCapture
         (TogglePattern.Pattern, AutomationElement.IsTogglePatternAvailableProperty),
         (GridItemPattern.Pattern, AutomationElement.IsGridItemPatternAvailableProperty),
         (ValuePattern.Pattern, AutomationElement.IsValuePatternAvailableProperty),
+        (RangeValuePattern.Pattern, AutomationElement.IsRangeValuePatternAvailableProperty),
         (SelectionPattern.Pattern, AutomationElement.IsSelectionPatternAvailableProperty),
         (SelectionItemPattern.Pattern, AutomationElement.IsSelectionItemPatternAvailableProperty),
         (ExpandCollapsePattern.Pattern, AutomationElement.IsExpandCollapsePatternAvailableProperty),
@@ -36,6 +37,7 @@ internal static class UiaCachedCapture
         AutomationElement.HasKeyboardFocusProperty, SelectionItemPattern.IsSelectedProperty,
         TogglePattern.ToggleStateProperty, ExpandCollapsePattern.ExpandCollapseStateProperty,
         GridItemPattern.RowProperty, GridItemPattern.ColumnProperty,
+        ValuePattern.IsReadOnlyProperty, RangeValuePattern.IsReadOnlyProperty,
     ];
 
     internal static CacheRequest CreateCache()
@@ -66,15 +68,16 @@ internal static class UiaCachedCapture
         var walker = TreeWalker.RawViewWalker;
         return UiaCaptureTraversal.Capture(root, request.WindowEvidenceId, request.MaxNodes, request.MaxDepth,
             (element, id, parent) => ReadNode(property => element.GetCachedPropertyValue(property, true),
-                () => element.TryGetCurrentPattern(ValuePattern.Pattern, out var pattern) && pattern is ValuePattern value
-                    ? value.Current.Value : null,
-                pattern => element.TryGetCurrentPattern(pattern, out _), HasTime, id, parent, request.WindowEvidenceId, readValues: readValues, probeLegacyPattern: probeLegacyPattern),
+                () => ReadFieldValue(element),
+                pattern => element.TryGetCurrentPattern(pattern, out _), HasTime, id, parent, request.WindowEvidenceId,
+                readValues: readValues, probeLegacyPattern: probeLegacyPattern, readSelection: () => ReadFieldSelection(element)),
             element => walker.GetFirstChild(element, cache), element => walker.GetNextSibling(element, cache), HasTime);
     }
 
     internal static AccessibilityNodeRecord ReadNode(Func<AutomationProperty, object?> cached,
         Func<string?> readValue, Func<AutomationPattern, bool> legacyPatternSupported, Func<bool> hasTime,
-        string id, string parentId, string windowId, bool readValues = true, bool probeLegacyPattern = true)
+        string id, string parentId, string windowId, bool readValues = true, bool probeLegacyPattern = true,
+        Func<string?>? readSelection = null)
     {
         var coverage = new PropertyCoverage();
         var issues = new List<Health>();
@@ -106,6 +109,18 @@ internal static class UiaCachedCapture
             if (value is bool flag) return flag;
             coverage.Read--; coverage.Failed++; return null;
         }
+        object? ReadState(AutomationProperty property)
+        {
+            coverage.Attempted++;
+            try
+            {
+                var value = cached(property);
+                if (ReferenceEquals(value, AutomationElement.NotSupported)) { coverage.Unsupported++; return null; }
+                if (value is null) { coverage.Failed++; return null; }
+                coverage.Read++; return value;
+            }
+            catch { coverage.Failed++; return null; }
+        }
         var password = Bool(AutomationElement.IsPasswordProperty);
         var boundsValue = Read(AutomationElement.BoundingRectangleProperty);
         RectPx? bounds = null;
@@ -130,9 +145,10 @@ internal static class UiaCachedCapture
             LocalizedControlType = Text(AutomationElement.LocalizedControlTypeProperty), Name = Text(AutomationElement.NameProperty),
             ClassName = Text(AutomationElement.ClassNameProperty), NativeWindowHandleEvidence = Text(AutomationElement.NativeWindowHandleProperty),
             BoundsPx = bounds, IsEnabled = Bool(AutomationElement.IsEnabledProperty) ?? false,
-            IsOffscreen = offscreen ?? false, IsPassword = password ?? false,
+            IsOffscreen = offscreen ?? false,
             PropertyCoverage = coverage,
         };
+        if (password is { } knownPassword) node.IsPassword = knownPassword;
         var runtime = Read(AutomationElement.RuntimeIdProperty);
         if (runtime is int[] runtimeId) node.RuntimeIdEvidence.AddRange(runtimeId);
         else if (runtime is not null) { coverage.Read--; coverage.Failed++; }
@@ -143,19 +159,25 @@ internal static class UiaCachedCapture
             if (available == true) node.SupportedPatterns.Add(pattern.ProgrammaticName);
             if (pattern == ValuePattern.Pattern) valueAvailable = available;
         }
+        if (node.SupportedPatterns.Contains(ValuePattern.Pattern.ProgrammaticName)
+            && ReadState(ValuePattern.IsReadOnlyProperty) is bool readOnly) node.IsReadOnly = readOnly;
+        else if (node.SupportedPatterns.Contains(RangeValuePattern.Pattern.ProgrammaticName)
+            && ReadState(RangeValuePattern.IsReadOnlyProperty) is bool rangeReadOnly) node.IsReadOnly = rangeReadOnly;
+        if (node.SupportedPatterns.Contains(RangeValuePattern.Pattern.ProgrammaticName)
+            || node.SupportedPatterns.Contains(TextPattern.Pattern.ProgrammaticName)) valueAvailable = true;
         // Optional state is sampled with the same cache. Unsupported is absent;
         // it must not make an ordinary node unhealthy merely for lacking a pattern.
-        if (Read(AutomationElement.HasKeyboardFocusProperty, true) is bool focused) node.HasKeyboardFocus = focused;
+        if (ReadState(AutomationElement.HasKeyboardFocusProperty) is bool focused) node.HasKeyboardFocus = focused;
         if (node.SupportedPatterns.Contains(SelectionItemPattern.Pattern.ProgrammaticName)
-            && Read(SelectionItemPattern.IsSelectedProperty, true) is bool selected) node.IsSelected = selected;
+            && ReadState(SelectionItemPattern.IsSelectedProperty) is bool selected) node.IsSelected = selected;
         if (node.SupportedPatterns.Contains(TogglePattern.Pattern.ProgrammaticName)
-            && Read(TogglePattern.ToggleStateProperty, true) is ToggleState toggle) node.ToggleState = (int)toggle;
+            && ReadState(TogglePattern.ToggleStateProperty) is ToggleState toggle) node.ToggleState = (int)toggle;
         if (node.SupportedPatterns.Contains(ExpandCollapsePattern.Pattern.ProgrammaticName)
-            && Read(ExpandCollapsePattern.ExpandCollapseStateProperty, true) is ExpandCollapseState expanded) node.ExpandCollapseState = (int)expanded;
+            && ReadState(ExpandCollapsePattern.ExpandCollapseStateProperty) is ExpandCollapseState expanded) node.ExpandCollapseState = (int)expanded;
         if (node.SupportedPatterns.Contains(GridItemPattern.Pattern.ProgrammaticName))
         {
-            if (Read(GridItemPattern.RowProperty, true) is int row && row >= 0) node.GridRow = row;
-            if (Read(GridItemPattern.ColumnProperty, true) is int column && column >= 0) node.GridColumn = column;
+            if (ReadState(GridItemPattern.RowProperty) is int row && row >= 0) node.GridRow = row;
+            if (ReadState(GridItemPattern.ColumnProperty) is int column && column >= 0) node.GridColumn = column;
         }
         // The managed UIA API has no registered legacy availability property on
         // all supported runtimes. Preserve its existing optional pattern probe.
@@ -184,12 +206,53 @@ internal static class UiaCachedCapture
             else issues.Add(ProtocolHealth.Single(HealthState.Partial, "RECORDER_UIA_COOPERATIVE_DEADLINE",
                 "Value evidence was not requested after the cooperative deadline.", "accessibility", true));
         }
+        if (password == false && readValues && readSelection is not null && hasTime()
+            && node.SupportedPatterns.Contains(SelectionPattern.Pattern.ProgrammaticName))
+        {
+            coverage.Attempted++;
+            try
+            {
+                if (readSelection() is { } selection) { node.SelectionEvidence = selection; coverage.Read++; }
+                else coverage.Unsupported++;
+            }
+            catch { coverage.Failed++; }
+        }
         if (coverage.Failed > 0 || unsupportedMetadata > 0) issues.Add(ProtocolHealth.Single(HealthState.Partial,
             "RECORDER_UIA_PROPERTY_PARTIAL", "Some requested accessibility properties or pattern availability evidence were unavailable.", "accessibility"));
         node.Health = ProtocolHealth.Aggregate(issues.Append(ProtocolHealth.Complete()));
         return node;
 
         string Text(AutomationProperty property) => ProviderPropertyValue.ToProtocolString(Read(property), AutomationElement.NotSupported);
+    }
+
+    // Called only after a positively observed non-password status. Reads stay
+    // inside the isolated worker and its deadline; no input is ever synthesized.
+    private static string? ReadFieldValue(AutomationElement element)
+    {
+        if (element.TryGetCurrentPattern(ValuePattern.Pattern, out var valuePattern) && valuePattern is ValuePattern value)
+            return value.Current.Value;
+        if (element.TryGetCurrentPattern(RangeValuePattern.Pattern, out var rangePattern) && rangePattern is RangeValuePattern range)
+            return range.Current.Value.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+        if ((element.Current.ControlType == ControlType.Document || element.Current.ControlType == ControlType.Edit)
+            && element.TryGetCurrentPattern(TextPattern.Pattern, out var textPattern) && textPattern is TextPattern text)
+            return text.DocumentRange.GetText(4096);
+        return null;
+    }
+
+    private static string? ReadFieldSelection(AutomationElement element)
+    {
+        if (!element.TryGetCurrentPattern(SelectionPattern.Pattern, out var pattern) || pattern is not SelectionPattern selection)
+            return null;
+        var selected = selection.Current.GetSelection();
+        if (selected.Length > 64) return null;
+        var names = new List<string>(selected.Length);
+        foreach (var item in selected)
+        {
+            if (item.GetCurrentPropertyValue(AutomationElement.IsPasswordProperty, true) is not false) return null;
+            if (item.GetCurrentPropertyValue(AutomationElement.NameProperty, true) is not string name) return null;
+            names.Add(name);
+        }
+        return System.Text.Json.JsonSerializer.Serialize(names);
     }
 
     private static AccessibilityPacket Unavailable(ProbeRequest request, string reason, string message, bool timeLimited = false)

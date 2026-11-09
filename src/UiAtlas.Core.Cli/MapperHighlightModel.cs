@@ -3,11 +3,11 @@ using UiAtlas.Core.Recording;
 
 namespace UiAtlas.Core.Cli;
 
-internal enum MapperHighlightKind { Uia, ComputerVision, NativeGrid, GridCandidate }
+internal enum MapperHighlightKind { Uia, ComputerVision, NativeGrid, GridCandidate, Fields }
 
 internal sealed record MapperHighlight(
     string Id, RectI Bounds, MapperHighlightKind Kind, string Name, string Source,
-    AutomationObservation Control)
+    AutomationObservation Control, bool ChangeObserved = false)
 {
     public bool IsGrid => Kind is MapperHighlightKind.NativeGrid or MapperHighlightKind.GridCandidate;
     public string Color => Kind switch
@@ -15,17 +15,65 @@ internal sealed record MapperHighlight(
         MapperHighlightKind.Uia => "#0A84FF",
         MapperHighlightKind.ComputerVision => "#8B5CF6",
         MapperHighlightKind.NativeGrid => "#008F83",
+        MapperHighlightKind.Fields => "#0A84FF",
         _ => "#C98208"
     };
-    public string Label => Kind == MapperHighlightKind.NativeGrid ? "Native grid" : "Grid candidate";
-    public string Classification => Kind == MapperHighlightKind.NativeGrid ? "UIA-native data grid" : "Potential data grid";
+    public string Label => Kind == MapperHighlightKind.Fields ? "Field" :
+        Kind == MapperHighlightKind.NativeGrid ? "Native grid" : "Grid candidate";
+    public string Classification => Kind == MapperHighlightKind.Fields ? "Suggested input field" :
+        Kind == MapperHighlightKind.NativeGrid ? "UIA-native data grid" : "Potential data grid";
     public string NativeSupport => Kind == MapperHighlightKind.NativeGrid ? "Available" : "Not detected";
-    public string Status => Kind == MapperHighlightKind.NativeGrid ? "Native structure detected" : "Candidate · not yet verified";
+    public string Status => Kind == MapperHighlightKind.Fields ? ChangeObserved ? "Change observed" : "Suggested" :
+        Kind == MapperHighlightKind.NativeGrid ? "Native structure detected" : "Candidate · not yet verified";
 }
 
 /// <summary>Presentation of current evidence only. Never qualifies extraction or saves a schema.</summary>
 internal static class MapperHighlightModel
 {
+    internal static IReadOnlyList<MapperHighlight> BuildFieldsFromFrame(FrameObservation frame, long surfaceHwnd,
+        IReadOnlyList<FieldObservation> fields, Func<long, bool>? isLiveChildOfSurface = null)
+    {
+        var surface = frame.Window.Hwnd == surfaceHwnd ? frame.Window :
+            frame.ScopedWindows?.FirstOrDefault(window => window.Hwnd == surfaceHwnd);
+        if (surface is null || !surface.IsVisible || surface.IsMinimized || surface.IsCloaked) return [];
+        var controls = frame.Automation.Where(control =>
+        {
+            var scope = control.QueryWindowHwnd is > 0 ? control.QueryWindowHwnd.Value :
+                control.WindowHwnd != 0 ? control.WindowHwnd : frame.Window.Hwnd;
+            return scope == surfaceHwnd || isLiveChildOfSurface?.Invoke(scope) == true;
+        }).ToArray();
+        return BuildFields(surface.Bounds, surfaceHwnd, controls, fields);
+    }
+
+    /// <summary>Attach a field annotation only to its current, unambiguous provider observation.</summary>
+    internal static IReadOnlyList<MapperHighlight> BuildFields(RectI surface, long surfaceHwnd,
+        IReadOnlyList<AutomationObservation> controls, IReadOnlyList<FieldObservation> fields)
+    {
+        long Scope(AutomationObservation control) => control.QueryWindowHwnd is > 0 ? control.QueryWindowHwnd.Value :
+            control.WindowHwnd != 0 ? control.WindowHwnd : surfaceHwnd;
+        var visible = AutomationObservationVisibility.FilterEffectivelyVisible(controls)
+            .Select(control => (Scope(control), control.RuntimeId)).ToHashSet();
+        var byIdentity = controls.Where(control => !string.IsNullOrWhiteSpace(control.RuntimeId))
+            .GroupBy(control => (control.WindowHwnd, control.RuntimeId))
+            .ToDictionary(group => group.Key, group => group.First());
+        var observations = controls.Where(control => !string.IsNullOrWhiteSpace(control.RuntimeId))
+            .GroupBy(control => (Scope(control), control.RuntimeId))
+            .ToDictionary(group => group.Key, group => group.ToArray());
+        var result = new List<MapperHighlight>();
+        foreach (var field in fields.Where(field => field.IsCurrent))
+        {
+            var key = (field.WindowHwnd, field.ControlRuntimeId);
+            if (!observations.TryGetValue(key, out var matches) || matches.Length != 1) continue;
+            var control = matches[0];
+            if (!IsVisual(control) && !visible.Contains(key)) continue;
+            var bounds = VisibleBounds(control, byIdentity);
+            if (bounds is not { Width: > 0, Height: > 0 } || !Contains(surface, bounds)) continue;
+            result.Add(new(field.Id, bounds, MapperHighlightKind.Fields, field.Label,
+                "Field observation", control, field.State == FieldObservationState.ChangeObserved));
+        }
+        return result.Take(500).ToArray();
+    }
+
     // Native evidence IDs are opaque. Use the recorded provider response, not
     // an ID prefix, to distinguish UIA, MSAA and bare HWND geometry.
     internal static IReadOnlyList<AutomationObservation> FrameControls(FrameObservation frame, long hwnd,

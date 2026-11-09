@@ -94,7 +94,23 @@ internal static class AccessibilityPacketMerger
         target.LocalizedControlType = First(target.LocalizedControlType, fallback.LocalizedControlType);
         target.Name = First(target.Name, fallback.Name);
         target.ClassName = First(target.ClassName, fallback.ClassName);
-        target.ValueEvidence = First(target.ValueEvidence, fallback.ValueEvidence);
+        // Presence distinguishes an observed empty/whitespace value from no read.
+        // A fallback must not turn unknown privacy metadata into permission to copy content.
+        if (target.HasIsPassword && target.IsPassword || fallback.HasIsPassword && fallback.IsPassword)
+        {
+            target.IsPassword = true;
+            target.ClearValueEvidence();
+            target.ClearSelectionEvidence();
+            target.ClearToggleState();
+        }
+        else if (target.HasIsPassword && fallback.HasIsPassword)
+        {
+            if (!target.HasValueEvidence && fallback.HasValueEvidence)
+                target.ValueEvidence = fallback.ValueEvidence;
+            if (!target.HasSelectionEvidence && fallback.HasSelectionEvidence)
+                target.SelectionEvidence = fallback.SelectionEvidence;
+        }
+        if (!target.HasIsReadOnly && fallback.HasIsReadOnly) target.IsReadOnly = fallback.IsReadOnly;
         foreach (var pattern in fallback.SupportedPatterns)
             if (!target.SupportedPatterns.Contains(pattern)) target.SupportedPatterns.Add(pattern);
     }

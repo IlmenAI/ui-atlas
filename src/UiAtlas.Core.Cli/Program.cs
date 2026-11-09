@@ -1315,6 +1315,8 @@ internal static class Program
                 recovered, workspace.SaveAutoMapping, DateTimeOffset.UtcNow);
         }
         using var cancellation = new CancellationTokenSource();
+        using var fieldObservationCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellation.Token);
+        var fieldMarking = 0;
         var pauseRequested = 0;
         var panelCancelRequested = 0;
         var autoStopRequested = 0;
@@ -1326,6 +1328,8 @@ internal static class Program
         {
             Volatile.Write(ref pauseRequested, 1);
             session.SetInputCapturePaused(true);
+            Interlocked.Exchange(ref fieldMarking, 0);
+            panel.SetFieldMarking(false);
         }
         void CancelFromPanel()
         {
@@ -1343,8 +1347,36 @@ internal static class Program
             Console.WriteLine(message);
             panel.SetStatus(message);
         }
+        void UpdateFieldObservations(FieldLearningSnapshot _)
+        {
+            var state = session.GetFieldObservationState();
+            panel.SetFieldObservations(state.Snapshot);
+            overlay.SetFieldObservations(state.Snapshot.Fields, state.Frame);
+        }
+        void ToggleFieldMarking()
+        {
+            var armed = Interlocked.CompareExchange(ref fieldMarking, 1, 0) == 0;
+            if (!armed) Interlocked.Exchange(ref fieldMarking, 0);
+            panel.SetFieldMarking(armed);
+        }
+        void RequestFieldReview() => panel.RequestFieldReviewCommand();
+        void SetFieldDecision(string id, FieldReviewDecision decision) => session.SetFieldDecision(id, decision);
+        async Task ObserveFieldsLoopAsync()
+        {
+            try
+            {
+                while (true)
+                {
+                    await Task.Delay(TimeSpan.FromMilliseconds(1500), fieldObservationCancellation.Token).ConfigureAwait(false);
+                    await ObserveManualFieldsSafelyAsync(session, fieldObservationCancellation.Token).ConfigureAwait(false);
+                }
+            }
+            catch (OperationCanceledException) when (fieldObservationCancellation.IsCancellationRequested) { }
+        }
         async Task<AutoTabsOutcome> RunCancelableAutoPassAsync(FrameObservation frame, AdaptiveCaptureCoordinator coordinator)
         {
+            Interlocked.Exchange(ref fieldMarking, 0);
+            panel.SetFieldMarking(false);
             session.FullRawObservations = false;
             using var autoCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellation.Token);
             lock (autoPassGate)
@@ -1380,6 +1412,12 @@ internal static class Program
         panel.PauseRequested += PauseInputCapture;
         panel.CancelRequested += CancelFromPanel;
         panel.AutoPassStopRequested += StopAutoPassFromPanel;
+        panel.MarkFieldRequested += ToggleFieldMarking;
+        panel.FieldReviewRequested += RequestFieldReview;
+        panel.FieldDecisionChanged += SetFieldDecision;
+        session.FieldObservationsChanged += UpdateFieldObservations;
+        UpdateFieldObservations(FieldLearningSnapshot.Empty);
+        var fieldObservationTask = ObserveFieldsLoopAsync();
         overlay.SaveReviewedDataGrid = (name, context, review) => workspace.SaveDataGrid(name, context with { SourceBundleId = sessionId }, review);
         overlay.GridReviewActiveChanged = active =>
         {
@@ -1729,6 +1767,25 @@ internal static class Program
                     try { await clickTask.ConfigureAwait(false); }
                     catch (OperationCanceledException) when (!cancellation.IsCancellationRequested) { }
                     var command = (await commandTask.ConfigureAwait(false)).Trim().ToUpperInvariant();
+                    if (command == "REVIEW_FIELDS")
+                    {
+                        var wasPaused = session.IsInputCapturePaused;
+                        session.SetInputCapturePaused(true);
+                        panel.ShowPausedRecordingState();
+                        Interlocked.Exchange(ref fieldMarking, 0);
+                        panel.SetFieldMarking(false);
+                        if (adaptive is not null)
+                            await adaptive.DrainAsync(TimeSpan.FromSeconds(2), cancellation.Token).ConfigureAwait(false);
+                        await ObserveManualFieldsSafelyAsync(session, cancellation.Token, includePaused: true).ConfigureAwait(false);
+                        await panel.ShowFieldReview().WaitAsync(cancellation.Token).ConfigureAwait(false);
+                        manualClickCursorUtc = DateTimeOffset.UtcNow;
+                        if (!wasPaused && Volatile.Read(ref pauseRequested) == 0)
+                        {
+                            panel.ShowActiveRecordingState();
+                            session.SetInputCapturePaused(false);
+                        }
+                        continue;
+                    }
                     if (command == "EXPLORE_GRID")
                     {
                         PauseInputCapture();
@@ -1903,6 +1960,16 @@ internal static class Program
                 var recordedClicks = await clickTask.ConfigureAwait(false);
                 var recordedClick = recordedClicks[^1];
                 manualClickCursorUtc = recordedClick.TimestampUtc;
+                if (Interlocked.Exchange(ref fieldMarking, 0) != 0)
+                {
+                    var marked = session.MarkFieldAtPoint(recordedClick.X, recordedClick.Y, recordedClick.TimestampUtc);
+                    panel.SetFieldMarking(!marked);
+                    if (!marked)
+                    {
+                        Interlocked.Exchange(ref fieldMarking, 1);
+                        panel.SetStatus("That field could not be identified. Try again after the screen finishes updating.");
+                    }
+                }
                 session.AddMarker(requestedClicks == 1 ? "manual-click" : "manual-double-click");
                 var clickCaptureOutcome = AdaptiveClickCaptureOutcome.Failed;
                 var frameSequenceBeforeClickCapture = session.LatestFrameSequence;
@@ -2066,6 +2133,13 @@ internal static class Program
         }
         finally
         {
+            fieldObservationCancellation.Cancel();
+            await fieldObservationTask.ConfigureAwait(false);
+            session.FieldObservationsChanged -= UpdateFieldObservations;
+            panel.MarkFieldRequested -= ToggleFieldMarking;
+            panel.FieldReviewRequested -= RequestFieldReview;
+            panel.FieldDecisionChanged -= SetFieldDecision;
+            panel.SetFieldMarking(false);
             overlay.ExplorationRunner = null;
             overlay.RecordedFramePixels = null;
             overlay.SaveReviewedDataGrid = null;
@@ -2077,6 +2151,15 @@ internal static class Program
             panel.PauseRequested -= PauseInputCapture;
             panel.AutoPassStopRequested -= StopAutoPassFromPanel;
             Console.CancelKeyPress -= cancelHandler;
+            if (File.Exists(output) && session.FieldObservations.Fields.Count > 0)
+            {
+                try { workspace.SaveFieldObservations(sessionId, session.FieldObservations); }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    Console.Error.WriteLine("Field review is retained in the recording bundle; its map index could not be updated: " +
+                        BundleSecurity.SafeDiagnostic(ex.Message, 200));
+                }
+            }
         }
     }
 
@@ -2130,9 +2213,10 @@ internal static class Program
         // Finish is a hard boundary: clicks made while popup work drains or the
         // graph is built must never enter this bundle or start another session.
         session.SetInputCapturePaused(true);
-        panel.BeginMapBuild();
         if (adaptive is not null)
             await adaptive.DrainAsync(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(false);
+        await ReviewFieldsBeforeFinalizeAsync(session, panel, cancellationToken).ConfigureAwait(false);
+        panel.BeginMapBuild();
         return await FinalizeRecordingAsync(
             session,
             panel,
@@ -2151,9 +2235,10 @@ internal static class Program
         CancellationToken cancellationToken)
     {
         session.SetInputCapturePaused(true);
-        panel.BeginMapBuild();
         if (adaptive is not null)
             await adaptive.DrainAsync(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(false);
+        await ReviewFieldsBeforeFinalizeAsync(session, panel, cancellationToken).ConfigureAwait(false);
+        panel.BeginMapBuild();
         return await FinalizeRecordingAsync(
             session,
             panel,
@@ -2162,6 +2247,29 @@ internal static class Program
             completePartial: true,
             finalizingMessage: "Finalizing the partial recording bundle...",
             phaseOutcome: RecordingPhaseOutcome.PartialCompleted).ConfigureAwait(false);
+    }
+
+    private static async Task ObserveManualFieldsSafelyAsync(ManualRecordingSession session,
+        CancellationToken cancellationToken, bool includePaused = false)
+    {
+        try { await session.ObserveManualFieldsAsync(cancellationToken, includePaused).ConfigureAwait(false); }
+        catch (Exception ex) when (IsRecorderWorkflowRecoverable(ex) || ex is COMException or UIMaps.Recorder.Windows.RecorderException)
+        {
+            session.AddCaptureHealth("fields", "observation-unavailable",
+                "Field values could not be observed in this sample; no change was inferred.");
+        }
+    }
+
+    private static async Task ReviewFieldsBeforeFinalizeAsync(ManualRecordingSession session,
+        RecordingControlPanel panel, CancellationToken cancellationToken)
+    {
+        panel.SetFieldMarking(false);
+        panel.ShowPausedRecordingState();
+        await ObserveManualFieldsSafelyAsync(session, cancellationToken, includePaused: true).ConfigureAwait(false);
+        var snapshot = session.FieldObservations;
+        panel.SetFieldObservations(snapshot);
+        if (snapshot.Fields.Any(field => field.State == FieldObservationState.ChangeObserved || field.IsManual))
+            await panel.ShowFieldReview(recordingComplete: true).WaitAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task DrainAdaptiveForCancelAsync(AdaptiveCaptureCoordinator? adaptive)
@@ -5080,7 +5188,7 @@ internal static class Program
             if (panel.TryDequeueCommand(out var command))
             {
                 command = command.Trim().ToUpperInvariant();
-                if (command is "N" or "T" or "A" or "F" or "C" or "P" or "R" or "SKIP_AUTO" or "CONTINUE_AUTO" or "EXPLORE_GRID" or PanelCloseCommand)
+                if (command is "N" or "T" or "A" or "F" or "C" or "P" or "R" or "SKIP_AUTO" or "CONTINUE_AUTO" or "EXPLORE_GRID" or "REVIEW_FIELDS" or PanelCloseCommand)
                     return command;
             }
             if (TryReadConsoleKey(out var key))
@@ -7043,7 +7151,7 @@ internal static class WindowActivation
     }
 }
 
-internal sealed class RecordingControlPanel : IDisposable
+internal sealed partial class RecordingControlPanel : IDisposable
 {
     private const double MapContextMenuItemWidth = 204;
     private int _gridReviewVisibilityHold;
@@ -7490,8 +7598,10 @@ internal sealed class RecordingControlPanel : IDisposable
             _idleShell = BuildIdleShell();
             _activeShell = BuildActiveShell();
             _compactShell = BuildCompactShell();
+            _fieldReviewShell = BuildFieldReviewShell();
             _activeShell.Visibility = System.Windows.Visibility.Collapsed;
             _compactShell.Visibility = System.Windows.Visibility.Collapsed;
+            _fieldReviewShell.Visibility = System.Windows.Visibility.Collapsed;
             _rootScaleTransform = new System.Windows.Media.ScaleTransform(1, 1);
 
             var shellHost = new System.Windows.Controls.Grid
@@ -7502,6 +7612,7 @@ internal sealed class RecordingControlPanel : IDisposable
             shellHost.Children.Add(_idleShell);
             shellHost.Children.Add(_activeShell);
             shellHost.Children.Add(_compactShell);
+            shellHost.Children.Add(_fieldReviewShell);
 
             var contentHost = new System.Windows.Controls.Grid
             {
@@ -7552,6 +7663,7 @@ internal sealed class RecordingControlPanel : IDisposable
             _window.Closed += (_, _) =>
             {
                 _windowClosed = true;
+                CompleteFieldReviewOnClose();
                 _elapsedTimer?.Stop();
                 _closed.Set();
                 _commands.Writer.TryWrite("CLOSE");
@@ -10581,6 +10693,8 @@ internal sealed class RecordingControlPanel : IDisposable
 
     private void ApplyMode(RecordingPanelMode mode)
     {
+        if (_fieldReviewVisible && mode is RecordingPanelMode.PreStart or RecordingPanelMode.MapReady)
+            CloseFieldReview();
         _currentMode = mode;
         _allowTargetSelection = AllowsTargetSelection(_supportsTargetSelection, mode);
         SetSessionModeChooserVisibility(false, resumeMode: false);
@@ -10661,6 +10775,7 @@ internal sealed class RecordingControlPanel : IDisposable
 
         RefreshCompactShellState();
         UpdateShellVisibility();
+        RefreshFieldPanel();
     }
 
     internal static bool AllowsTargetSelection(bool supported, RecordingPanelMode mode) =>
@@ -11089,6 +11204,7 @@ internal sealed class RecordingControlPanel : IDisposable
 
     private void ApplyAutoPassState()
     {
+        RefreshFieldPanel();
         if (_currentMode == RecordingPanelMode.Paused)
         {
             if (_stopButton is not null)
@@ -11307,7 +11423,16 @@ internal sealed class RecordingControlPanel : IDisposable
         }
     }
 
-    private void ToggleCompactMode() => SetCompactMode(!_isCompactCollapsed);
+    private void ToggleCompactMode()
+    {
+        if (_fieldReviewVisible)
+        {
+            CloseFieldReview();
+            SetCompactMode(true);
+            return;
+        }
+        SetCompactMode(!_isCompactCollapsed);
+    }
 
     private void SetCompactMode(bool collapsed)
     {
@@ -11322,9 +11447,10 @@ internal sealed class RecordingControlPanel : IDisposable
 
     private void UpdateShellVisibility()
     {
-        var showActiveShell = !_isCompactCollapsed &&
+        var showReviewShell = !_isCompactCollapsed && _fieldReviewVisible;
+        var showActiveShell = !_isCompactCollapsed && !showReviewShell &&
             (_currentMode == RecordingPanelMode.Active || _currentMode == RecordingPanelMode.Paused);
-        var showIdleShell = !_isCompactCollapsed && !showActiveShell;
+        var showIdleShell = !_isCompactCollapsed && !showActiveShell && !showReviewShell;
 
         if (_idleShell is not null)
             _idleShell.Visibility = showIdleShell ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
@@ -11332,6 +11458,8 @@ internal sealed class RecordingControlPanel : IDisposable
             _activeShell.Visibility = showActiveShell ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
         if (_compactShell is not null)
             _compactShell.Visibility = _isCompactCollapsed ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+        if (_fieldReviewShell is not null)
+            _fieldReviewShell.Visibility = showReviewShell ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
     }
 
     private static void SetTileState(System.Windows.Controls.Button? button, bool enabled, bool selected)
@@ -11397,6 +11525,7 @@ internal sealed class RecordingControlPanel : IDisposable
 
     private void ApplyRecordingControlsLock(bool locked)
     {
+        RefreshFieldPanel();
 
         if (_activeShell is not null)
             _activeShell.IsHitTestVisible = !locked;
@@ -12669,6 +12798,10 @@ internal sealed class RecordingControlPanel : IDisposable
         System.Windows.Controls.Grid.SetRow(stageBadge, 1);
         layout.Children.Add(stageBadge);
         ApplyActiveStageBadge("capture");
+
+        var fieldsPanel = BuildFieldsPanel();
+        System.Windows.Controls.Grid.SetRow(fieldsPanel, 2);
+        layout.Children.Add(fieldsPanel);
 
         _skipAutoButton = BuildActiveActionButton(
             "Continue Auto",

@@ -16,8 +16,8 @@
       "repository": "https://github.com/AI-Successors/uimaps-recorder",
       "commit": "feb951d9f69c3aac11ed4a293802040697f35009",
       "source": "src/UIMaps.Recorder.ProviderProbe/UiaCachedCapture.cs",
-      "sha256": "1b2182f37f6208fdf630dc4bda582da963ab7a6caa7b260a579d46002361d13a",
-      "disposition": "imported for the opt-in capture-optimized profile; existing map profiles retain their original traversal"
+      "sha256": "1379390c47ef52071ffff5f9ca6937086e5fdee6c1c463e288a58c9b15a38399",
+      "disposition": "reviewed-adaptation: manual field evidence presence and safe value acquisition; original import reference retained"
     },
     {
       "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.ProviderProbe/UiaCaptureTraversal.cs",
@@ -73,8 +73,8 @@
       "repository": "https://github.com/IlmenAI/UI-Atlas",
       "commit": "8d6514273cfcb25f01feac2d492286f6fd88e89a",
       "source": "vendor/uimaps/uimaps-protocol/proto/uimaps/v1/sensor.proto",
-      "sha256": "7036628294494b8ad859d120eacdda0521b2aa0cda17038719e2eeba8a93b176",
-      "disposition": "atlas-integrated-source",
+      "sha256": "e3d85e8062bcc08eb2b2518bbb70db40b9c0a8fc35703d29aa5cabc2125cf917",
+      "disposition": "reviewed-adaptation: manual field evidence presence and safe value acquisition; original import reference retained",
       "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
     },
     {
@@ -331,11 +331,11 @@
     },
     {
       "target": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/UiMapConstructionEngine.cs",
-      "repository": "https://github.com/AI-Successors/uimaps-map",
-      "commit": "d2e1c1eb8b01f3810bd83520a543c597f5455bea",
-      "source": "src/UIMaps.Map.Core/UiMapConstructionEngine.cs",
-      "sha256": "3b6798057d333b71435907f7307f5d93d20ddff9675b77d1254064d963e35245",
-      "disposition": "adapted-source: native recorder integration, exact source provenance and explicit workspace snapshot handoff; Phase 4.2.14 positive-geometry surface eligibility and ownership-context retention",
+      "repository": "https://github.com/IlmenAI/UI-Atlas",
+      "commit": "57e94811dec3e0b7dada891461b2604a5f736e5a",
+      "source": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/UiMapConstructionEngine.cs",
+      "sha256": "118f5a4dfbebf8151c6e87b4a26e3a683b7872b1e95cb776a8a677756b71711a",
+      "disposition": "baseline synchronization: unchanged source from the pinned Atlas revision; correct stale import checksum",
       "reviewEvidence": "docs/2026-10-23-grid-discovery-repair.md"
     },
     {
@@ -349,10 +349,10 @@
     {
       "target": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/UiMapService.cs",
       "repository": "https://github.com/IlmenAI/UI-Atlas",
-      "commit": "8d6514273cfcb25f01feac2d492286f6fd88e89a",
+      "commit": "57e94811dec3e0b7dada891461b2604a5f736e5a",
       "source": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/UiMapService.cs",
-      "sha256": "0948a0b3902ed2873e0548cf156386689d67ae91ff20982fbda6ac7b5a8e1972",
-      "disposition": "atlas-integrated-source"
+      "sha256": "534ad4b6ac67c7d4bd85b670194cd6a026b5954213279c247e2001bd4bd4b3b8",
+      "disposition": "baseline synchronization: unchanged source from the pinned Atlas revision; correct stale import checksum"
     },
     {
       "target": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/UiMapStore.cs",
@@ -411,8 +411,8 @@
       "repository": "https://github.com/AI-Successors/uimaps-recorder",
       "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
       "source": "src/UIMaps.Recorder.Windows/AccessibilityPacketMerger.cs",
-      "sha256": "5f90f54d24baf71b7c312525e2db8dfec7c4f27b75a59e682b7705cfe1f3138f",
-      "disposition": "unmodified-source"
+      "sha256": "d2d6d10e8b11b6575407f54a3ec866688a3f83457b65eaff14824ef9515fbcd4",
+      "disposition": "reviewed-adaptation: manual field evidence presence and safe value acquisition; original import reference retained"
     },
     {
       "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/CaptureProfiles.cs",
@@ -444,8 +444,8 @@
       "repository": "https://github.com/AI-Successors/uimaps-recorder",
       "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
       "source": "src/UIMaps.Recorder.Windows/NativeAccessibilitySupplement.cs",
-      "sha256": "d4d5b40a00b85b54fb0e1e8e3301e43af03d8f79b9dfa7966955438242b35f9c",
-      "disposition": "unmodified-source"
+      "sha256": "f7c580444bec7b5d203ab1d0a2c96defdcc3f23354a36e8279b27488fbd33c13",
+      "disposition": "reviewed-adaptation: manual field evidence presence and safe value acquisition; original import reference retained"
     },
     {
       "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/NativeDisplayCatalog.cs",
@@ -511,8 +511,8 @@
       "repository": "https://github.com/AI-Successors/uimaps-recorder",
       "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
       "source": "src/UIMaps.Recorder.ProviderProbe/Program.cs",
-      "sha256": "dfb5ae3c2bcc794f201a11915fec1018c68cc257696b412f12291f24046e8872",
-      "disposition": "reviewed-adaptation: separate explicit candidate UIA and MSAA worker operations; original dispatch preserved",
+      "sha256": "2686786a1ed5e9c8871a23048c36667a74d4832f82b5291ad38a7e902814b24f",
+      "disposition": "reviewed-adaptation: manual field evidence presence and safe value acquisition; original import reference retained",
       "reviewEvidence": "tests/UiAtlas.Core.Windows.Tests/MsaaRootAliasTests.cs; tests/UiAtlas.Core.Windows.Tests/OptimizedCaptureProfileTests.cs"
     },
     {
@@ -569,8 +569,8 @@
       "repository": "https://github.com/AI-Successors/uimaps-recorder",
       "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
       "source": "new shared implementation; not present at base commit",
-      "sha256": "c7f6cad123744d940ec54efd8d91278a9e97feceb0b7eb10170f5080eee27744",
-      "disposition": "reviewed-adaptation: opt-in, identity-proven client-root reuse within one capture; fresh independent alias IDs and complete fallback",
+      "sha256": "4b0081e67aeaa4ec08724ea7b2991e40da7f108160843f77dc5804beb2930221",
+      "disposition": "reviewed-adaptation: manual field evidence presence and safe value acquisition; original import reference retained",
       "reviewEvidence": "tests/UiAtlas.Core.Windows.Tests/MsaaRootAliasTests.cs; tests/UiAtlas.Core.Windows.Tests/OptimizedCaptureProfileTests.cs"
     },
     {

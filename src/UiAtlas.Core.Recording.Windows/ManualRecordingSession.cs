@@ -2237,6 +2237,7 @@ public sealed partial class ManualRecordingSession : IAsyncDisposable
             _interactions.Clear();
             _interactions.AddRange(orderedInteractions);
             FinalizeFrameInteractionReferences(_writer, _frameObservations, _interactions, _health);
+            WriteFieldEvidence();
             var ended = DateTimeOffset.UtcNow;
             var sessionId = Path.GetFileNameWithoutExtension(_outputPath);
             if (string.IsNullOrWhiteSpace(sessionId)) sessionId = Guid.NewGuid().ToString("N");

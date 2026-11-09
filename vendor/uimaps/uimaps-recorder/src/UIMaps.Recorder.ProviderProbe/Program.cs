@@ -210,7 +210,13 @@ static AccessibilityNodeRecord ReadNode(AutomationElement element, string id, st
         try { var value = element.GetCurrentPropertyValue(property, true) is bool flag && flag; read++; return value; } catch { failed++; return false; }
     }
 
-    var isPassword = ReadBool(AutomationElement.IsPasswordProperty);
+    bool? isPassword = null;
+    try
+    {
+        if (element.GetCurrentPropertyValue(AutomationElement.IsPasswordProperty, true) is bool observedPassword)
+            isPassword = observedPassword;
+    }
+    catch { }
     var bounds = Rect.Empty;
     try { bounds = element.Current.BoundingRectangle; } catch { }
     var record = new AccessibilityNodeRecord
@@ -228,19 +234,19 @@ static AccessibilityNodeRecord ReadNode(AutomationElement element, string id, st
         BoundsPx = new RectPx { X = (int)Math.Round(bounds.X), Y = (int)Math.Round(bounds.Y), Width = (int)Math.Round(bounds.Width), Height = (int)Math.Round(bounds.Height) },
         IsEnabled = ReadBool(AutomationElement.IsEnabledProperty),
         IsOffscreen = ReadBool(AutomationElement.IsOffscreenProperty),
-        IsPassword = isPassword,
-        ValueEvidence = string.Empty,
         Health = ProtocolHealth.Complete(),
         PropertyCoverage = new PropertyCoverage(),
     };
+    if (isPassword is { } knownPassword) record.IsPassword = knownPassword;
     try { record.RuntimeIdEvidence.AddRange(element.GetRuntimeId()); } catch { }
-    if (!isPassword)
+    if (isPassword == false)
     {
         try
         {
             if (element.TryGetCurrentPattern(ValuePattern.Pattern, out var pattern) && pattern is ValuePattern valuePattern)
             {
                 record.ValueEvidence = valuePattern.Current.Value;
+                record.IsReadOnly = valuePattern.Current.IsReadOnly;
             }
         }
         catch { }

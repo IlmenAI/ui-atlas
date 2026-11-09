@@ -123,7 +123,8 @@ internal sealed class MapperLegendWindow : Window
                 (MapperHighlightKind.Uia, "━", "UIA / MSAA", "#0A84FF"),
                 (MapperHighlightKind.ComputerVision, "⌜", "Computer vision", "#8B5CF6"),
                 (MapperHighlightKind.NativeGrid, "▦", "Native grid", "#008F83"),
-                (MapperHighlightKind.GridCandidate, "┄", "Grid candidate", "#C98208")
+                (MapperHighlightKind.GridCandidate, "┄", "Grid candidate", "#C98208"),
+                (MapperHighlightKind.Fields, "▤", "Fields", "#0A84FF")
             })
             {
                 var text = new TextBlock { Text = label, Foreground = AtlasFluent.Brush(AtlasFluent.Ink), FontSize = 13 };
@@ -143,6 +144,13 @@ internal sealed class MapperLegendWindow : Window
                 {
                     outline.StrokeDashArray = new DoubleCollection { 4, 3 };
                 }
+                else if (kind == MapperHighlightKind.Fields)
+                {
+                    swatch.Children.Add(new System.Windows.Shapes.Line
+                        { X1 = 5, X2 = 21, Y1 = 7, Y2 = 7, Stroke = AtlasFluent.Brush(color), StrokeThickness = 1 });
+                    swatch.Children.Add(new System.Windows.Shapes.Line
+                        { X1 = 5, X2 = 16, Y1 = 11, Y2 = 11, Stroke = AtlasFluent.Brush(color), StrokeThickness = 1 });
+                }
                 row.Children.Add(swatch); row.Children.Add(text);
                 var toggle = new CheckBox { Content = row, IsChecked = _isOverlayVisible(kind),
                     Margin = new Thickness(0, 5, 0, 5), Cursor = Cursors.Hand,
@@ -152,6 +160,8 @@ internal sealed class MapperLegendWindow : Window
                 {
                     text.Opacity = toggle.IsChecked == true ? 1 : 0.45;
                     toggle.ToolTip = $"{(toggle.IsChecked == true ? "Hide" : "Show")} {label} overlays";
+                    if (kind == MapperHighlightKind.Fields)
+                        toggle.ToolTip += " · Dashed: suggested; solid: change observed. Observation continues while hidden.";
                 }
                 toggle.Checked += (_, _) => { UpdateAppearance(); _setOverlayVisible(kind, true); };
                 toggle.Unchecked += (_, _) => { UpdateAppearance(); _setOverlayVisible(kind, false); };

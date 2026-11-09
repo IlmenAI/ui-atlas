@@ -101,10 +101,8 @@ public static class NativeMsaaProvider
             }
             node.Name = Read(() => accessible.get_accName(child) ?? "", "");
             var role = Read(() => Convert.ToInt32(accessible.get_accRole(child)), 0);
-            var state = Read(() => Convert.ToInt32(accessible.get_accState(child)), 0);
             node.ControlType = Role(role); node.LocalizedControlType = "MSAA.Role" + role;
-            node.IsEnabled = (state & 1) == 0; node.IsOffscreen = (state & 0x18000) != 0;
-            node.IsPassword = (state & 0x20000000) != 0;
+            ReadState(node, () => accessible.get_accState(child));
             node.BoundsPx = Read(() => { accessible.accLocation(out var x, out var y, out var w, out var h, child);
                 return new RectPx { X = x, Y = y, Width = Math.Max(0, w), Height = Math.Max(0, h) }; }, new RectPx());
             node.NativeControlIdEvidence = child is int id ? id.ToString(System.Globalization.CultureInfo.InvariantCulture) : "";
@@ -128,6 +126,29 @@ public static class NativeMsaaProvider
                 if (packet.Nodes.Count > includedBefore) node.ChildCountIncluded++;
             }
         }
+    }
+
+    internal static void ReadState(AccessibilityNodeRecord node, Func<object?> readState)
+    {
+        var coverage = node.PropertyCoverage ??= new PropertyCoverage();
+        coverage.Attempted++;
+        node.IsEnabled = true;
+        node.IsOffscreen = false;
+        node.ClearIsPassword();
+        node.ClearIsReadOnly();
+        try
+        {
+            var raw = readState();
+            if (raw is null) { coverage.Unsupported++; return; }
+            var state = Convert.ToInt32(raw, System.Globalization.CultureInfo.InvariantCulture);
+            coverage.Read++;
+            node.IsEnabled = (state & 1) == 0;
+            node.IsOffscreen = (state & 0x18000) != 0;
+            node.IsPassword = (state & 0x20000000) != 0;
+            node.IsReadOnly = (state & 0x40) != 0;
+        }
+        catch (Exception ex) when (ex is COMException or InvalidCastException or ArgumentException or OverflowException or FormatException)
+        { coverage.Failed++; }
     }
 
     internal static bool TryAppendRootAlias(AccessibilityPacket packet, IReadOnlyList<AccessibilityNodeRecord> source, int maximum)

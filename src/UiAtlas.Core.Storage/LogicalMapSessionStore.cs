@@ -7,6 +7,11 @@ public sealed record LogicalMapSessionRecording(
     string SessionId,
     string RecordingPath);
 
+public sealed record FieldLearningSession(
+    string SessionId,
+    UiAtlas.Core.Contracts.FieldLearningSnapshot Observation,
+    DateTimeOffset UpdatedUtc);
+
 public sealed record LogicalMapSessionManifest(
     string FormatVersion,
     string LogicalMapId,
@@ -17,7 +22,8 @@ public sealed record LogicalMapSessionManifest(
     AutoMappingCampaignState? AutoMapping = null,
     IReadOnlyList<QuickMapSnapshotState>? QuickMapSnapshots = null,
     SpeculativePlanningState? SpeculativePlanning = null,
-    IReadOnlyList<UiAtlas.Core.Contracts.SavedDataGridReview>? DataGrids = null);
+    IReadOnlyList<UiAtlas.Core.Contracts.SavedDataGridReview>? DataGrids = null,
+    IReadOnlyList<FieldLearningSession>? FieldLearningSessions = null);
 
 public enum SpeculativePredictionStatus
 {

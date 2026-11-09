@@ -25,7 +25,7 @@ public sealed partial class ManualRecordingSession
         RevalidateTarget();
         var sequence = persist ? Interlocked.Increment(ref _frameSequence) : 0;
         var observation = NativeRecorderCapture.Project(episode, _target, sequence, trigger, options);
-        if (!persist) return observation;
+        if (!persist) { RememberFieldObservation(observation); return observation; }
         var pixels = episode.SensorPackets.Single(packet => packet.Screenshot is not null).Screenshot.ImageBlob.ToByteArray();
         lock (_stateGate)
         {
@@ -45,6 +45,7 @@ public sealed partial class ManualRecordingSession
                 observation.CapturePhase, observation.AutomationStatus, StructuralFingerprint(observation)));
             _frameObservations.Add(observation);
         }
+        RememberFieldObservation(observation);
         return observation;
     }
 }

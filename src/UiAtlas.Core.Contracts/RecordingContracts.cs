@@ -162,7 +162,15 @@ public sealed record AutomationObservation(
     int? TableColumn = null,
     long? QueryWindowHwnd = null,
     long? NativeWindowHwnd = null,
-    string? ScopeStatus = null);
+    string? ScopeStatus = null,
+    bool? IsPassword = null,
+    bool? IsReadOnly = null,
+    string? Value = null,
+    bool ValueAvailable = false,
+    string? ProviderRuntimeId = null,
+    string? ProviderId = null,
+    string? SelectionValue = null,
+    bool SelectionAvailable = false);
 
 public sealed record ControlEvidenceObservation(
     string EvidenceId,

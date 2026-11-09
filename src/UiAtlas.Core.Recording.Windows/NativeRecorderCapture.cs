@@ -7,7 +7,7 @@ namespace UiAtlas.Core.Recording.Windows;
 
 /// <summary>The native episode is the acquisition authority. Atlas observations
 /// are only its presentation projection.</summary>
-public sealed class NativeRecorderCapture
+public sealed partial class NativeRecorderCapture
 {
     private readonly string _providerPath;
     private readonly CapturePolicyRequest _profileRequest;
@@ -175,13 +175,8 @@ public sealed class NativeRecorderCapture
                     DateTimeOffset from, DateTimeOffset to, string? attemptStatus = null)
                 {
                     byId.TryGetValue(windowId, out var owner);
-                    var controls = response.Nodes.Select(node => new AutomationObservation(node.AccessibilityEvidenceId, node.ParentEvidenceId,
-                        Text(node.AutomationId, 512), Text(node.Name, 4096), Text(node.ControlType.StartsWith("ControlType.", StringComparison.Ordinal)
-                            ? node.ControlType : "ControlType." + node.ControlType, 512),
-                        Text(node.ClassName, 512), Rect(node.BoundsPx), node.IsEnabled, node.IsOffscreen, "",
-                        WindowHwnd: Handle(owner?.WindowHandleEvidence), SupportedPatterns: node.SupportedPatterns.ToArray(),
-                        QueryWindowHwnd: owner is null ? null : Handle(owner.WindowHandleEvidence),
-                        NativeWindowHwnd: Handle(node.NativeWindowHandleEvidence), ScopeStatus: owner is null ? "unverified" : null)).ToArray();
+                    var controls = response.Nodes.Select(node => ProjectControl(node,
+                        owner is null ? null : Handle(owner.WindowHandleEvidence))).ToArray();
                     streams.Add(new(attemptId + ":" + provider + ":" + windowId, provider, from, to,
                         attemptStatus switch { "timed_out" => "timeout", "provider_failed" => "failed", "cancelled" => "cancelled", _ => Status(response.Health) }, controls, response.NodesObserved,
                         response.NodeLimited || response.DepthLimited || response.TimeLimited || response.WindowLimited,
@@ -212,6 +207,35 @@ public sealed class NativeRecorderCapture
                 "UIMaps.Recorder.Windows", stability, episode.ObservationConsistency?.Reason ?? "legacy-native-survey-unverified",
                 observations.Select(window => new RawWindowCoverage(window.Hwnd, window.Bounds,
                     RawObservationSemantics.Coverage(window.Bounds, Rect(episode.DisplayDescriptor.BoundsPx)))).ToArray()), WindowImages: images.Length > 0 ? images : null, NativeEpisodeEntry: nativeEntry);
+    }
+
+    internal static AutomationObservation ProjectControl(AccessibilityNodeRecord node, long? windowHwnd)
+    {
+        var safeContent = node.HasIsPassword && !node.IsPassword;
+        var radioSelection = safeContent && node.HasIsSelected &&
+            node.ControlType is "RadioButton" or "ControlType.RadioButton";
+        return new(node.AccessibilityEvidenceId, node.ParentEvidenceId,
+            Text(node.AutomationId, 512), Text(node.Name, 4096),
+            Text(node.ControlType.StartsWith("ControlType.", StringComparison.Ordinal)
+                ? node.ControlType : "ControlType." + node.ControlType, 512),
+            Text(node.ClassName, 512), Rect(node.BoundsPx), node.IsEnabled, node.IsOffscreen, "",
+            WindowHwnd: windowHwnd ?? 0, SupportedPatterns: node.SupportedPatterns.ToArray(),
+            HasKeyboardFocus: node.HasHasKeyboardFocus && node.HasKeyboardFocus,
+            IsSelected: node.HasIsSelected && node.IsSelected,
+            ToggleState: safeContent && node.HasToggleState ? node.ToggleState.ToString(System.Globalization.CultureInfo.InvariantCulture) : null,
+            ExpandCollapseState: node.HasExpandCollapseState ? node.ExpandCollapseState.ToString(System.Globalization.CultureInfo.InvariantCulture) : null,
+            TableRow: node.HasGridRow ? node.GridRow : null, TableColumn: node.HasGridColumn ? node.GridColumn : null,
+            QueryWindowHwnd: windowHwnd, NativeWindowHwnd: Handle(node.NativeWindowHandleEvidence),
+            ScopeStatus: windowHwnd is null ? "unverified" : null,
+            IsPassword: node.HasIsPassword ? node.IsPassword : null,
+            IsReadOnly: node.HasIsReadOnly ? node.IsReadOnly : null,
+            Value: safeContent && node.HasValueEvidence ? Text(node.ValueEvidence, 4096) : null,
+            ValueAvailable: safeContent && node.HasValueEvidence,
+            ProviderRuntimeId: node.RuntimeIdEvidence.Count > 0 ? string.Join('.', node.RuntimeIdEvidence) : null,
+            ProviderId: node.ProviderId,
+            SelectionValue: safeContent && node.HasSelectionEvidence ? Text(node.SelectionEvidence, 4096) :
+                radioSelection ? node.IsSelected ? "Selected" : "Not selected" : null,
+            SelectionAvailable: safeContent && node.HasSelectionEvidence || radioSelection);
     }
 
     private static string Status(Health? health) => health?.State == HealthState.Complete ? "ok" : "partial";

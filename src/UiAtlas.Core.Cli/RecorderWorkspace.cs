@@ -13,6 +13,7 @@ internal sealed class RecorderWorkspace
     private readonly List<QuickMapSnapshotState> _quickMapSnapshots = [];
     private SpeculativePlanningState? _speculativePlanning;
     private IReadOnlyList<SavedDataGridReview> _dataGrids = [];
+    private IReadOnlyList<FieldLearningSession> _fieldLearningSessions = [];
 
     public RecorderWorkspace(
         string logicalMapId,
@@ -48,6 +49,14 @@ internal sealed class RecorderWorkspace
     public IReadOnlyList<QuickMapSnapshotState> QuickMapSnapshots => _quickMapSnapshots;
     public SpeculativePlanningState? SpeculativePlanning => _speculativePlanning;
     public IReadOnlyList<SavedDataGridReview> DataGrids => _dataGrids;
+
+    public void SaveFieldObservations(string sessionId, FieldLearningSnapshot snapshot)
+    {
+        var updated = _fieldLearningSessions.Where(session => session.SessionId != sessionId)
+            .Append(new FieldLearningSession(sessionId, snapshot, DateTimeOffset.UtcNow)).ToArray();
+        LogicalMapSessionStore.Save(SessionManifestPath, CurrentManifest() with { FieldLearningSessions = updated });
+        _fieldLearningSessions = updated;
+    }
 
     public void SaveDataGrid(string name, DataGridReviewContext context, GridSchemaReview review)
     {
@@ -237,6 +246,7 @@ internal sealed class RecorderWorkspace
             manifest.SpeculativePlanning);
         workspace._recordings.AddRange(manifest.Recordings);
         workspace._dataGrids = manifest.DataGrids ?? [];
+        workspace._fieldLearningSessions = manifest.FieldLearningSessions ?? [];
         return workspace;
     }
 
@@ -251,7 +261,8 @@ internal sealed class RecorderWorkspace
             _autoMapping,
             _quickMapSnapshots.ToArray(),
             _speculativePlanning,
-            _dataGrids);
+            _dataGrids,
+            _fieldLearningSessions);
 
     private static string SafeId(string rawBaseName, string processName)
     {

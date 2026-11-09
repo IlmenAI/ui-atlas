@@ -1,10 +1,41 @@
 using UiAtlas.Core.Cli;
+using UiAtlas.Core.Contracts;
+using UiAtlas.Core.Recording;
 using UiAtlas.Core.Storage;
 
 namespace UiAtlas.Core.Tests;
 
 public sealed class RecorderWorkspaceTests
 {
+    [Fact]
+    public void ReviewedFieldsSurviveWorkspaceResumeAndLaterCampaignSaves()
+    {
+        using var temp = new TempDirectory();
+        var manifestPath = Path.Combine(temp.Path, "fields.session.json");
+        var mapPath = Path.Combine(temp.Path, "fields.db");
+        var workspace = new RecorderWorkspace("fields", "Fixture", mapPath,
+            Path.Combine(temp.Path, "fields.json"), manifestPath,
+            ordinal => new RecorderSessionTarget("fields-" + ordinal, Path.Combine(temp.Path, $"fields-{ordinal}.mlrec")));
+        var field = new FieldObservation("field-1", "Name", FieldKind.Text, new RectI(10, 10, 80, 20),
+            FieldObservationState.ChangeObserved, FieldReviewDecision.Keep, false, true,
+            "Before", "After", [], ["AutomationId"], "Observed provider runtime ID", 1, 2, 42, "observed-control", true);
+        workspace.SaveFieldObservations("fields-1", new(FieldLearningSnapshot.CurrentFormat, [field]));
+        workspace.AddCompletedSession("fields-1", Path.Combine(temp.Path, "fields-1.mlrec"));
+
+        var resumed = RecorderWorkspace.CreateExistingWorkspace(mapPath, Path.ChangeExtension(mapPath, ".json"),
+            manifestPath, LogicalMapSessionStore.Load(manifestPath));
+        resumed.SaveAutoMapping(AutoMappingCampaignState.Empty(DateTimeOffset.UtcNow));
+        resumed.SaveFieldObservations("fields-2", FieldLearningSnapshot.Empty);
+
+        var saved = LogicalMapSessionStore.Load(manifestPath);
+        Assert.Equal(2, saved.FieldLearningSessions!.Count);
+        var retained = Assert.Single(saved.FieldLearningSessions[0].Observation.Fields);
+        Assert.Equal(FieldReviewDecision.Keep, retained.Decision);
+        Assert.Equal("After", retained.AfterValue);
+        Assert.Single(saved.Recordings);
+        Assert.NotNull(saved.AutoMapping);
+    }
+
     [Fact]
     public void ExistingWorkspaceAllocatesResumeRecordingBesideExistingBundles()
     {

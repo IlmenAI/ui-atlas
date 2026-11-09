@@ -124,7 +124,6 @@ public static class NativeAccessibilitySupplement
                 IsEnabled = fact.Enabled,
                 IsOffscreen = !fact.Visible,
                 IsPassword = isPassword,
-                ValueEvidence = ValueFor(controlType, fact.Text, isPassword),
                 ProviderId = ProviderId,
                 NativeWindowHandleEvidence = fact.Handle.ToString(CultureInfo.InvariantCulture),
                 NativeControlIdEvidence = fact.ControlId.ToString(CultureInfo.InvariantCulture),
@@ -132,6 +131,7 @@ public static class NativeAccessibilitySupplement
                 Health = ProtocolHealth.Complete(),
                 PropertyCoverage = new PropertyCoverage { Attempted = 7, Read = 7 },
             };
+            if (ValueFor(controlType, fact.Text, isPassword) is { } value) node.ValueEvidence = value;
             node.RuntimeIdEvidence.Add(RuntimeIdMarker);
             node.RuntimeIdEvidence.Add(unchecked((int)fact.Handle));
             node.RuntimeIdEvidence.Add(unchecked((int)(fact.Handle >> 32)));
@@ -285,8 +285,10 @@ public static class NativeAccessibilitySupplement
     private static string NameFor(string controlType, string text, bool password) =>
         password || controlType is "Edit" or "ComboBox" ? string.Empty : text;
 
-    private static string ValueFor(string controlType, string text, bool password) =>
-        !password && controlType is "Edit" or "ComboBox" ? text : string.Empty;
+    // GetWindowText cannot distinguish an empty field from an unsupported cross-process
+    // control read. Only a non-empty native caption supplies value evidence here.
+    private static string? ValueFor(string controlType, string text, bool password) =>
+        !password && controlType is "Edit" or "ComboBox" && text.Length > 0 ? text : null;
 
     private static bool Contains(string value, params string[] candidates) =>
         candidates.Any(candidate => value.Contains(candidate, StringComparison.OrdinalIgnoreCase));

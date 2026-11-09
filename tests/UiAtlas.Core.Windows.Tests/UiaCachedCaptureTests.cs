@@ -203,6 +203,114 @@ public sealed class UiaCachedCaptureTests
         // fields never invoke the separate provider value delegate.
     }
 
+    [Fact]
+    public void EmptyValueIsAnObservationWhileUnavailableValueHasNoPresence()
+    {
+        var values = Metadata();
+        values[AutomationElement.IsValuePatternAvailableProperty] = true;
+
+        var empty = Read(values, () => "");
+        var missing = Read(values, () => null);
+
+        Assert.True(empty.HasValueEvidence);
+        Assert.Equal("", empty.ValueEvidence);
+        Assert.True(empty.HasIsPassword);
+        Assert.False(empty.IsPassword);
+        Assert.False(missing.HasValueEvidence);
+        Assert.Equal(0, missing.PropertyCoverage.Failed);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ExplicitReadOnlyStatePreservesFalseAndTrue(bool readOnly)
+    {
+        var values = Metadata();
+        values[AutomationElement.IsValuePatternAvailableProperty] = true;
+        values[ValuePattern.IsReadOnlyProperty] = readOnly;
+
+        var node = Read(values, () => "value");
+
+        Assert.True(node.HasIsReadOnly);
+        Assert.Equal(readOnly, node.IsReadOnly);
+    }
+
+    [Fact]
+    public void UnsupportedReadOnlyStateRemainsUnknown()
+    {
+        var values = Metadata();
+        values[AutomationElement.IsValuePatternAvailableProperty] = true;
+        values[ValuePattern.IsReadOnlyProperty] = AutomationElement.NotSupported;
+
+        var node = Read(values, () => "value");
+
+        Assert.False(node.HasIsReadOnly);
+        Assert.Equal(0, node.PropertyCoverage.Failed);
+    }
+
+    [Theory]
+    [InlineData("range")]
+    [InlineData("document")]
+    public void RangeAndDocumentCapabilitiesAllowTheirValueRead(string kind)
+    {
+        var values = Metadata();
+        values[kind == "range" ? AutomationElement.IsRangeValuePatternAvailableProperty :
+            AutomationElement.IsTextPatternAvailableProperty] = true;
+        values[AutomationElement.ControlTypeProperty] = kind == "range" ? ControlType.Slider : ControlType.Document;
+        if (kind == "range") values[RangeValuePattern.IsReadOnlyProperty] = false;
+        var reads = 0;
+
+        var node = Read(values, () => { reads++; return "observed"; });
+
+        Assert.Equal(1, reads);
+        Assert.True(node.HasValueEvidence);
+        Assert.Equal("observed", node.ValueEvidence);
+        Assert.DoesNotContain(ValuePattern.Pattern.ProgrammaticName, node.SupportedPatterns);
+        if (kind == "range") { Assert.True(node.HasIsReadOnly); Assert.False(node.IsReadOnly); }
+    }
+
+    [Theory]
+    [InlineData("known", true)]
+    [InlineData("password", false)]
+    [InlineData("unknown", false)]
+    public void SelectionReadsRequirePositivelyKnownNonPasswordState(string privacy, bool expectedRead)
+    {
+        var values = Metadata();
+        values[AutomationElement.IsSelectionPatternAvailableProperty] = true;
+        values[AutomationElement.IsPasswordProperty] = privacy switch
+        {
+            "known" => false,
+            "password" => true,
+            _ => AutomationElement.NotSupported
+        };
+        var reads = 0;
+
+        var node = UiaCachedCapture.ReadNode(property => values[property], () => null, _ => false,
+            () => true, "node", "parent", "window", readSelection: () => { reads++; return ""; });
+
+        Assert.Equal(expectedRead ? 1 : 0, reads);
+        Assert.Equal(expectedRead, node.HasSelectionEvidence);
+        if (expectedRead) Assert.Equal("", node.SelectionEvidence);
+        if (privacy == "unknown") Assert.False(node.HasIsPassword);
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void MetadataOnlyOrExpiredBudgetNeverStartsSelectionRead(bool readValues, bool hasTime)
+    {
+        var values = Metadata();
+        values[AutomationElement.IsSelectionPatternAvailableProperty] = true;
+        var reads = 0;
+
+        var node = UiaCachedCapture.ReadNode(property => values[property], () => null, _ => false,
+            () => hasTime, "node", "parent", "window", readValues: readValues,
+            readSelection: () => { reads++; return "must not read"; });
+
+        Assert.Equal(0, reads);
+        Assert.False(node.HasSelectionEvidence);
+    }
+
     private static AccessibilityNodeRecord Read(Dictionary<AutomationProperty, object?> values, Func<string?> value) =>
         UiaCachedCapture.ReadNode(property => values[property], value, _ => false, () => true, "node", "parent", "window");
 
@@ -211,6 +319,8 @@ public sealed class UiaCachedCaptureTests
         var values = new Dictionary<AutomationProperty, object?>
         {
             [AutomationElement.IsPasswordProperty] = false,
+            [ValuePattern.IsReadOnlyProperty] = AutomationElement.NotSupported,
+            [RangeValuePattern.IsReadOnlyProperty] = AutomationElement.NotSupported,
             [AutomationElement.HasKeyboardFocusProperty] = false,
             [AutomationElement.AutomationIdProperty] = "fixture-id",
             [AutomationElement.ControlTypeProperty] = ControlType.Edit,

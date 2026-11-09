@@ -95,8 +95,10 @@ message AccessibilityNodeRecord {
   RectPx bounds_px = 10;
   bool is_enabled = 11;
   bool is_offscreen = 12;
-  bool is_password = 13;
-  string value_evidence = 14;
+  // Presence matters: unknown password status is not false, and an unread
+  // value is not the same observation as a successfully read empty value.
+  optional bool is_password = 13;
+  optional string value_evidence = 14;
   int32 child_count_observed = 15;
   int32 child_count_included = 16;
   Health health = 17;
@@ -115,6 +117,8 @@ message AccessibilityNodeRecord {
   // Native focus and caret owned this exact HWND at both ends of the focused
   // acquisition. This is editing-owner evidence, not a UIA pattern or receipt.
   optional bool native_caret_owner_confirmed = 29;
+  optional bool is_read_only = 30;
+  optional string selection_evidence = 31;
 }
 
 message AccessibilityPacket {

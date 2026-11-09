@@ -17,9 +17,13 @@ internal sealed partial class RecordingHighlightOverlay
     private IReadOnlyList<AutomationObservation> _mapperMsaaEvidence = [];
     private IReadOnlyList<MapperHighlight> _mapperVisualGrids = [];
     private IReadOnlyList<AutomationObservation> _mapperControls = [];
+    private IReadOnlyList<FieldObservation> _fieldObservations = [];
+    private FrameObservation? _fieldSourceFrame;
+    private WindowObservation? _fieldSourceSurface;
+    private bool _fieldSourceMatchesLiveSurface;
     private long _mapperObservationRevision;
     private long _mapperVisualEpoch;
-    private readonly HashSet<MapperHighlightKind> _hiddenMapperKinds = [];
+    private readonly HashSet<MapperHighlightKind> _hiddenMapperKinds = [MapperHighlightKind.Fields];
     private readonly Dictionary<string, Window> _gridHitWindows = new(StringComparer.Ordinal);
     private MapperGridInspector? _gridInspector;
     private MapperLegendWindow? _mapperLegend;
@@ -43,6 +47,28 @@ internal sealed partial class RecordingHighlightOverlay
     internal MapperGridInspector? GridInspector => _gridInspector;
     internal MapperLegendWindow? MapperLegend => _mapperLegend;
     internal IReadOnlyCollection<Window> GridHitWindows => _gridHitWindows.Values;
+
+    internal void SetFieldObservations(IReadOnlyList<FieldObservation> fields, FrameObservation? sourceFrame = null)
+    {
+        var snapshot = fields.ToArray();
+        Post(() =>
+        {
+            _fieldObservations = snapshot;
+            _fieldSourceFrame = sourceFrame;
+            _fieldSourceSurface = sourceFrame is null ? null : ResolveMapperSurface(sourceFrame);
+            _fieldSourceMatchesLiveSurface = false;
+            _mapperHighlights = _mapperHighlights.Where(item => item.Kind != MapperHighlightKind.Fields)
+                .Concat(CurrentFieldHighlights(_mapperSurfaceHwnd)).ToArray();
+            RefreshMapperTarget();
+            RenderHighlights();
+        });
+    }
+
+    private IReadOnlyList<MapperHighlight> CurrentFieldHighlights(long surfaceHwnd) =>
+        _fieldSourceFrame is not { } frame || _fieldSourceSurface?.Hwnd != surfaceHwnd ? [] :
+            MapperHighlightModel.BuildFieldsFromFrame(frame, surfaceHwnd, _fieldObservations,
+                hwnd => WindowCatalog.IsSameProcessWindow(_target, hwnd) &&
+                    WindowCatalog.GetTopLevelHandle((nint)hwnd).ToInt64() == surfaceHwnd);
 
     private bool IsMapperKindVisible(MapperHighlightKind kind) => !_hiddenMapperKinds.Contains(kind);
 
@@ -131,7 +157,8 @@ internal sealed partial class RecordingHighlightOverlay
         _visibleLayerKey = layer;
         _mapperControls = controls;
         _mapperVisualGrids = visualGrids ?? [];
-        _mapperHighlights = MapperHighlightModel.Build(root, controls, _mapperVisualGrids);
+        _mapperHighlights = MapperHighlightModel.Build(root, controls, _mapperVisualGrids)
+            .Concat(CurrentFieldHighlights(surfaceHwnd)).ToArray();
         _mapperMsaaEvidence = controls.Where(MapperHighlightModel.IsMsaa).ToArray();
         _mapperNeedsRefresh = false;
         if (_gridInspector is not null)
@@ -177,7 +204,7 @@ internal sealed partial class RecordingHighlightOverlay
         // recorded observation, surface transition or layer/size change.
         var msaa = sameSurface ? _mapperMsaaEvidence.Select(c => c with { Bounds = CurrentBounds(c.Bounds) }) : [];
         var visual = sameSurface && !_mapperNeedsRefresh
-            ? _mapperHighlights.Where(g => MapperHighlightModel.IsVisual(g.Control))
+            ? _mapperHighlights.Where(g => g.Kind != MapperHighlightKind.Fields && MapperHighlightModel.IsVisual(g.Control))
                 .Select(g => g.Control with { Bounds = CurrentBounds(g) })
             : [];
         var visible = AutomationObservationVisibility.FilterEffectivelyVisible(automation);
@@ -214,6 +241,10 @@ internal sealed partial class RecordingHighlightOverlay
         _mapperMsaaEvidence = [];
         _mapperVisualGrids = [];
         _mapperControls = [];
+        _fieldObservations = [];
+        _fieldSourceFrame = null;
+        _fieldSourceSurface = null;
+        _fieldSourceMatchesLiveSurface = false;
         _mapperCaptureRoot = null;
         foreach (var window in _gridHitWindows.Values) window.Close();
         _gridHitWindows.Clear();
@@ -223,7 +254,8 @@ internal sealed partial class RecordingHighlightOverlay
         RequestMapperRefresh();
     }
 
-    private RectI CurrentBounds(MapperHighlight item) => CurrentBounds(item.Bounds);
+    private RectI CurrentBounds(MapperHighlight item) => item.Kind == MapperHighlightKind.Fields
+        ? item.Bounds : CurrentBounds(item.Bounds);
 
     private RectI CurrentBounds(RectI bounds) => _mapperCaptureRoot is not { } captured ? bounds :
         bounds with { X = bounds.X + _currentRootBounds.X - captured.X,
@@ -539,6 +571,12 @@ internal sealed partial class RecordingHighlightOverlay
             }
             var targetBounds = MapperRootBounds(target);
             var observed = WindowSnapshotCapture.Observe(target);
+            // Field IDs belong to their own sampling response. Keep their exact geometry,
+            // and wait for a fresh sample after a move or resize instead of translating
+            // them with an unrelated full mapper observation.
+            _fieldSourceMatchesLiveSurface = _fieldSourceSurface is { } fieldSurface &&
+                fieldSurface.Hwnd == target.Hwnd && fieldSurface.Bounds ==
+                    ResolveLiveRootBounds(target, !string.IsNullOrEmpty(_fieldSourceFrame?.NativeEpisodeEntry));
             visible = target.ProcessId == _target.ProcessId && target.ProcessStartedUtc == _target.ProcessStartedUtc &&
                 observed.IsVisible && !observed.IsMinimized && !observed.IsCloaked;
             if (!visible)
@@ -602,6 +640,7 @@ internal sealed partial class RecordingHighlightOverlay
         foreach (var item in _mapperHighlights)
         {
             if (!IsMapperKindVisible(item.Kind)) continue;
+            if (item.Kind == MapperHighlightKind.Fields && !_fieldSourceMatchesLiveSurface) continue;
             if (!TryProjectToOverlayRect(CurrentBounds(item), out var rect)) continue;
             var brush = MapperGridInspector.Brush(item.Color);
             if (item.Kind == MapperHighlightKind.ComputerVision)
@@ -614,11 +653,30 @@ internal sealed partial class RecordingHighlightOverlay
             }
             else
             {
+                if (item.Kind == MapperHighlightKind.Fields)
+                {
+                    // Separate this annotation from an underlying blue UIA outline.
+                    var halo = new Rectangle { Width = rect.Width, Height = rect.Height,
+                        Stroke = Brushes.White, StrokeThickness = 4, RadiusX = 3, RadiusY = 3,
+                        Opacity = .9, IsHitTestVisible = false };
+                    Canvas.SetLeft(halo, rect.Left); Canvas.SetTop(halo, rect.Top);
+                    _canvas.Children.Add(halo);
+                }
                 var border = new Rectangle { Width = rect.Width, Height = rect.Height, Fill = Brushes.Transparent,
-                    Stroke = brush, StrokeThickness = item.IsGrid ? 2.5 : 1.25, IsHitTestVisible = false };
+                    Stroke = brush, StrokeThickness = item.IsGrid ? 2.5 : item.Kind == MapperHighlightKind.Fields ? 2 : 1.25,
+                    RadiusX = item.Kind == MapperHighlightKind.Fields ? 3 : 0,
+                    RadiusY = item.Kind == MapperHighlightKind.Fields ? 3 : 0, IsHitTestVisible = false };
                 if (item.Kind == MapperHighlightKind.GridCandidate) border.StrokeDashArray = [4, 3];
+                if (item.Kind == MapperHighlightKind.Fields && !item.ChangeObserved) border.StrokeDashArray = [3, 2];
                 Canvas.SetLeft(border, rect.Left); Canvas.SetTop(border, rect.Top);
                 _canvas.Children.Add(border);
+                if (item.Kind == MapperHighlightKind.Fields && item.ChangeObserved)
+                {
+                    var dot = new Ellipse { Width = 6, Height = 6, Fill = brush,
+                        Stroke = Brushes.White, StrokeThickness = 1, IsHitTestVisible = false };
+                    Canvas.SetLeft(dot, rect.Right - 3); Canvas.SetTop(dot, rect.Top - 3);
+                    _canvas.Children.Add(dot);
+                }
             }
             if (item.IsGrid)
             {
