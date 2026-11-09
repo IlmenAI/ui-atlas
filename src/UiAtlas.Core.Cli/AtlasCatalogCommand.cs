@@ -74,7 +74,7 @@ internal static class AtlasCatalogCommand
             case "maps": return new() { Root = catalog.Root, Maps = LoadMaps(catalog, token) };
             case "maps-summary": return AtlasCatalogIndex.Read(catalog, request.KnownCatalogVersion, token);
             case "simulation-evidence":
-            case "revision-read": case "revision-eligibility": return ReadRevision(catalog, request, token);
+            case "revision-read": case "revision-eligibility": case "semantic-source-read": case "semantic-reference-retain": case "semantic-field-inspect": return ReadRevision(catalog, request, token);
             case "identity-review-read": case "identity-confirm": case "parameter-review-read": case "parameter-confirm": return ReadRevision(catalog, request, token);
             case "profile-read":
                 if (request.ProfileId != "fast") throw new ArgumentException("This consumer supports the Fast profile.");
@@ -148,10 +148,15 @@ internal static class AtlasCatalogCommand
     private static CatalogReply ReadRevision(LocalArtifactCatalog catalog, CatalogRequest request, CancellationToken token)
     {
         const string prefix = "uimaps:map-revision:sha256:";
+        if ((request.Operation is "semantic-source-read" or "semantic-reference-retain" or "semantic-field-inspect") && string.IsNullOrWhiteSpace(request.MapId))
+            throw new InvalidDataException("Select one exact owned map for a bounded source summary.");
         var reference = request.RevisionRef ?? "";
         if (!reference.StartsWith(prefix, StringComparison.Ordinal) || reference.Length != prefix.Length + 64
             || reference[prefix.Length..].Any(c => !char.IsAsciiHexDigit(c)))
             throw new InvalidDataException("An exact Atlas revision identity is required.");
+        // Hold the same lease as permanent deletion while reading and validating the exact bytes,
+        // then persist the root before returning a receipt. Missing bytes never become protected evidence.
+        using var retainedReference = request.Operation == "semantic-reference-retain" ? CatalogExternalReferenceLease.Acquire(catalog.Root) : null;
         foreach (var path in catalog.ListMapPaths())
         {
             token.ThrowIfCancellationRequested();
@@ -182,6 +187,18 @@ internal static class AtlasCatalogCommand
                 return new CatalogReply { Root = catalog.Root, RevisionEligibility = new(reference, revision.CanonicalPayloadHash,
                     Path.GetFileNameWithoutExtension(path), Path.GetFileName(workspace.DirectoryPath), ready,
                     entry?.Archived ?? false, DateTimeOffset.UtcNow.ToString("O")) };
+            if (request.Operation == "semantic-reference-retain")
+            {
+                token.ThrowIfCancellationRequested();
+                var referencePin = new CatalogExternalReference(request.ExternalConsumerId ?? "", Path.GetFileNameWithoutExtension(path), revision.MapRevisionRef, revision.CanonicalPayloadHash);
+                retainedReference!.RetainValidated(referencePin);
+                return new CatalogReply { Root = catalog.Root, ExternalReference = referencePin };
+            }
+            if (request.Operation == "semantic-field-inspect")
+                return new CatalogReply { Root = catalog.Root, RetainedField = AtlasRetainedFieldInspection.Read(Path.GetFileNameWithoutExtension(path), revision, request.SemanticFieldId ?? "", token) };
+            if (request.Operation == "semantic-source-read")
+                return new CatalogReply { Root = catalog.Root, SemanticSource = AtlasSemanticCatalog.Summarize(
+                    Path.GetFileNameWithoutExtension(path), revision, ready, entry?.Archived ?? false, request.SemanticAfter, request.SemanticLimit, token) };
             if (request.Operation == "simulation-evidence")
                 return new CatalogReply { Root = catalog.Root, SimulationEvidence = AtlasSimulationEvidence.Export(workspace, revision,
                     request.SourcePath ?? throw new ArgumentException("An export directory is required."), token) };

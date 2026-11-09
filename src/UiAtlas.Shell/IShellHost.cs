@@ -21,6 +21,7 @@ public interface IShellHost
 public interface IShellSettingsSectionNavigation
 {
     void ShowRecordingSettings();
+    void ShowServerCloudSettings() { }
 }
 
 /// <summary>Current-page drill-down navigation for the shared title-bar Back button.</summary>
@@ -57,6 +58,28 @@ public interface IShellSkillsHost
 public interface IShellHomeHost
 {
     FrameworkElement CreateHomeView(Action<string> navigate);
+}
+
+/// <summary>Optional selected business unit, backed by the existing authoring tools.</summary>
+public interface IShellBusinessUnitHost
+{
+    string? BusinessUnitLabel { get; }
+    string? BusinessUnitName => BusinessUnitLabel;
+    string? BusinessOrganizationName => null;
+    void LeaveBusinessUnit();
+}
+
+/// <summary>Optional shared-business platform.</summary>
+public interface IShellPlatformHost
+{
+    FrameworkElement CreatePlatformView(string route, Window owner);
+}
+
+public interface IShellBusinessBreadcrumbHost
+{
+    event EventHandler? BusinessContextChanged;
+    Task<IReadOnlyList<ShellOrganization>> BusinessOrganizationsAsync();
+    Task SelectBusinessOrganizationAsync(string id);
 }
 
 public sealed record ShellOrganization(string Id, string Name);

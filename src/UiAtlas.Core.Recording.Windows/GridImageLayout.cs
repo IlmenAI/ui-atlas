@@ -51,7 +51,13 @@ internal static class GridImageLayout
         {
             var header = new RectI(table.X + 1, top, table.Width - 2, bottom - top);
             var dividers = TableViewportDescriber.FindRules(frame, header, vertical: true);
-            if (dividers.Count < 2 && (ruled is null || !HasLabelsOverBodyColumns(frame, table, header, bottom))) continue;
+            // Tall strokes in a short caption can look like vertical rules. A
+            // header separator must continue into the body at the same position.
+            var probe = new RectI(header.X, bottom + 3, header.Width,
+                Math.Min(Math.Max(24, header.Height * 3), table.Y + table.Height - bottom - 3));
+            var bodyDividers = TableViewportDescriber.FindRules(frame, probe, vertical: true);
+            var continuingDividers = dividers.Count(x => bodyDividers.Any(bodyX => Math.Abs(x - bodyX) <= 1));
+            if (continuingDividers < 2 && (ruled is null || !HasLabelsOverBodyColumns(frame, table, header, bottom))) continue;
             return (header, TrimBlankFooter(frame, new(header.X, bottom + 1, header.Width, table.Y + table.Height - bottom - 1)));
         }
         throw new InvalidOperationException("header-row-not-identified");

@@ -8,6 +8,23 @@ namespace UIMaps.Application.Views;
 
 public partial class MapsView : UserControl, UiAtlas.Shell.IShellBackNavigation
 {
+    private void ResponsiveHeader_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        var header = (System.Windows.Controls.Grid)sender;
+        var lastColumn = header.ColumnDefinitions.Count - 1;
+        var narrow = e.NewSize.Width < 820;
+        var title = (UIElement)header.Children[lastColumn - 1];
+        System.Windows.Controls.Grid.SetColumnSpan(title, narrow ? 2 : 1);
+        foreach (FrameworkElement action in header.Children.Cast<UIElement>().Skip(lastColumn))
+        {
+            System.Windows.Controls.Grid.SetRow(action, narrow ? 1 : 0);
+            System.Windows.Controls.Grid.SetColumn(action, narrow ? 0 : lastColumn);
+            System.Windows.Controls.Grid.SetColumnSpan(action, narrow ? lastColumn + 1 : 1);
+            action.HorizontalAlignment = HorizontalAlignment.Right;
+            action.Margin = new Thickness(0, narrow ? 12 : 0, 0, 0);
+        }
+    }
+
     private readonly IUiMapsCapabilityLauncher _launcher;
     private readonly IRecordableApplicationDiscovery _applicationDiscovery;
     private CancellationTokenSource? _load;

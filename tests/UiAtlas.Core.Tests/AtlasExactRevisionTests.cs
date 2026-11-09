@@ -43,6 +43,12 @@ public sealed class AtlasExactRevisionTests
         var processEligibility = await new AtlasCatalogProcessClient(root, typeof(Program).Assembly.Location).RequestAsync(eligibilityRead);
         Assert.Equal(eligibility.RevisionRef, processEligibility.RevisionEligibility!.RevisionRef);
         Assert.True(processEligibility.RevisionEligibility.Ready); Assert.Null(processEligibility.ExactRevision);
+        var semantic = await new AtlasCatalogProcessClient(root, typeof(Program).Assembly.Location).RequestAsync(
+            eligibilityRead with { Operation = "semantic-source-read", SemanticLimit = 5 });
+        Assert.NotNull(semantic.SemanticSource); Assert.Equal(revision.MapRevisionRef, semantic.SemanticSource.RevisionRef);
+        Assert.Equal(revision.CanonicalPayloadHash, semantic.SemanticSource.CanonicalPayloadHash);
+        Assert.True(semantic.SemanticSource.Fields.Length <= 5); Assert.Null(semantic.ExactRevision); Assert.Empty(semantic.RawWorldSources);
+
         var grounding = await AtlasCatalogCommand.ExecuteAsync(read with { IncludeRawWorld = true });
         Assert.Equal(1, grounding.RawWorldContractVersion);
         Assert.Equal(revision.Sources.Count, grounding.RawWorldSources.Length);

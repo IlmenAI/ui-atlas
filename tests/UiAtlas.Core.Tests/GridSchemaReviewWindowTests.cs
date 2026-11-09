@@ -644,12 +644,17 @@ public sealed class GridSchemaReviewWindowTests
             try
             {
                 legend.Show(); Pump(20); Capture(legend, "highlights");
-                var toggles = Descendants<CheckBox>(legend).ToArray(); Assert.Equal(4, toggles.Length);
-                toggles[3].IsChecked = false; Assert.False(visible[MapperHighlightKind.GridCandidate]);
+                CheckBox Toggle(string label) => Descendants<CheckBox>(legend).Single(toggle =>
+                    System.Windows.Automation.AutomationProperties.GetName(toggle) == label + " overlays");
+                Assert.Equal(5, Descendants<CheckBox>(legend).Count());
+                Toggle("Grid candidate").IsChecked = false; Assert.False(visible[MapperHighlightKind.GridCandidate]);
+                Toggle("Fields").IsChecked = false; Assert.False(visible[MapperHighlightKind.Fields]);
                 Assert.True(visible[MapperHighlightKind.NativeGrid]);
                 legend.SetCollapsed(true); Pump(20); Capture(legend, "highlights-collapsed");
                 legend.SetCollapsed(false); Pump(20);
-                Assert.False(Descendants<CheckBox>(legend).Last().IsChecked);
+                Assert.False(Toggle("Grid candidate").IsChecked);
+                Assert.False(Toggle("Fields").IsChecked);
+                Assert.True(Toggle("Native grid").IsChecked);
             }
             finally { legend.Close(); }
         });

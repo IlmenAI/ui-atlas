@@ -6,6 +6,7 @@
     <IsPackable>false</IsPackable><IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <None Update="Fixtures/CaptionedGrid/*.png" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../../src/UiAtlas.Core.Mcp/UiAtlas.Core.Mcp.csproj" />
     <ProjectReference Include="../../src/UiAtlas.Core.Recording.Windows/UiAtlas.Core.Recording.Windows.csproj" />
     <ProjectReference Include="../../vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.ProviderProbe/UIMaps.Recorder.ProviderProbe.csproj" />

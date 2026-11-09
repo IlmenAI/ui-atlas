@@ -38,7 +38,7 @@ public sealed class AtlasCatalogProcessClient(string? root = null, string? execu
     public async Task<CatalogReply> RequestAsync(CatalogRequest request, CancellationToken token = default)
     {
         token.ThrowIfCancellationRequested();
-        if (request.Operation is not ("maps-summary" or "revision-read" or "revision-eligibility" or "profile-read"
+        if (request.Operation is not ("maps-summary" or "revision-read" or "revision-eligibility" or "semantic-source-read" or "semantic-reference-retain" or "semantic-field-inspect" or "profile-read"
             or "parameter-review-read" or "parameter-confirm" or "identity-review-read" or "identity-confirm"))
             throw new ArgumentException("This catalog adapter supports reads and scoped parameter confirmation only.");
         var path = Executable;
@@ -53,7 +53,7 @@ public sealed class AtlasCatalogProcessClient(string? root = null, string? execu
         deadline.CancelAfter(TimeSpan.FromSeconds(60));
         using var stop = deadline.Token.Register(() => { try { process.Kill(true); } catch (InvalidOperationException) { } });
         // Both streams are drained concurrently, including on rejected requests.
-        var output = ReadBoundedAsync(process.StandardOutput, 768 * 1024 * 1024, deadline);
+        var output = ReadBoundedAsync(process.StandardOutput, request.Operation is "semantic-source-read" or "semantic-reference-retain" or "semantic-field-inspect" ? 65536 : 768 * 1024 * 1024, deadline);
         var errors = ReadBoundedAsync(process.StandardError, 1024 * 1024, deadline);
         try
         {
