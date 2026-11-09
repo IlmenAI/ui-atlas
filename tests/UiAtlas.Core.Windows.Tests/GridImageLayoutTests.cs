@@ -8,6 +8,32 @@ namespace UiAtlas.Core.Windows.Tests;
 
 public sealed class GridImageLayoutTests
 {
+    [Fact]
+    public void CaptionTextMustNotBecomeColumnDividersAndRejectRealHorizontalMotion()
+    {
+        byte[] Load(string name) => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "CaptionedGrid", name + ".png"));
+        var before = Load("before"); var after = Load("after");
+        var layout = GridImageLayout.Detect(before, new(0, 0, 994, 461));
+        Assert.InRange(layout.Header.Y, 20, 22);
+        Assert.InRange(layout.Body.Y, 40, 42);
+        GridPixelBuffer Crop(byte[] png, RectI bounds)
+        {
+            var frame = OpaqueSurfaceScanner.PixelFrame.Decode(png);
+            var gray = new byte[bounds.Width * bounds.Height];
+            for (var y = 0; y < bounds.Height; y++)
+            for (var x = 0; x < bounds.Width; x++)
+            {
+                var p = ((bounds.Y + y) * frame.Width + bounds.X + x) * 4;
+                gray[y * bounds.Width + x] = (byte)((frame.Pixels[p] * 29 + frame.Pixels[p + 1] * 150 + frame.Pixels[p + 2] * 77) >> 8);
+            }
+            return new(bounds.Width, bounds.Height, gray);
+        }
+        var result = GridHorizontalRegistration.Register(Crop(before, layout.Body), Crop(after, layout.Body),
+            Crop(before, layout.Header), Crop(after, layout.Header), 1);
+        Assert.True(result.Accepted, result.ToString());
+        Assert.Equal(53, result.DisplacementX);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(28)]

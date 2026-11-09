@@ -151,6 +151,19 @@ public sealed class GridSchemaExtractorTests
         Assert.Equal(new double[] { 60, 120, 180 }, draft.Schema.Columns.Select(c => c.EndX));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SingleResultRowKeepsCorroboratedColumnsAboveBlankCanvas(bool mosaicArtifacts)
+    {
+        using var fixture = new Fixture(singleRow: true, stitchedArtifacts: mosaicArtifacts);
+        var draft = await Reader().ExtractAsync(fixture.Source, fixture.Source.HeaderBounds);
+        Assert.Equal(new double[] { 0, 60, 120 }, draft.Schema.Columns.Select(c => c.StartX));
+        Assert.Equal(new double[] { 60, 120, 180 }, draft.Schema.Columns.Select(c => c.EndX));
+        Assert.Null(draft.ReviewedUtc);
+        Assert.False(draft.Schema.IsComplete);
+    }
+
     [Fact]
     public async Task UnruledHeadersUseBodyColumnsSupportedByOriginalTiles()
     {
@@ -222,14 +235,15 @@ public sealed class GridSchemaExtractorTests
         internal GridImageExplorationResult Source { get; }
         internal Fixture(GridCaptureStatus status = GridCaptureStatus.Complete, GridRestorationStatus restoration = GridRestorationStatus.Succeeded,
             bool stitchedArtifacts = false, bool ruledRows = false, bool rowSelector = false, bool footer = false, bool footerText = false,
-            bool unruledHeader = false)
+            bool unruledHeader = false, bool singleRow = false)
         {
             System.IO.Directory.CreateDirectory(Directory);
             const int width = 180;
-            var height = footer ? 130 : ruledRows ? 120 : 72;
+            var height = singleRow ? 144 : footer ? 130 : ruledRows ? 120 : 72;
             var pixels = Enumerable.Repeat((byte)255, width * height * 4).ToArray();
             void Dark(int x, int y) { var offset = (y * width + x) * 4; pixels[offset] = pixels[offset + 1] = pixels[offset + 2] = 40; }
-            foreach (var x in new[] { 60, 120 }) for (var y = unruledHeader ? 24 : 0; y < height; y++) Dark(x, y);
+            foreach (var x in new[] { 60, 120 }) for (var y = unruledHeader ? 24 : 0; y < (singleRow ? 48 : height); y++) Dark(x, y);
+            if (singleRow) for (var x = 0; x < width; x++) Dark(x, 48);
             if (rowSelector) for (var y = 0; y < height; y++) Dark(8, y);
             if (ruledRows) foreach (var y in new[] { 24, 48, 72, 96 }) for (var x = 0; x < width; x++) Dark(x, y);
             if (footer) foreach (var y in new[] { 120, 128 }) for (var x = 0; x < width; x++) Dark(x, y);

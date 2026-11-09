@@ -40,15 +40,15 @@ if (-not $grid.Contains('UIMAPS_SHARED_FOUNDATION')) {
 }
 $workflowSource = Join-Path $core 'uimaps-protocol\src\UIMaps.Protocol\Workflow\RecordingContracts.cs'
 if (Test-Path -LiteralPath $workflowSource) {
-  $contracts = Join-Path $core 'uimaps-workflow-contracts'
+  $contracts = Join-Path $core 'uimaps-task-contracts'
   New-Item -ItemType Directory -Force -Path $contracts | Out-Null
   $project = @'
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><TargetFramework>net10.0</TargetFramework><PackageId>UIMaps.Workflow.Contracts</PackageId><Version>1.0.0</Version><IsPackable>false</IsPackable></PropertyGroup>
+  <PropertyGroup><TargetFramework>net10.0</TargetFramework><PackageId>UIMaps.Task.Contracts</PackageId><Version>1.0.0</Version><IsPackable>false</IsPackable></PropertyGroup>
   <ItemGroup><Compile Include="..\uimaps-protocol\src\UIMaps.Protocol\Workflow\RecordingContracts.cs" /></ItemGroup>
 </Project>
 '@
-  [IO.File]::WriteAllText((Join-Path $contracts 'UIMaps.Workflow.Contracts.csproj'), $project)
+  [IO.File]::WriteAllText((Join-Path $contracts 'UIMaps.Task.Contracts.csproj'), $project)
   [IO.File]::WriteAllText((Join-Path $contracts 'LICENSE.txt'), "Copyright (c) AI Successors Corp.`r`nAll rights reserved. Proprietary workflow contracts.`r`n")
 }
 # Normal developer builds retain their existing process cleanup. Isolated

@@ -164,7 +164,7 @@ public sealed class RecordableApplicationDiscovery : IRecordableApplicationDisco
     private static string ExecutableName(string processName)
     {
         var value = Path.GetFileName(processName.Trim());
-        return string.IsNullOrWhiteSpace(value) || Path.HasExtension(value) ? value : value + ".exe";
+        return string.IsNullOrWhiteSpace(value) || value.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? value : value + ".exe";
     }
 
     private static long ParseHandle(string value) =>

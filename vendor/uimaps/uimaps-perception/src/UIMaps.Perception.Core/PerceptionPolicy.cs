@@ -9,6 +9,8 @@ public sealed record PerceptionPolicy(
     int MaximumObjectCount,
     long MaximumBundleBytes)
 {
+    // Opt-in for bounded live consumers. Raw packets retain original multiplicity.
+    public bool CompactLiveDiagnostics { get; init; }
     public static PerceptionPolicy Default { get; } = new(
         TimeSpan.FromMilliseconds(250),
         32,

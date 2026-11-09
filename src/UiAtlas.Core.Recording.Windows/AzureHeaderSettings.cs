@@ -5,7 +5,10 @@ using System.Text.Json;
 
 namespace UiAtlas.Core.Recording.Windows;
 
-public sealed record AzureHeaderSettings(bool Enabled = false, string Endpoint = "", string Deployment = "gpt-5.6-sol")
+public sealed record HeaderProviderReference(string Id, string Model, string Endpoint, string CredentialReference);
+public sealed record AzureHeaderSettings(bool Enabled = false, string Endpoint = "", string Deployment = "gpt-5.6-sol",
+    string Provider = "azure-openai", string? CredentialReference = null, bool AutoAnalyze = false,
+    HeaderProviderReference[]? Providers = null)
 {
     public AzureHeaderSettings Normalize()
     {
@@ -31,30 +34,62 @@ public sealed class AzureHeaderSettingsStore
     private readonly IAzureHeaderCredentialStore _credentials;
     public AzureHeaderSettingsStore(string? path = null, IAzureHeaderCredentialStore? credentials = null)
     {
-        _path = path ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "UiAtlas", "azure-header-settings.json");
+        _path = path ?? Environment.GetEnvironmentVariable("UIATLAS_HEADER_SETTINGS_PATH") ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "UiAtlas", "azure-header-settings.json");
         _credentials = credentials ?? new WindowsHeaderCredentials();
     }
     public AzureHeaderSettings Load() => !File.Exists(_path) ? new() :
         JsonSerializer.Deserialize<AzureHeaderSettings>(File.ReadAllText(_path)) ?? throw new AzureHeaderException("Recorder header settings could not be read. Save them again.");
-    public bool HasKey(AzureHeaderSettings settings) => !string.IsNullOrWhiteSpace(_credentials.Read(Target(settings.Normalize())));
-    public AzureOpenAiHeaderReader CreateReader(AzureHeaderSettings settings, string? newKey = null) =>
-        new(settings, string.IsNullOrEmpty(newKey) ? _credentials.Read(Target(settings.Normalize())) ?? "" : newKey);
+    public AzureHeaderSettings Resolve(AzureHeaderSettings settings)
+    {
+        if (settings.Provider is not ("openai" or "azure-openai")) throw new AzureHeaderException("Choose a header reading provider in Settings → Recording.");
+        if (settings.Providers is null) return settings; // Standalone Atlas legacy configuration.
+        var profile = settings.Providers.SingleOrDefault(p => p.Id == settings.Provider)
+            ?? throw new AzureHeaderException("Configure this connection in Settings → AI providers.");
+        if (string.IsNullOrWhiteSpace(profile.CredentialReference) || profile.CredentialReference.Length > 256 ||
+            !(profile.CredentialReference.StartsWith("UIMaps/Skills/", StringComparison.Ordinal) ||
+              profile.CredentialReference.StartsWith("UIMaps/AzureOpenAI/Grid/", StringComparison.Ordinal)))
+            throw new AzureHeaderException("Configure the selected connection in Settings → AI providers.");
+        return settings with { Endpoint = settings.Provider == "openai" ? "https://api.openai.com" : profile.Endpoint,
+            Deployment = profile.Model, CredentialReference = profile.CredentialReference };
+    }
+    public bool HasKey(AzureHeaderSettings settings) { settings = Resolve(settings).Normalize(); return !string.IsNullOrWhiteSpace(_credentials.Read(settings.CredentialReference ?? Target(settings))); }
+    public AzureOpenAiHeaderReader CreateReader(AzureHeaderSettings settings, string? newKey = null)
+    {
+        settings = Resolve(settings).Normalize();
+        return new(settings, string.IsNullOrEmpty(newKey) ? _credentials.Read(settings.CredentialReference ?? Target(settings)) ?? "" : newKey);
+    }
     public AzureOpenAiTableReader CreateTableReader()
     {
         var settings = Load();
-        if (!settings.Enabled) throw new AzureHeaderException("Enable the saved Azure provider in Recorder settings before reading table data.");
-        return new(settings, _credentials.Read(Target(settings.Normalize())) ?? "");
+        if (!settings.Enabled) throw new AzureHeaderException("Select OpenAI or Azure OpenAI in Settings → Recording before reading table data.");
+        settings = Resolve(settings).Normalize();
+        return new(settings, _credentials.Read(settings.CredentialReference ?? Target(settings)) ?? "");
     }
-    public void Save(AzureHeaderSettings settings, string? newKey = null)
+    public void Save(AzureHeaderSettings settings, string? newKey = null, bool validateConnection = true)
     {
-        if (settings.Enabled) settings = settings.Normalize();
+        if (settings.Providers is not null && !string.IsNullOrEmpty(newKey)) throw new AzureHeaderException("Manage shared connection keys in Settings → AI providers.");
+        if (settings.Enabled && validateConnection) settings = Resolve(settings).Normalize();
         // Disabling cloud reading must remain possible even if its configuration is invalid.
         if (settings.Enabled && !string.IsNullOrEmpty(newKey)) _credentials.Write(Target(settings), newKey);
-        if (settings.Enabled && !HasKey(settings)) throw new AzureHeaderException("Enter an Azure API key before enabling Azure header reading.");
+        if (settings.Enabled && validateConnection && !HasKey(settings)) throw new AzureHeaderException("Configure the selected connection in Settings → AI providers before using it for header reading.");
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_path))!);
         var temporary = _path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try { File.WriteAllText(temporary, JsonSerializer.Serialize(settings)); File.Move(temporary, _path, true); }
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
+    }
+    public void Update(Func<AzureHeaderSettings, AzureHeaderSettings> change, string? newKey = null, bool validateConnection = true)
+    {
+        var name = "Local\\UiAtlas.HeaderSettings." + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Path.GetFullPath(_path).ToUpperInvariant())));
+        using var mutex = new Mutex(false, name);
+        var acquired = false;
+        try
+        {
+            try { acquired = mutex.WaitOne(TimeSpan.FromSeconds(5)); }
+            catch (AbandonedMutexException) { acquired = true; }
+            if (!acquired) throw new AzureHeaderException("Header settings are busy. Try saving again.");
+            Save(change(Load()), newKey, validateConnection);
+        }
+        finally { if (acquired) mutex.ReleaseMutex(); }
     }
     private static string Target(AzureHeaderSettings settings) => "UiAtlas.AzureHeaders:" +
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(settings.Endpoint)));

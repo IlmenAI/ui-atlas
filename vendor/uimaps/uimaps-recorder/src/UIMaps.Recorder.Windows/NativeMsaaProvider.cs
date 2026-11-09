@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using Accessibility;
 using UIMaps.Protocol.V1;
 
@@ -8,16 +9,51 @@ namespace UIMaps.Recorder.Windows;
 /// inferred patterns, geometry clipping or cross-root ownership assertions.</summary>
 public static class NativeMsaaProvider
 {
-    public static AccessibilityPacket Capture(long hwnd, string windowId, int maxNodes, int maxDepth)
+    public static AccessibilityPacket Capture(long hwnd, string windowId, int maxNodes, int maxDepth, bool reuseClientRoot = false)
     {
         var packet = new AccessibilityPacket { Health = ProtocolHealth.Complete() };
         var iid = new Guid("618736E0-3C3D-11CF-810C-00AA00389B71");
+        IAccessible? client = null;
+        byte[]? clientIdentity = null;
+        AccessibilityNodeRecord[]? alias = null;
+        var identityQueries = 0;
+        var checkingAlias = false;
+        var aliasMatched = false;
+        var clientPass = false;
+        try
+        {
+        if (reuseClientRoot && AccessibleObjectFromWindow((nint)hwnd, unchecked((uint)-4), ref iid, out client) >= 0 && client is not null)
+            clientIdentity = ReadIdentity(client);
         foreach (var objectId in new uint[] { 0, unchecked((uint)-4) })
         {
-            if (AccessibleObjectFromWindow((nint)hwnd, objectId, ref iid, out var root) < 0 || root is null) continue;
-            try { Visit(root, 0, "", 0); }
-            finally { if (Marshal.IsComObject(root)) Marshal.ReleaseComObject(root); }
+            clientPass = objectId != 0;
+            IAccessible? root = clientPass ? client : null;
+            var retainedClient = root is not null;
+            if (root is null && (AccessibleObjectFromWindow((nint)hwnd, objectId, ref iid, out root) < 0 || root is null)) continue;
+            try
+            {
+                if (clientPass && alias is not null && clientIdentity is not null
+                    && ReadIdentity(root) is { } currentIdentity && currentIdentity.AsSpan().SequenceEqual(clientIdentity)
+                    && TryAppendRootAlias(packet, alias, maxNodes))
+                {
+                    packet.ProviderAttempts.Add(new ProviderAttemptOutcome
+                    {
+                        ProviderId = "msaa", WorkerVersion = "msaa-root-reuse/1", Status = "completed",
+                        ResourceUsageSummary =
+                        {
+                            new StringProperty { Key = "root_alias_reused_nodes", Value = alias.Length.ToString() },
+                            new StringProperty { Key = "root_alias_source_evidence_id", Value = alias[0].AccessibilityEvidenceId },
+                            new StringProperty { Key = "root_alias_identity_sha256", Value = Convert.ToHexString(SHA256.HashData(clientIdentity)) },
+                            new StringProperty { Key = "root_alias_identity_queries", Value = identityQueries.ToString() },
+                        }
+                    });
+                }
+                else Visit(root, 0, "", 0);
+            }
+            finally { if (!retainedClient && Marshal.IsComObject(root)) Marshal.ReleaseComObject(root); }
         }
+        }
+        finally { if (client is not null && Marshal.IsComObject(client)) Marshal.ReleaseComObject(client); }
         packet.NodesIncluded = packet.Nodes.Count;
         if (packet.Nodes.Count == 0) packet.Health = ProtocolHealth.Single(HealthState.SensorUnavailable,
             "RECORDER_MSAA_UNAVAILABLE", "No MSAA tree was returned for this query window.", "msaa");
@@ -26,6 +62,30 @@ public static class NativeMsaaProvider
         return packet;
 
         void Visit(IAccessible accessible, object child, string parent, int depth)
+        {
+            var first = packet.Nodes.Count;
+            var match = !clientPass && !checkingAlias && !aliasMatched && clientIdentity is not null && child is int id && id == 0
+                && identityQueries < 128 && ReadIdentity(accessible) is { } identity && identity.AsSpan().SequenceEqual(clientIdentity);
+            if (match) { checkingAlias = true; aliasMatched = true; }
+            try { VisitCore(accessible, child, parent, depth); }
+            finally { if (match) { checkingAlias = false; alias = packet.Nodes.Skip(first).ToArray(); } }
+        }
+
+        byte[]? ReadIdentity(IAccessible accessible)
+        {
+            identityQueries++;
+            if (accessible is not IMsaaIdentity identity) return null;
+            nint buffer = 0;
+            try
+            {
+                if (identity.GetIdentityString(0, out buffer, out var length) != 0 || buffer == 0 || length is 0 or > 4096) return null;
+                var bytes = new byte[length]; Marshal.Copy(buffer, bytes, 0, (int)length); return bytes;
+            }
+            catch (COMException) { return null; }
+            finally { if (buffer != 0) Marshal.FreeCoTaskMem(buffer); }
+        }
+
+        void VisitCore(IAccessible accessible, object child, string parent, int depth)
         {
             packet.NodesObserved++;
             if (packet.Nodes.Count >= maxNodes) { packet.NodeLimited = true; return; }
@@ -68,6 +128,36 @@ public static class NativeMsaaProvider
                 if (packet.Nodes.Count > includedBefore) node.ChildCountIncluded++;
             }
         }
+    }
+
+    internal static bool TryAppendRootAlias(AccessibilityPacket packet, IReadOnlyList<AccessibilityNodeRecord> source, int maximum)
+    {
+        if (source.Count == 0 || source.Count > maximum - packet.Nodes.Count) return false;
+        var ids = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var node in source)
+        {
+            if (node.AccessibilityEvidenceId.Length == 0 || !ids.TryAdd(node.AccessibilityEvidenceId, Guid.NewGuid().ToString("N"))
+                || node.ChildCountObserved != node.ChildCountIncluded || node.PropertyCoverage is not { Failed: 0 }
+                || node.Health?.State != HealthState.Complete) return false;
+        }
+        var copies = new List<AccessibilityNodeRecord>(source.Count);
+        var emitted = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var node in source)
+        {
+            var copy = node.Clone(); copy.AccessibilityEvidenceId = ids[node.AccessibilityEvidenceId];
+            if (copies.Count == 0) copy.ParentEvidenceId = "";
+            else if (!emitted.Contains(node.ParentEvidenceId) || !ids.TryGetValue(node.ParentEvidenceId, out var parent)) return false;
+            else copy.ParentEvidenceId = parent;
+            copies.Add(copy); emitted.Add(node.AccessibilityEvidenceId);
+        }
+        packet.Nodes.AddRange(copies); packet.NodesObserved += copies.Count;
+        return true;
+    }
+
+    [ComImport, Guid("7852B78D-1CFD-41C1-A615-9C0C85960B5F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IMsaaIdentity
+    {
+        [PreserveSig] int GetIdentityString(uint child, out nint bytes, out uint length);
     }
 
     private static string Role(int role) => role switch

@@ -31,6 +31,7 @@ public sealed class RecorderThemeDispatcherTests
                 var target = WindowCatalog.Resolve(new WindowInteropHelper(targetWindow).Handle.ToInt64());
                 panel = new("theme-fixture", "Synthetic target", target); panel.Start();
                 overlay = new(target); overlay.Start();
+                overlay.GridReviewActiveChanged = panel.SetGridReviewActive;
                 var control = MapperHighlightTests.Control("Orders", "DataGrid", target.Bounds, "WPF", ["Grid"]);
                 overlay.ReplaceMapperHighlights(target.Bounds, new FrameObservation(1, DateTimeOffset.UtcNow, "",
                     WindowSnapshotCapture.Observe(target), [control], false, "ok", "synthetic-theme"));
@@ -42,10 +43,13 @@ public sealed class RecorderThemeDispatcherTests
                     RefreshTheme();
                 });
                 var panelWindow = Field<Window>(panel, "_window");
+                panelWindow.Dispatcher.Invoke(() => Assert.False(panelWindow.IsVisible));
                 panelWindow.Dispatcher.Invoke(RefreshTheme);
                 Assert.Same(panelWindow.Dispatcher, overlay.GridInspector!.Dispatcher);
                 Assert.Same(panelWindow.Dispatcher, overlay.MapperLegend!.Dispatcher);
                 MoveAcrossDisplays(overlay.GridInspector);
+                dispatcher.Invoke(() => overlay.GridInspector.Close()); Pump(60);
+                panelWindow.Dispatcher.Invoke(() => Assert.True(panelWindow.IsVisible));
             }
             finally { overlay?.Dispose(); panel?.Dispose(); targetWindow.Close(); }
         });

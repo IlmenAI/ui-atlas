@@ -17,7 +17,8 @@ internal static class GridHorizontalRegistration
 
         var fixedLeft = FixedLeadingBand(beforeBody, afterBody, beforeHeader, afterHeader);
         var bodyLeft = Math.Max(fixedLeft, excludedLeadingBodyPixels);
-        var body = (Before: new Plane(beforeBody, bodyLeft, excludedBefore, excludedTrailingBodyPixels), After: new Plane(afterBody, bodyLeft, excludedAfter, excludedTrailingBodyPixels));
+        var focusRows = GridFocusBorder.Rows(beforeBody, afterBody, padding: 1);
+        var body = (Before: new Plane(beforeBody, bodyLeft, excludedBefore, excludedTrailingBodyPixels, focusRows), After: new Plane(afterBody, bodyLeft, excludedAfter, excludedTrailingBodyPixels, focusRows));
         var header = (Before: new Plane(beforeHeader, fixedLeft), After: new Plane(afterHeader, fixedLeft));
         var maximum = beforeBody.Width - Math.Max(24, beforeBody.Width / 5);
         var candidates = new List<(double Shift, Comparison Score)>();
@@ -101,7 +102,7 @@ internal static class GridHorizontalRegistration
         internal List<int> Features { get; } = [];
         private readonly (int Start, int End)? _excluded;
         internal bool Excluded(int x) => _excluded is { } band && x >= band.Start - 2 && x < band.End + 2;
-        internal Plane(GridPixelBuffer pixels, int left, (int Start, int End)? excluded = null, int trailing = 0)
+        internal Plane(GridPixelBuffer pixels, int left, (int Start, int End)? excluded = null, int trailing = 0, bool[]? excludedRows = null)
         {
             _excluded = excluded;
             Width = pixels.Width;
@@ -122,7 +123,7 @@ internal static class GridHorizontalRegistration
             for (var x = left + 2; x < Right - 2; x++)
             {
                 var p = y * Width + x;
-                if (Excluded(x)) continue;
+                if (Excluded(x) || excludedRows?[y] == true) continue;
                 // Flat fills and rules alone do not prove displacement.
                 if (Math.Abs(Gray[p + 1] - Gray[p - 1]) > 12 &&
                     Math.Abs(Gray[p + Width] - Gray[p - Width]) > 12) Features.Add(p);

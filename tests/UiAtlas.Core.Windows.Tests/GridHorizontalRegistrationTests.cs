@@ -60,6 +60,51 @@ public sealed class GridHorizontalRegistrationTests
         Assert.False(result.Accepted);
     });
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(3)]
+    public void SparseSelectedRowRetainsContentEvidenceAcrossFocusDashPhases(int phase) => Sta(() =>
+    {
+        var before = Sparse(Render(0, 1.25), 0);
+        var after = Sparse(Render(29, 1.25), phase);
+        var original = before.Body.Gray.ToArray();
+        var focusRows = GridFocusBorder.Rows(before.Body, after.Body, padding: 1);
+        Assert.InRange(focusRows.Count(excluded => excluded), 1, 6);
+        Assert.All(focusRows.Take(23), excluded => Assert.False(excluded));
+        var result = GridHorizontalRegistration.Register(before.Body, after.Body, before.Header, after.Header, 1);
+        Assert.True(result.Accepted, result.ToString());
+        Assert.InRange(result.DisplacementX, 35, 37);
+        Assert.Equal(original, before.Body.Gray);
+        var changed = Sparse(Render(29, 1.25, changed: true), phase);
+        Assert.False(GridHorizontalRegistration.Register(before.Body, changed.Body, before.Header, changed.Header, 1).Accepted);
+    });
+
+    [Fact]
+    public void FocusMaskRequiresMatchingSurroundingFills() => Sta(() =>
+    {
+        var before = Sparse(Render(0, 1.25), 0);
+        var after = Sparse(Render(29, 1.25), 3);
+        var changed = after.Body with { Gray = after.Body.Gray.Select(value => value == 94 ? (byte)55 : value).ToArray() };
+        Assert.DoesNotContain(true, GridFocusBorder.Rows(before.Body, changed));
+        Assert.False(GridHorizontalRegistration.Register(before.Body, changed, before.Header, after.Header, 1).Accepted);
+    });
+
+    private static (GridPixelBuffer Header, GridPixelBuffer Body) Sparse(
+        (GridPixelBuffer Header, GridPixelBuffer Body) image, int phase)
+    {
+        var gray = image.Body.Gray.ToArray();
+        for (var y = 0; y < image.Body.Height; y++)
+        for (var x = 0; x < image.Body.Width; x++)
+        {
+            var p = y * image.Body.Width + x;
+            if (y < 23) gray[p] = (byte)(94 + (211 - Math.Min(211, (int)gray[p])) / 2);
+            else if (y < 27) gray[p] = 94;
+            else if (y < 29) gray[p] = (byte)(((x + phase) / 4 % 2 == 0) ? 94 : 200);
+            else gray[p] = 255;
+        }
+        return (image.Header, image.Body with { Gray = gray });
+    }
+
     [Fact]
     public void RepeatedColumnsDoNotChooseAnArbitraryDisplacement() => Sta(() =>
     {

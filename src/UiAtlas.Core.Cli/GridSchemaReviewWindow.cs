@@ -9,12 +9,13 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using UiAtlas.Core.Contracts;
 using UiAtlas.Core.Recording.Windows;
+using UiAtlas.Presentation;
 using Path = System.IO.Path;
 
 namespace UiAtlas.Core.Cli;
 
 /// <summary>Review only the retained image; no live target or input authority is needed.</summary>
-internal sealed class GridSchemaReviewWindow : Window
+internal sealed partial class GridSchemaReviewWindow : Window
 {
     private readonly GridImageExplorationResult _source;
     private readonly CancellationTokenSource _lifetime = new();
@@ -30,6 +31,10 @@ internal sealed class GridSchemaReviewWindow : Window
     private readonly Button _readerSettings;
     private readonly TextBlock _readerLabel;
     private readonly Button _save;
+    private readonly Button _back, _readAgain;
+    private readonly Grid _root;
+    private readonly TextBlock _stageTitle, _steps, _stageInstruction, _reviewHelp;
+    private bool _reviewStage;
     private readonly CheckBox _editDividers;
     private readonly WrapPanel _dividerTools;
     private readonly Button _moveLeft, _moveRight, _removeDivider, _addDivider;
@@ -55,9 +60,9 @@ internal sealed class GridSchemaReviewWindow : Window
     {
         _source = source;
         _extractor = extractor ?? ExtractConfiguredAsync;
-        Title = "Extract table schema"; Width = 820; Height = 740; MinWidth = 620; MinHeight = 640;
+        Title = "Extract table schema"; Width = 960; Height = 820; MinWidth = 680; MinHeight = 660;
         WindowStartupLocation = WindowStartupLocation.CenterOwner; ShowInTaskbar = false; Topmost = true;
-        Background = MapperGridInspector.Brush("#F9F9FA"); FontFamily = new("Inter, Segoe UI"); FontSize = 13;
+        Background = MapperGridInspector.Brush("#F7FAFD"); AtlasFluent.Apply(this);
         var bytes = File.ReadAllBytes(source.ImagePath ?? throw new InvalidOperationException("schema-image-unavailable"));
         _imageHash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
         using var stream = new MemoryStream(bytes);
@@ -65,20 +70,25 @@ internal sealed class GridSchemaReviewWindow : Window
         _imageWidth = bitmap.PixelWidth; _imageHeight = bitmap.PixelHeight;
         HeaderSelection = source.HeaderBounds.IsValid ? source.HeaderBounds : new(0, 0, _imageWidth, Math.Min(24, _imageHeight));
 
-        var root = new Grid();
+        var root = _root = new Grid();
         root.RowDefinitions.Add(new() { Height = GridLength.Auto });
         root.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) });
         root.RowDefinitions.Add(new() { Height = GridLength.Auto });
         root.RowDefinitions.Add(new() { Height = new GridLength(170) });
         root.RowDefinitions.Add(new() { Height = GridLength.Auto });
         var heading = new StackPanel();
-        heading.Children.Add(Text("Identify the header row", 23, "#17191D"));
-        heading.Children.Add(Text(source.Capture.Status == GridCaptureStatus.Complete ?
+        heading.Children.Add(AtlasFluent.Text("Extract table schema", 17));
+        _steps = Text("1  Select header    —    2  Review names", 12, AtlasFluent.Blue); heading.Children.Add(_steps);
+        _stageTitle = Text("Select the header row", 22, AtlasFluent.Ink); heading.Children.Add(_stageTitle);
+        _stageInstruction = Text("Drag around the header row, then read its column names.", 13, AtlasFluent.Muted);
+        heading.Children.Add(_stageInstruction);
+        var coverage = AtlasFluent.Card(Text(source.Capture.Status == GridCaptureStatus.Complete ?
             source.Capture.Scope == GridCaptureScope.VisibleRowBand ? "All columns captured · rows are a sample" : "Captured table" :
-            "Partial capture · review the captured columns; more columns may exist.", 12,
-            source.Capture.Status == GridCaptureStatus.Complete ? "#087D6D" : "#AF7200"));
-        heading.Children.Add(Text("Drag around the header row, then extract its column names. You can correct the names before saving.", 13));
-        heading.Margin = new(0, 0, 0, 12); root.Children.Add(heading);
+            "Partial capture · Additional columns may exist.", 12,
+            source.Capture.Status == GridCaptureStatus.Complete ? AtlasFluent.Muted : AtlasFluent.Amber),
+            source.Capture.Status == GridCaptureStatus.Complete ? "#E9F4FF" : "#FFF3DF");
+        coverage.Padding = new(9, 3, 9, 3); heading.Children.Add(coverage);
+        heading.Margin = new(0, 0, 0, 6); root.Children.Add(heading);
 
         _canvas = new Canvas { Width = _imageWidth, Height = _imageHeight, Background = Brushes.White, Focusable = true,
             ToolTip = "Drag to select the header. Arrow keys move it; Shift+Up/Down changes its height." };
@@ -88,26 +98,31 @@ internal sealed class GridSchemaReviewWindow : Window
             Fill = new SolidColorBrush(Color.FromArgb(40, 255, 181, 44)), IsHitTestVisible = false };
         _canvas.Children.Add(_headerHalo); _canvas.Children.Add(_headerOutline);
         Panel.SetZIndex(_headerHalo, 2); Panel.SetZIndex(_headerOutline, 3);
-        _canvas.MouseLeftButtonDown += (_, e) => { BeginPreviewInteraction(e.GetPosition(_canvas)); e.Handled = true; };
+        _canvas.MouseLeftButtonDown += (_, e) =>
+        {
+            if (e.StylusDevice is not null || _navigatingPreview || (Keyboard.Modifiers & ModifierKeys.Control) != 0) { e.Handled = true; return; }
+            if (_reviewStage && _editDividers?.IsChecked != true) { SelectColumnAt(e.GetPosition(_canvas)); e.Handled = true; return; }
+            BeginPreviewInteraction(e.GetPosition(_canvas)); e.Handled = true;
+        };
         _canvas.MouseMove += (_, e) => { if (e.LeftButton == MouseButtonState.Pressed) ContinuePreviewInteraction(e.GetPosition(_canvas)); };
         _canvas.MouseLeftButtonUp += (_, e) => { EndPreviewInteraction(); e.Handled = true; };
         _canvas.LostMouseCapture += (_, _) => { _dragStart = null; _draggingDivider = false; };
         _canvas.KeyDown += MoveSelection;
         _canvas.LayoutTransform = _previewScale;
         var preview = new ScrollViewer { Content = _canvas, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Background = MapperGridInspector.Brush("#E9EDF3") };
-        Grid.SetRow(preview, 1); root.Children.Add(preview);
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MinHeight = 160, Background = MapperGridInspector.Brush("#E9EDF3") };
+        _preview = preview;
+        var previewArea = new DockPanel();
+        var navigation = BuildPreviewNavigation(); DockPanel.SetDock(navigation, Dock.Top); previewArea.Children.Add(navigation);
+        previewArea.Children.Add(preview); Grid.SetRow(previewArea, 1); root.Children.Add(previewArea);
+        ConfigurePreviewNavigation();
 
         var controls = new StackPanel { Margin = new(0, 8, 0, 10) }; Grid.SetRow(controls, 2); root.Children.Add(controls);
-        var toolbar = new DockPanel();
-        var zoom = new ComboBox { ItemsSource = new[] { "Fit", "100%", "200%" }, SelectedIndex = 0, Width = 85 };
-        System.Windows.Automation.AutomationProperties.SetName(zoom, "Header preview zoom");
-        void Zoom() { var fit = Math.Min(1, Math.Min(Math.Max(1, preview.ViewportWidth) / _imageWidth,
-            Math.Max(1, preview.ViewportHeight) / _imageHeight));
-            _previewScale.ScaleX = _previewScale.ScaleY = zoom.SelectedIndex == 0 ? fit : zoom.SelectedIndex;
-            DrawSelection(); }
-        zoom.SelectionChanged += (_, _) => Zoom(); preview.SizeChanged += (_, _) => Zoom(); Loaded += (_, _) => Zoom();
-        DockPanel.SetDock(zoom, Dock.Right); toolbar.Children.Add(zoom);
+        var toolbar = new StackPanel { Orientation = Orientation.Horizontal };
+        var showHeader = new CheckBox { Content = "Show header selection", IsChecked = true, Margin = new(0, 0, 16, 0), VerticalAlignment = VerticalAlignment.Center };
+        showHeader.Checked += (_, _) => _headerHalo.Visibility = _headerOutline.Visibility = Visibility.Visible;
+        showHeader.Unchecked += (_, _) => _headerHalo.Visibility = _headerOutline.Visibility = Visibility.Hidden;
+        toolbar.Children.Add(showHeader);
         _editDividers = new CheckBox { Content = "Edit column dividers", VerticalAlignment = VerticalAlignment.Center,
             ToolTip = "Select and drag a blue line, or use the divider controls." };
         _editDividers.Checked += (_, _) => ChangeDividerMode();
@@ -122,40 +137,48 @@ internal sealed class GridSchemaReviewWindow : Window
         { button.Margin = new(0, 0, 6, 4); _dividerTools.Children.Add(button); }
         controls.Children.Add(_dividerTools);
         _dividerHelp = Text("", 12, "#333943"); _dividerHelp.Visibility = Visibility.Collapsed; controls.Children.Add(_dividerHelp);
-        _selectionLabel = Text("", 12, "#697386"); controls.Children.Add(_selectionLabel);
+        _selectionLabel = Text("", 12, "#697386"); _selectionLabel.Visibility = Visibility.Collapsed; controls.Children.Add(_selectionLabel);
         var readerRow = new DockPanel();
-        _readerSettings = Button("Header reading settings", () =>
-        { new RecorderSettingsWindow { Owner = this }.ShowDialog(); RefreshReaderLabel(); }, false);
-        _readerSettings.Height = 28; DockPanel.SetDock(_readerSettings, Dock.Right); readerRow.Children.Add(_readerSettings);
-        _readerLabel = Text("", 12, "#697386"); readerRow.Children.Add(_readerLabel); controls.Children.Add(readerRow);
+        _readerSettings = Button("Header reading settings", async () =>
+        { await AtlasHeaderSettings.OpenAsync(this); RefreshReaderLabel(); }, false);
+        _readerSettings.MinHeight = 30; DockPanel.SetDock(_readerSettings, Dock.Right); readerRow.Children.Add(_readerSettings);
+        _readAgain = Button("Read names again", () => _ = ExtractAsync(), false);
+        _readAgain.Margin = new(8, 0, 8, 0); DockPanel.SetDock(_readAgain, Dock.Right); readerRow.Children.Add(_readAgain);
+        _readerLabel = Text("", 12, "#697386"); _readerLabel.Visibility = Visibility.Collapsed; readerRow.Children.Add(_readerLabel); controls.Children.Add(readerRow);
         RefreshReaderLabel();
         var readRow = new DockPanel();
-        _extract = Button("Extract schema", () => _ = ExtractAsync(), true); _extract.Width = 160;
-        DockPanel.SetDock(_extract, Dock.Right); readRow.Children.Add(_extract);
-        readRow.Children.Add(Text("Review each name below, or right-click a row to remove a column. Duplicate and blank headers are allowed.", 12, "#697386"));
+        _extract = Button("Read column names", () => _ = ExtractAsync(), true);
+        _reviewHelp = Text("Right-click a row to remove a column. Duplicate and blank headers are allowed.", 12, "#697386");
+        readRow.Children.Add(_reviewHelp);
         controls.Children.Add(readRow);
 
         _columns = new DataGrid { AutoGenerateColumns = false, CanUserAddRows = false, CanUserDeleteRows = false,
             CanUserSortColumns = false, CanUserReorderColumns = false, HeadersVisibility = DataGridHeadersVisibility.Column,
             RowHeaderWidth = 0, GridLinesVisibility = DataGridGridLinesVisibility.Horizontal, Background = Brushes.White };
         _columns.Columns.Add(new DataGridTextColumn { Header = "Column", Binding = new Binding("Number"), IsReadOnly = true, Width = 65 });
-        _columns.Columns.Add(new DataGridTextColumn { Header = "Header name", Binding = new Binding("Label") { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged },
+        _columns.Columns.Add(new DataGridTextColumn { Header = "Header name", EditingElementStyle = (Style)FindResource(typeof(TextBox)),
+            Binding = new Binding("Label") { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged },
             Width = new DataGridLength(1, DataGridLengthUnitType.Star) });
         _columns.Columns.Add(new DataGridTextColumn { Header = "Reading", Binding = new Binding("Reading"), IsReadOnly = true, Width = 150 });
         _columns.LoadingRow += (_, e) => AddColumnMenu(e.Row);
+        _columns.SelectionMode = DataGridSelectionMode.Single; _columns.SelectionUnit = DataGridSelectionUnit.FullRow;
+        _columns.SelectionChanged += (_, _) => UpdateSelectedColumn();
+        _columns.PreviewKeyDown += (_, e) => { if (e.Key == Key.Escape && !IsEditingName()) { ClearColumnFocus(); e.Handled = true; } };
         Grid.SetRow(_columns, 3); root.Children.Add(_columns);
         var footer = new StackPanel { Margin = new(0, 10, 0, 0) }; Grid.SetRow(footer, 4); root.Children.Add(footer);
-        _message = Text("Select the header row and choose Extract schema.", 12, "#697386"); footer.Children.Add(_message);
+        _message = Text("Names can be edited before saving.", 12, "#697386"); footer.Children.Add(_message);
         var buttons = new Grid(); buttons.ColumnDefinitions.Add(new()); buttons.ColumnDefinitions.Add(new());
-        var back = Button("Back to image", Close, false); back.Margin = new(0, 0, 8, 0); buttons.Children.Add(back);
+        _back = Button("Back to image", () => { if (_reviewStage) { ClearColumnFocus(); _reviewStage = false; UpdateStage(); } else Close(); }, false);
+        _back.Margin = new(0, 0, 8, 0); buttons.Children.Add(_back);
         _save = Button("Save schema", () => _ = SaveAsync(closeAfterSave: true), true); _save.IsEnabled = false;
-        Grid.SetColumn(_save, 1); buttons.Children.Add(_save); footer.Children.Add(buttons);
-        Content = new Border { Padding = new Thickness(22), Background = Background, Child = root };
+        Grid.SetColumn(_save, 1); buttons.Children.Add(_save);
+        Grid.SetColumn(_extract, 1); buttons.Children.Add(_extract); footer.Children.Add(buttons);
+        Content = new Border { Padding = new Thickness(22), Background = Background, CornerRadius = new(16), Child = root };
         if (saved is not null && saved.ImageSha256 == _imageHash)
         {
             HeaderSelection = saved.HeaderBounds; SavedReview = saved; SetDraft(saved);
         }
-        DrawSelection(); UpdateDividerControls();
+        DrawSelection(); UpdateDividerControls(); UpdateStage();
         Closed += (_, _) => { _closed = true; _lifetime.Cancel(); _lifetime.Dispose(); };
     }
 
@@ -168,7 +191,7 @@ internal sealed class GridSchemaReviewWindow : Window
         InvalidateDraft(); DrawSelection();
     }
 
-    private static Task<GridSchemaReview> ExtractConfiguredAsync(GridImageExplorationResult source, RectI header,
+    internal static Task<GridSchemaReview> ExtractConfiguredAsync(GridImageExplorationResult source, RectI header,
         IReadOnlyList<int>? dividers, CancellationToken cancellation)
     {
         var store = new AzureHeaderSettingsStore(); var settings = store.Load();
@@ -177,7 +200,7 @@ internal sealed class GridSchemaReviewWindow : Window
     }
     private void RefreshReaderLabel()
     {
-        try { _readerLabel.Text = new AzureHeaderSettingsStore().Load().Enabled ? "Header reader: Azure · GPT-5.6 Sol · Light" : "Header reader: Local OCR"; }
+        try { _ = new AzureHeaderSettingsStore().Load(); _readerLabel.Text = "Reader configured"; }
         catch { _readerLabel.Text = "Header settings need attention"; }
     }
 
@@ -222,11 +245,13 @@ internal sealed class GridSchemaReviewWindow : Window
 
     private void SetDraft(GridSchemaReview draft)
     {
+        ClearColumnFocus();
         Draft = draft;
         _rows = draft.Schema.Columns.Select((column, i) => new ColumnRow { Number = i + 1, Label = column.Label,
             Reading = draft.ReviewedUtc is not null ? "Reviewed" :
                 draft.HeaderReadings[i].Status == GridCellReadStatus.Text ? "Read · review name" : "Needs your input" }).ToList();
         _columns.ItemsSource = _rows;
+        _reviewStage = true; UpdateStage();
         // Removed columns leave their neighbours at the original image coordinates.
         _dividers = draft.HeaderReadings.SelectMany(reading => new[] { reading.Bounds.X, reading.Bounds.X + reading.Bounds.Width })
             .Where(x => x > HeaderSelection.X && x < HeaderSelection.X + HeaderSelection.Width).Distinct().Order().ToList();
@@ -271,14 +296,34 @@ internal sealed class GridSchemaReviewWindow : Window
 
     private void InvalidateDraft()
     {
+        ClearColumnFocus();
         Draft = null; _columns.ItemsSource = null; _save.IsEnabled = false;
+        _reviewStage = false; UpdateStage();
         _message.Text = "Selection changed. Extract the headers again before saving.";
     }
 
     private void SetBusy(bool busy)
     {
-        IsBusy = busy; _extract.IsEnabled = _canvas.IsEnabled = _editDividers.IsEnabled = _columns.IsEnabled = _readerSettings.IsEnabled = !busy;
+        IsBusy = busy; _extract.IsEnabled = _readAgain.IsEnabled = _back.IsEnabled = _canvas.IsEnabled = _editDividers.IsEnabled = _columns.IsEnabled = _readerSettings.IsEnabled = !busy;
         _save.IsEnabled = !busy && Draft is not null;
+        UpdateDividerControls();
+    }
+
+    private void UpdateStage()
+    {
+        var review = _reviewStage && Draft is not null;
+        _columns.Visibility = review ? Visibility.Visible : Visibility.Collapsed;
+        _root.RowDefinitions[1].Height = new GridLength(review ? 1.3 : 1, GridUnitType.Star);
+        _root.RowDefinitions[3].Height = review ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+        _root.RowDefinitions[3].MinHeight = review ? 120 : 0;
+        _save.Visibility = review ? Visibility.Visible : Visibility.Collapsed;
+        _extract.Visibility = review ? Visibility.Collapsed : Visibility.Visible;
+        _readAgain.Visibility = review ? Visibility.Visible : Visibility.Collapsed;
+        _back.Content = review ? "Back to selection" : "Back to image";
+        _stageTitle.Text = review ? "Review column names" : "Select the header row";
+        _stageInstruction.Text = review ? "Edit a name or remove a column before saving." : "Drag around the header row, then read its column names.";
+        _reviewHelp.Visibility = Visibility.Collapsed;
+        _steps.Text = review ? "✓  Select header    —    2  Review names" : "1  Select header    —    2  Review names";
         UpdateDividerControls();
     }
 
@@ -377,7 +422,10 @@ internal sealed class GridSchemaReviewWindow : Window
         _addDivider.IsEnabled = editing && !IsBusy && (_dividers?.Count ?? 0) < 127;
         _addDivider.Content = _addingDivider ? "Cancel adding" : "Add divider";
         System.Windows.Automation.AutomationProperties.SetName(_addDivider, (string)_addDivider.Content);
-        _canvas.Cursor = _addingDivider ? Cursors.Cross : editing ? Cursors.SizeWE : Cursors.Cross;
+        _canvas.Cursor = _addingDivider ? Cursors.Cross : editing ? Cursors.SizeWE : _reviewStage ? Cursors.Arrow : Cursors.Cross;
+        _canvas.ToolTip = editing ? "Select and drag a blue divider. Touch and Ctrl + wheel navigate the image without changing dividers." :
+            _reviewStage ? "Click a column to locate it. Click it again or press Esc to clear focus. Ctrl + wheel or pinch zooms the image." :
+            "Drag to select the header. Arrow keys move it; Shift+Up/Down changes its height. Touch and Ctrl + wheel navigate without editing.";
         _dividerHelp.Text = _addingDivider ? "Click in the table to place a new divider. Press Esc to cancel." :
             HasSelectedDivider ? $"Divider {_selectedDivider + 1} selected. Drag to move; arrow keys fine-tune; Delete removes it." :
             "Select a blue line to move or remove it, or choose Add divider.";
@@ -386,6 +434,7 @@ internal sealed class GridSchemaReviewWindow : Window
     private void MoveSelection(object sender, KeyEventArgs e)
     {
         if (IsBusy) return;
+        if (_reviewStage && _editDividers.IsChecked != true) return;
         if (_editDividers.IsChecked == true)
         {
             var step = (Keyboard.Modifiers & ModifierKeys.Shift) != 0 ? 10 : 1;
@@ -444,11 +493,7 @@ internal sealed class GridSchemaReviewWindow : Window
         { Text = value, FontSize = size, Foreground = MapperGridInspector.Brush(color), TextWrapping = TextWrapping.Wrap, Margin = new(0, 3, 0, 5) };
     private static Button Button(string value, Action action, bool primary)
     {
-        var button = new Button { Content = value, Height = 36, Padding = new(10, 0, 10, 0),
-            Background = MapperGridInspector.Brush(primary ? "#1769E0" : "#FFFFFF"), Foreground = primary ? Brushes.White : MapperGridInspector.Brush("#333943"),
-            BorderBrush = MapperGridInspector.Brush(primary ? "#1769E0" : "#DCE1E9") };
-        System.Windows.Automation.AutomationProperties.SetName(button, value);
-        button.Click += (_, _) => action(); return button;
+        return AtlasFluent.Button(value, action, primary);
     }
     internal sealed class ColumnRow
     {

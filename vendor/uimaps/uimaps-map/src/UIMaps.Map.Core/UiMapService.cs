@@ -106,9 +106,27 @@ public sealed partial class UiMapService
     }
 
     public AttachObservationResponse AttachObservation(AttachObservationRequest request)
+        => AttachObservationCore(request, null);
+
+    /// <summary>Append a validated, explicitly selected recording of this application.
+    /// Its exact process scope applies only to this observation; the normal session
+    /// target and the retained source evidence are unchanged.</summary>
+    public AttachObservationResponse AttachObservationFromSelectedRecording(
+        AttachObservationRequest request, TargetApplicationIdentity recordedTarget)
+        => AttachObservationCore(request, recordedTarget ?? throw new ArgumentNullException(nameof(recordedTarget)));
+
+    private AttachObservationResponse AttachObservationCore(
+        AttachObservationRequest request, TargetApplicationIdentity? recordedTarget)
     {
         ArgumentNullException.ThrowIfNull(request);
         var session = _store.LoadSession(request.MappingSessionRef);
+        if (recordedTarget is not null && (recordedTarget.ApplicationRef != session.Target.ApplicationRef
+            || string.IsNullOrWhiteSpace(recordedTarget.ExecutableName)
+            || !string.Equals(recordedTarget.ExecutableName, session.Target.ExecutableName, StringComparison.OrdinalIgnoreCase)
+            || recordedTarget.ProcessIdentityEvidence.Count == 0
+            || recordedTarget.ProcessIdentityEvidence.Any(string.IsNullOrWhiteSpace)))
+            throw new UiMapException("MAP_SESSION_TARGET_MISMATCH", "The selected recording must identify an exact process of the same mapped application.");
+        var attachmentTarget = recordedTarget?.Clone() ?? session.Target;
         var existingDraft = _store.LoadDraft(session.MapDraftRef);
         if (request.RecordingContext is not null
             && !string.IsNullOrWhiteSpace(request.RecordingContext.ActionEventRef)
@@ -136,7 +154,7 @@ public sealed partial class UiMapService
         var draft = existingDraft;
         _store.SaveSessionAndDraft(session, draft);
 
-        var source = BuildSource(session.Target, request, now);
+        var source = BuildSource(attachmentTarget, request, now);
         source.AppliedControlDetectionPolicy = ControlDetectionPolicyNormalizer.Normalize(request.ControlDetectionPolicy);
         var objects = hasSnapshot
             ? request.Snapshot!.WorldObjects.Select(x => x.Clone()).ToList()
@@ -147,9 +165,13 @@ public sealed partial class UiMapService
             if ((reviewedGridMap is null || reviewedGridMap.DataGrids.Count == 0)
                 && request.ReviewedGridAnalysis is not null
                 && request.ReviewedGridAnalysis.GridCandidates.Count > 0)
-                reviewedGridMap = BuildReviewedGridMap(session, request, now);
+            {
+                var attachmentSession = session.Clone();
+                attachmentSession.Target = attachmentTarget.Clone();
+                reviewedGridMap = BuildReviewedGridMap(attachmentSession, request, now);
+            }
             if (reviewedGridMap is not null) source.GridMapRevisionRef = reviewedGridMap.MapRevisionRef;
-            _construction.Attach(draft, session.Target, source, objects, reviewedGridMap,
+            _construction.Attach(draft, attachmentTarget, source, objects, reviewedGridMap,
                 request.SurfaceVisualFingerprints, source.AppliedControlDetectionPolicy.Effective, now);
             if (reviewedGridMap is not null && !string.IsNullOrWhiteSpace(request.GridHostControlRef))
             {
@@ -188,6 +210,15 @@ public sealed partial class UiMapService
     public MappingSessionDescriptor GetSession(string sessionRef) => _store.LoadSession(sessionRef).Clone();
     public UiMapDraft GetDraft(string draftRef) => _store.LoadDraft(draftRef).Clone();
     public UiMapRevision GetRevision(string revisionRef) => _store.LoadRevision(revisionRef).Clone();
+    public bool IsPublishedDraftCurrent(string draftRef)
+    {
+        var draft = _store.LoadDraft(draftRef);
+        var session = _store.LoadSession(draft.MappingSessionRef);
+        if (string.IsNullOrEmpty(session.PublishedMapRevisionRef)) return false;
+        var revision = _store.LoadRevision(session.PublishedMapRevisionRef);
+        var validation = _store.LoadValidation(revision.ValidationRunRef);
+        return validation.DraftEtag == draft.Etag;
+    }
 
     public UpdateEvidenceStreamSelectionResponse UpdateEvidenceStreamSelection(UpdateEvidenceStreamSelectionRequest request)
     {
