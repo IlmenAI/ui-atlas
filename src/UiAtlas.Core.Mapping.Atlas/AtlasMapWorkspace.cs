@@ -77,7 +77,7 @@ public sealed class AtlasMapWorkspace : IMappingReviewStore
 
     public static async Task<UiKnowledgeGraph> BuildAsync(IEnumerable<string> bundlePaths, string graphPath,
         string? logicalMapId = null, CancellationToken cancellationToken = default, IReadOnlyList<SavedDataGridReview>? gridReviews = null,
-        MapBuildSettings? buildSettings = null)
+        MapBuildSettings? buildSettings = null, string? expectedGeneration = null)
     {
         buildSettings ??= new MapBuildSettingsStore().Load();
         buildSettings.Validate();
@@ -87,6 +87,8 @@ public sealed class AtlasMapWorkspace : IMappingReviewStore
         Directory.CreateDirectory(root);
         using var lease = new FileStream(Path.Combine(root, "write.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
         var existing = Exists(graphPath) ? Open(graphPath) : null;
+        if (expectedGeneration is not null && (existing is null || Path.GetFileName(existing.DirectoryPath) != expectedGeneration))
+            throw new InvalidOperationException("The UI Map changed during capture. The capture was retained; refresh the map before merging it.");
         var generation = Guid.NewGuid().ToString("N");
         var output = Path.Combine(root, "generations", generation);
         Directory.CreateDirectory(output);

@@ -12,7 +12,8 @@ namespace UiAtlas.Core.Cli;
 
 internal static class AtlasSimulationEvidence
 {
-    internal static async Task<CatalogSimulationCapture> CaptureAsync(CatalogSimulationCaptureRequest request, string destination, CancellationToken token)
+    internal static async Task<CatalogSimulationCapture> CaptureAsync(CatalogSimulationCaptureRequest request, string destination, CancellationToken token,
+        string purpose = "simulation-fidelity", string recordingName = "capture.mlrec")
     {
         using var process = System.Diagnostics.Process.GetProcessById(request.ProcessId);
         if (process.HasExited || process.StartTime.ToUniversalTime().Ticks != request.ProcessCreatedUtcTicks)
@@ -22,7 +23,9 @@ internal static class AtlasSimulationEvidence
         Directory.CreateDirectory(destination);
         for (var parent = new DirectoryInfo(destination); parent is not null; parent = parent.Parent)
             if ((parent.Attributes & FileAttributes.ReparsePoint) != 0) throw new IOException("Capture paths cannot contain links.");
-        var recording = Path.Combine(destination, "capture.mlrec");
+        if (Path.GetFileName(recordingName) != recordingName || !recordingName.EndsWith(".mlrec", StringComparison.Ordinal))
+            throw new ArgumentException("Capture requires a local recording filename.");
+        var recording = Path.Combine(destination, recordingName);
         var stage = "resolve owned root";
         try
         {
@@ -33,7 +36,7 @@ internal static class AtlasSimulationEvidence
             await using var session = new UiAtlas.Core.Recording.Windows.ManualRecordingSession(target, recording);
             session.FullRawObservations = true; session.Start(explicitConsent: true);
             stage = "capture observation";
-            await session.CaptureFullObservationAsync("simulation-fidelity", token);
+            await session.CaptureFullObservationAsync(purpose, token);
             stage = "complete recording";
             session.Complete();
         }

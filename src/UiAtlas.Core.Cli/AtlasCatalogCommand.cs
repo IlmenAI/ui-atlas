@@ -46,6 +46,10 @@ internal static class AtlasCatalogCommand
         token.ThrowIfCancellationRequested();
         switch (request.Operation)
         {
+            case "surface-learn":
+                return await AtlasSurfaceLearning.CaptureAndAppendAsync(catalog, request, token);
+            case "surface-capture": case "surface-build": case "surface-publish":
+                return await AtlasSurfaceLearning.ExecuteAsync(catalog, request, token);
             case "simulation-capture":
                 return new CatalogReply { Root = catalog.Root, SimulationCapture = await AtlasSimulationEvidence.CaptureAsync(
                     request.SimulationCapture ?? throw new ArgumentException("An owned simulation process is required."),

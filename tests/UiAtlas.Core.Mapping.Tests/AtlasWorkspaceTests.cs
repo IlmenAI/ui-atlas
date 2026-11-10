@@ -21,6 +21,19 @@ public sealed class AtlasWorkspaceTests : IDisposable
     public void Dispose() => Directory.Delete(_root, true);
     private string Map => Path.Combine(_root, "application.db");
     [Fact]
+    public async Task AppendRejectsStaleGenerationAndPreservesCurrentMap()
+    {
+        var recording = await Record();
+        await AtlasMapWorkspace.BuildAsync([recording], Map);
+        var before = AtlasMapWorkspace.Open(Map);
+        var generation = Path.GetFileName(before.DirectoryPath);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => AtlasMapWorkspace.BuildAsync([recording], Map,
+            expectedGeneration: "stale-generation"));
+        var after = AtlasMapWorkspace.Open(Map);
+        Assert.Equal(generation, Path.GetFileName(after.DirectoryPath));
+        Assert.Equal(before.Index.Sources.Count, after.Index.Sources.Count);
+    }
+    [Fact]
     public async Task CaptureAbove256MiBCanBuildReopenAndRoundTripWithItsEvidence()
     {
         Assert.Equal(CaptureSizeLimits.MaximumEpisodeBytes, RecordingContractLimits.MaxEvidenceEntryBytes);

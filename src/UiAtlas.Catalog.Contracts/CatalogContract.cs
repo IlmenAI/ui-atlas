@@ -8,7 +8,10 @@ public sealed record CatalogRequest(string Operation, string Root, string? Recor
     long? ExpectedReviewRevision = null, string? ExpectedReviewSha256 = null,
     CatalogParameterConfirmation[]? ParameterConfirmations = null, string? ExpectedDraftEtag = null, string[]? IdentityConfirmations = null, string? ExpectedArtifactStamp = null,
     CatalogHeaderSettingsUpdate? HeaderSettingsUpdate = null, CatalogSimulationCaptureRequest? SimulationCapture = null,
-    string? SemanticAfter = null, int SemanticLimit = 30, string? ExternalConsumerId = null, string? SemanticFieldId = null);
+    string? SemanticAfter = null, int SemanticLimit = 30, string? ExternalConsumerId = null, string? SemanticFieldId = null,
+    CatalogSimulationCaptureRequest? SurfaceCapture = null, string? SurfaceCaptureId = null);
+public sealed record CatalogLearnedSurface(string MapId, string MapPath, string RevisionRef, string Detail,
+    string CaptureId = "", string Stage = "Ready");
 public sealed record CatalogSimulationCaptureRequest(int ProcessId, long ProcessCreatedUtcTicks, long RootWindow);
 public sealed record CatalogSimulationCapture(string Directory, string ObservationFile, CatalogEvidenceFile[] Files);
 public sealed record CatalogHeaderSettings(bool Enabled, string Endpoint, string Deployment, bool HasKey,
@@ -63,6 +66,7 @@ public sealed record CatalogIdentityCandidate(string Fingerprint, string Canonic
 public sealed record CatalogIdentityReview(string MapId, string Generation, string RevisionRef, string DraftRef, string DraftEtag, CatalogIdentityCandidate[] Candidates);
 public sealed record CatalogReply
 {
+    public CatalogLearnedSurface? LearnedSurface { get; init; }
     public CatalogSemanticPage? SemanticSource { get; init; }
     public CatalogExternalReference? ExternalReference { get; init; }
     public CatalogRetainedFieldInspection? RetainedField { get; init; }

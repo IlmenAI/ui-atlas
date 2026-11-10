@@ -10,7 +10,7 @@ public interface IAtlasCatalogReader
     Task<CatalogReply> RequestAsync(CatalogRequest request, CancellationToken token = default);
 }
 
-/// <summary>Headless client for the Atlas-owned catalog and scoped parameter review.</summary>
+/// <summary>Headless client for the Atlas-owned catalog, scoped review and live surface capture.</summary>
 public sealed class AtlasCatalogProcessClient(string? root = null, string? executable = null) : IAtlasCatalogReader
 {
     public string Root { get; } = AtlasCatalogLocation.Resolve(root);
@@ -39,8 +39,8 @@ public sealed class AtlasCatalogProcessClient(string? root = null, string? execu
     {
         token.ThrowIfCancellationRequested();
         if (request.Operation is not ("maps-summary" or "revision-read" or "revision-eligibility" or "semantic-source-read" or "semantic-reference-retain" or "semantic-field-inspect" or "profile-read"
-            or "parameter-review-read" or "parameter-confirm" or "identity-review-read" or "identity-confirm"))
-            throw new ArgumentException("This catalog adapter supports reads and scoped parameter confirmation only.");
+            or "parameter-review-read" or "parameter-confirm" or "identity-review-read" or "identity-confirm" or "surface-learn" or "surface-capture" or "surface-build" or "surface-publish"))
+            throw new ArgumentException("This catalog adapter supports reads, scoped review and live surface capture only.");
         var path = Executable;
         var start = new ProcessStartInfo(path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ? "dotnet" : path)
         { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = Path.GetDirectoryName(path)!,
@@ -50,7 +50,7 @@ public sealed class AtlasCatalogProcessClient(string? root = null, string? execu
         start.ArgumentList.Add("catalog"); start.Environment["UI-ATLAS_DATA_HOME"] = Root;
         using var process = Process.Start(start) ?? throw new IOException("Atlas catalog did not start.");
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
-        deadline.CancelAfter(TimeSpan.FromSeconds(60));
+        deadline.CancelAfter(request.Operation.StartsWith("surface-", StringComparison.Ordinal) ? TimeSpan.FromMinutes(15) : TimeSpan.FromSeconds(60));
         using var stop = deadline.Token.Register(() => { try { process.Kill(true); } catch (InvalidOperationException) { } });
         // Both streams are drained concurrently, including on rejected requests.
         var output = ReadBoundedAsync(process.StandardOutput, request.Operation is "semantic-source-read" or "semantic-reference-retain" or "semantic-field-inspect" ? 65536 : 768 * 1024 * 1024, deadline);
