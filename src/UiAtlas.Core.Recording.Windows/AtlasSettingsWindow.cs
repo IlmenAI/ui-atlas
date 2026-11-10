@@ -120,7 +120,7 @@ public sealed class AtlasSettingsWindow : Window
         var grid = new Grid { Margin = new(0, 16, 0, 12) }; grid.ColumnDefinitions.Add(new()); grid.ColumnDefinitions.Add(new() { Width = new GridLength(180) });
         AddRow(grid, Label("Maximum nodes"), _nodes); AddRow(grid, Label("Maximum edges"), _edges); panel.Children.Add(grid);
         panel.Children.Add(Label("Nodes represent applications, windows, states, and controls. Edges represent their relationships. Counts include all map layers."));
-        panel.Children.Add(Label("Range: 1–2,000,000 each. Default: 100,000 each. Larger maps need more memory and take longer to build and open."));
+        panel.Children.Add(Label("Range: 1–10,000,000 each. Default: 10,000,000 each. Larger maps need more memory and take longer to build and open."));
         panel.Children.Add(Label("If either limit is exceeded, the build stops with the required counts. The existing map and source recordings are kept. Lowering a limit does not prevent existing maps from opening."));
         var actions = new WrapPanel { Margin = new(0, 16, 0, 0) };
         actions.Children.Add(Button("Save build settings", () => {
@@ -130,7 +130,7 @@ public sealed class AtlasSettingsWindow : Window
                 _buildStore.Save(value); _buildDirty = false; _buildStatus.Text = "Build settings saved. The next map build will use these limits.";
             } catch (Exception ex) { _buildStatus.Text = "Could not save build settings: " + ex.Message; }
         }));
-        actions.Children.Add(Button("Restore build defaults", () => { _nodes.Text = "100000"; _edges.Text = "100000"; _buildDirty = true;
+        actions.Children.Add(Button("Restore build defaults", () => { _nodes.Text = new MapBuildSettings().MaxNodes.ToString(CultureInfo.InvariantCulture); _edges.Text = new MapBuildSettings().MaxEdges.ToString(CultureInfo.InvariantCulture); _buildDirty = true;
             _buildStatus.Text = "Defaults restored in the editor. Save build settings to apply."; }));
         panel.Children.Add(actions); panel.Children.Add(_buildStatus); return Scroll(panel);
     }

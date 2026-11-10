@@ -36,7 +36,10 @@ public sealed class MapBuildSettingsTests
     {
         using var temp = new TempDirectory();
         var store = new MapBuildSettingsStore(Path.Combine(temp.Path, "build.json"));
-        Assert.Equal(new(), store.Load());
+        Assert.Equal(new(10_000_000, 10_000_000), store.Load());
+        store.Save(new());
+        store.Load().CheckCounts(10_000_000, 10_000_000);
+        Assert.Throws<InvalidDataException>(() => store.Save(new(GraphContractLimits.MaxNodes + 1, 10)));
         store.Save(new(250000, 600000)); Assert.Equal(new(250000, 600000), store.Load());
         Assert.Throws<InvalidDataException>(() => store.Save(new(0, 10)));
         Assert.Throws<InvalidDataException>(() => store.Save(new(10, GraphContractLimits.MaxEdges + 1)));
@@ -63,7 +66,7 @@ public sealed class MapBuildSettingsTests
         var graph = new UiKnowledgeGraph(new(FormatVersions.Graph, FormatVersions.Tool, "large-synthetic", DateTimeOffset.UtcNow,
             "synthetic", GraphSemantics.ComputeHash(nodes, edges), FormatVersions.FullEvidenceProfile), nodes, edges);
         new MapBuildSettings(200000, 200000).CheckCounts(nodes.Length, edges.Length);
-        Assert.Throws<InvalidDataException>(() => new MapBuildSettings().CheckCounts(nodes.Length, edges.Length));
+        Assert.Throws<InvalidDataException>(() => new MapBuildSettings(100_000, 100_000).CheckCounts(nodes.Length, edges.Length));
         Assert.True(GraphValidator.Validate(graph).IsValid);
         var path = Path.Combine(temp.Path, "large.db"); SqliteGraphStore.Save(graph, path);
         var loaded = SqliteGraphStore.Load(path);

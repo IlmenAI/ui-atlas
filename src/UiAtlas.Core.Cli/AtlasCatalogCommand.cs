@@ -112,6 +112,7 @@ internal static class AtlasCatalogCommand
                 var mapPath = catalog.MapPath(mapId);
                 var sessionPath = catalog.MapSessionPath(mapId);
                 var recordings = File.Exists(sessionPath) ? LogicalMapSessionStore.Load(sessionPath).Recordings.Select(value => value.RecordingPath).ToArray() : [recording];
+                if (recordings.Length == 0) recordings = [recording];
                 if (recordings.Any(path => !File.Exists(path))) throw new FileNotFoundException("A source recording is missing. Restore it before rebuilding this map.");
                 var graph = await AtlasMapWorkspace.BuildAsync(recordings, mapPath, mapId, token, buildSettings: new MapBuildSettingsStore().Load());
                 return new() { Root = catalog.Root, MapId = mapId, Nodes = graph.Nodes.Count, Edges = graph.Edges.Count,

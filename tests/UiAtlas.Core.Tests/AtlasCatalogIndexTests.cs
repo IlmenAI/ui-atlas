@@ -22,6 +22,23 @@ public sealed class AtlasCatalogIndexTests
     }
 
     [Fact]
+    public async Task BuildRecoversSelectedRecordingWhenSessionHasNoCompletedRecordings()
+    {
+        using var temp = new TempDirectory();
+        var source = Path.Combine(temp.Path, "recovery.mlrec");
+        Assert.Equal(0, await Program.Main(["synthetic-record", "--out", source]));
+        var root = Path.Combine(temp.Path, "catalog");
+        await AtlasCatalogCommand.ExecuteAsync(new("import", root, SourcePath: source));
+        var recording = Assert.Single((await AtlasCatalogCommand.ExecuteAsync(new("recordings", root))).Recordings);
+        var catalog = new LocalArtifactCatalog(root);
+        LogicalMapSessionStore.Save(catalog.MapSessionPath(recording.Id),
+            LogicalMapSessionStore.Create(recording.Id, recording.ProcessName, DateTimeOffset.UtcNow));
+        var result = await AtlasCatalogCommand.ExecuteAsync(new("build", root, RecordingId: recording.Id));
+        Assert.True(result.Nodes > 0);
+        Assert.True(AtlasMapWorkspace.Exists(catalog.MapPath(recording.Id)));
+    }
+
+    [Fact]
     public async Task SharedSummaryCachePreservesDisplayKnowledgeAndSkipsUnchangedResponses()
     {
         using var temp = new TempDirectory();
