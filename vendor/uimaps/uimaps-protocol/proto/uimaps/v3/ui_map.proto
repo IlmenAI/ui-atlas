@@ -629,6 +629,9 @@ message UiMapDraft {
   repeated DataGridHostDeclaration grid_host_declarations = 15;
   repeated EvidenceStreamSelection evidence_stream_selections = 16;
   repeated HostedDataGridObservation hosted_grid_observations = 17;
+  string control_identity_policy = 18;
+  repeated LogicalControlGroup logical_control_groups = 19;
+  repeated string control_identity_knowledge = 20;
 }
 
 message MappingSessionDescriptor {
@@ -690,6 +693,9 @@ message UiMapRevision {
   repeated ObservedMapInteraction interactions = 17;
   repeated DataGridHostDeclaration grid_host_declarations = 18;
   repeated EvidenceStreamSelection evidence_stream_selections = 19;
+  string control_identity_policy = 20;
+  repeated LogicalControlGroup logical_control_groups = 21;
+  repeated string control_identity_knowledge = 22;
 }
 
 message ReviewedMapAlias {
@@ -1107,4 +1113,16 @@ message GetObservedDataGridContentsResponse {
   repeated GridCoverageKind coverage = 5;
   repeated string limitations = 6;
   bool not_authorization = 7;
+}
+
+// Definition identity is separate from observation/state and live instance identity.
+message LogicalControlGroup {
+  string definition_ref = 1;
+  string structural_signature = 2;
+  string surface_definition_ref = 3;
+  string display_name = 4;
+  string role = 5;
+  repeated string supporting_entity_refs = 6;
+  repeated string classification_reasons = 7;
+  repeated string variable_property_keys = 8;
 }

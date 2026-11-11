@@ -15,6 +15,7 @@ public sealed record MapsLibraryRecord(
     public bool IsSummary { get; init; }
     public UiAtlas.Catalog.CatalogApplicationInfo? ApplicationInfo { get; init; }
     public string ApplicationGroupRef => DisplayApplicationRef ?? Entry.ApplicationRef;
+    public string IdentityMode => (Revision?.ControlIdentityPolicy ?? Draft?.ControlIdentityPolicy ?? "").Length > 0 ? "Experimental control identity" : "Legacy control identity";
 }
 
 public interface IMapsLibrarySource

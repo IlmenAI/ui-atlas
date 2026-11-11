@@ -46,6 +46,11 @@ internal static class AtlasCatalogCommand
         token.ThrowIfCancellationRequested();
         switch (request.Operation)
         {
+            case "map-build-settings":
+                var buildOptions = new MapBuildSettingsStore().Load();
+                return new() { Root = catalog.Root, BuildSettings = new(buildOptions.MaxNodes, buildOptions.MaxEdges, buildOptions.ExperimentalControlIdentity) };
+            case "recording-build":
+                return await AtlasRecordingBuild.ExecuteAsync(catalog, request, token);
             case "surface-learn":
                 return await AtlasSurfaceLearning.CaptureAndAppendAsync(catalog, request, token);
             case "surface-capture": case "surface-build": case "surface-publish":
@@ -103,7 +108,7 @@ internal static class AtlasCatalogCommand
                 var links = RecordingMapLinks(catalog, token);
                 return new() { Root = catalog.Root, Recordings = catalog.ListRecordings().Select(item => new CatalogRecording(item.Id,
                     item.StartedUtc, item.Outcome, item.ProcessName, item.FrameCount,
-                    File.Exists(catalog.MapPath(item.Id)) ? item.Id : links.GetValueOrDefault(item.Id), catalog.IsRecordingArchived(item.Id), catalog.RecordingStamp(item.Id))).ToArray() };
+                    links.GetValueOrDefault(item.Id) ?? (File.Exists(catalog.MapPath(item.Id)) ? item.Id : null), catalog.IsRecordingArchived(item.Id), catalog.RecordingStamp(item.Id))).ToArray() };
             case "recording-delete":
                 catalog.DeleteRecordingPermanently(request.RecordingId ?? throw new ArgumentException("Select a recording."), request.ExpectedArtifactStamp);
                 return new() { Root = catalog.Root, Message = "Recording deleted." };
@@ -141,7 +146,7 @@ internal static class AtlasCatalogCommand
     private static Dictionary<string, string> RecordingMapLinks(LocalArtifactCatalog catalog, CancellationToken token)
     {
         var result = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var map in catalog.ListMaps())
+        foreach (var map in catalog.ListMaps().OrderByDescending(m => m.BuiltUtc))
         {
             token.ThrowIfCancellationRequested();
             var path = catalog.MapPath(map.Id);

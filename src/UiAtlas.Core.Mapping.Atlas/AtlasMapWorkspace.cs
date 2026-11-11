@@ -226,6 +226,15 @@ public sealed class AtlasMapWorkspace : IMappingReviewStore
                 File.Copy(legacyParameters, retainedParameters);
                 MapParameterizationStore.RebindFile(retainedParameters, logicalMapId);
             }
+            var identitySources = sources.ToDictionary(source => source.SourceRef, source =>
+            {
+                var publication = GetPublicationResponse.Parser.ParseFrom(File.ReadAllBytes(Path.Combine(output, source.PublicationFile)));
+                var objects = publication.Snapshot?.WorldStateSnapshot.WorldObjects.ToArray()
+                    ?? publication.Survey.WorldObjects.Select(o => o.WorldObject).ToArray();
+                return (IReadOnlyDictionary<string, WorldObject>)objects.ToDictionary(o => o.WorldObjectId);
+            });
+            foreach (var session in sessions)
+                service.SetControlIdentity(session.DraftRef, buildSettings.ExperimentalControlIdentity, identitySources);
             var index = new AtlasMapIndex(Format, logicalMapId, application, sessions, sources, bundles, retainedGrids);
             File.WriteAllText(Path.Combine(output, "atlas-map.json"), JsonSerializer.Serialize(index, Json));
             File.WriteAllText(Path.Combine(output, "build-settings.json"), JsonSerializer.Serialize(buildSettings, Json));

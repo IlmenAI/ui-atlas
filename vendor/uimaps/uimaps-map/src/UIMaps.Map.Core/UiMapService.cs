@@ -981,6 +981,7 @@ public sealed partial class UiMapService
         var revision = new UiMapRevision
         {
             SchemaVersion = "3.3",
+            ControlIdentityPolicy = draft.ControlIdentityPolicy,
             ApplicationRef = draft.ApplicationRef,
             Target = session.Target.Clone(),
             ValidationRunRef = validation.ValidationRunRef,
@@ -990,6 +991,8 @@ public sealed partial class UiMapService
             NotAuthorization = true,
         };
         if (!string.IsNullOrWhiteSpace(draft.BaseMapRevisionRef)) revision.ParentRevisionRefs.Add(draft.BaseMapRevisionRef);
+        revision.LogicalControlGroups.AddRange(draft.LogicalControlGroups.Select(x => x.Clone()));
+        revision.ControlIdentityKnowledge.AddRange(draft.ControlIdentityKnowledge);
         revision.Sources.AddRange(draft.Sources.Select(x => x.Clone()));
         revision.Entities.AddRange(draft.Entities.Where(x => x.ReviewState != ReviewState.ReviewRejected).Select(x => x.Clone()));
         var included = revision.Entities.Select(x => x.MapEntityRef).ToHashSet(StringComparer.Ordinal);

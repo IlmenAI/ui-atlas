@@ -19,8 +19,16 @@ internal static class Program
             : [];
         var graphPath = JoinPathTokens(graphTokens);
         var evidencePath = JoinPathTokens(evidenceTokens);
+        using var instance = graphPath is null ? null : new MapViewerInstance(graphPath);
+        try { if (instance?.ActivateExisting() == true) return; }
+        catch (Exception error) when (error is System.IO.IOException or TimeoutException)
+        {
+            MessageBox.Show("This map is already opening. Switch to its viewer window or retry after it closes. " + error.Message, "UI Map viewer");
+            return;
+        }
         Window window = graphPath is not null && System.IO.Directory.Exists(graphPath)
             ? new MapReviewWindow(graphPath) : new ExplorerWindow(graphPath, evidencePath);
+        instance?.Listen(window);
         app.Run(window);
     }
 

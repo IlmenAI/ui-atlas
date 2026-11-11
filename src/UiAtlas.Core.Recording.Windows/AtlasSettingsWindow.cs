@@ -39,6 +39,7 @@ public sealed class AtlasSettingsWindow : Window
     private readonly Dictionary<string, TextBox> _entries = [];
     private readonly Dictionary<string, ProfileDraft> _drafts = [];
     private readonly TextBox _nodes = Entry("Maximum map nodes"), _edges = Entry("Maximum map edges");
+    private readonly CheckBox _identity = new() { Content = "Group controls across observed states — Experimental", Margin = new(0, 12, 0, 8) };
     private CaptureProfileDescriptor? _shown;
     private bool _loading, _profilesDirty, _buildDirty;
 
@@ -68,6 +69,7 @@ public sealed class AtlasSettingsWindow : Window
         _active.SelectionChanged += (_, _) => { if (!_loading) _profilesDirty = true; };
         _selected.SelectionChanged += (_, _) => { if (!_loading) { RememberDraft(); ShowProfile(); } };
         _custom.Checked += (_, _) => ChangedCustom(); _custom.Unchecked += (_, _) => ChangedCustom();
+        _identity.Click += (_, _) => { if (!_loading) _buildDirty = true; };
         _nodes.TextChanged += (_, _) => { if (!_loading) _buildDirty = true; };
         _edges.TextChanged += (_, _) => { if (!_loading) _buildDirty = true; };
         Closing += (_, args) => {
@@ -116,6 +118,8 @@ public sealed class AtlasSettingsWindow : Window
     {
         var panel = new StackPanel();
         panel.Children.Add(Label("UI Map building", 21));
+        panel.Children.Add(_identity);
+        panel.Children.Add(Label("Build logical surface and control identities from repeated observations. Task resolution and live grounding follow the identity policy saved in each map. Applies to the next build or rebuild; existing maps and active runs keep their policy."));
         panel.Children.Add(Label("Set the maximum size of the map produced from your recordings. These limits apply to the next build or rebuild, including extensions to an existing map."));
         var grid = new Grid { Margin = new(0, 16, 0, 12) }; grid.ColumnDefinitions.Add(new()); grid.ColumnDefinitions.Add(new() { Width = new GridLength(180) });
         AddRow(grid, Label("Maximum nodes"), _nodes); AddRow(grid, Label("Maximum edges"), _edges); panel.Children.Add(grid);
@@ -126,11 +130,11 @@ public sealed class AtlasSettingsWindow : Window
         actions.Children.Add(Button("Save build settings", () => {
             try {
                 var value = new MapBuildSettings((int)Parse(_nodes.Text, "Maximum nodes", 1, GraphContractLimits.MaxNodes),
-                    (int)Parse(_edges.Text, "Maximum edges", 1, GraphContractLimits.MaxEdges));
-                _buildStore.Save(value); _buildDirty = false; _buildStatus.Text = "Build settings saved. The next map build will use these limits.";
+                    (int)Parse(_edges.Text, "Maximum edges", 1, GraphContractLimits.MaxEdges), _identity.IsChecked == true);
+                _buildStore.Save(value); _buildDirty = false; _buildStatus.Text = "Build settings saved. The next map build will use these limits and identity mode.";
             } catch (Exception ex) { _buildStatus.Text = "Could not save build settings: " + ex.Message; }
         }));
-        actions.Children.Add(Button("Restore build defaults", () => { _nodes.Text = new MapBuildSettings().MaxNodes.ToString(CultureInfo.InvariantCulture); _edges.Text = new MapBuildSettings().MaxEdges.ToString(CultureInfo.InvariantCulture); _buildDirty = true;
+        actions.Children.Add(Button("Restore build defaults", () => { _identity.IsChecked = false; _nodes.Text = new MapBuildSettings().MaxNodes.ToString(CultureInfo.InvariantCulture); _edges.Text = new MapBuildSettings().MaxEdges.ToString(CultureInfo.InvariantCulture); _buildDirty = true;
             _buildStatus.Text = "Defaults restored in the editor. Save build settings to apply."; }));
         panel.Children.Add(actions); panel.Children.Add(_buildStatus); return Scroll(panel);
     }
@@ -144,6 +148,7 @@ public sealed class AtlasSettingsWindow : Window
         var build = new MapBuildSettings();
         try { build = _buildStore.Load(); }
         catch (Exception ex) { _buildStatus.Text = "Could not load build settings: " + ex.Message + " Defaults are shown; save to replace the unreadable settings."; }
+        _identity.IsChecked = build.ExperimentalControlIdentity;
         _nodes.Text = build.MaxNodes.ToString(CultureInfo.InvariantCulture); _edges.Text = build.MaxEdges.ToString(CultureInfo.InvariantCulture);
         ShowProfile(); _loading = false;
     }

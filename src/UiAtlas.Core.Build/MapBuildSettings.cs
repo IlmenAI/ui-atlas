@@ -3,7 +3,7 @@ using UiAtlas.Core.Contracts;
 
 namespace UiAtlas.Core.Build;
 
-public sealed record MapBuildSettings(int MaxNodes = 10_000_000, int MaxEdges = 10_000_000)
+public sealed record MapBuildSettings(int MaxNodes = 10_000_000, int MaxEdges = 10_000_000, bool ExperimentalControlIdentity = false)
 {
     public void Validate()
     {

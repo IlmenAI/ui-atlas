@@ -68,10 +68,14 @@ public sealed class MapApplicationPresentation
     public string IconText => System.IO.Path.GetFileNameWithoutExtension(ExecutableName).ToLowerInvariant() switch { "winword" => "W", "excel" => "X", "powerpnt" => "P", _ => Initials };
     public string IconColor => ApplicationMapIdentity.Color(ExecutableName);
     public string ProductVersion => ExecutableName.StartsWith("prowin", StringComparison.OrdinalIgnoreCase) ? "Unavailable" : new[] { CurrentRecord.ApplicationInfo?.ApplicationVersion, CurrentRecord.Entry.ApplicationVersion, CurrentRecord.Session?.Target.ApplicationVersion, CurrentRecord.Revision?.Target.ApplicationVersion }.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v)) ?? "Unavailable";
-    public string LastRecorded => ApplicationMapIdentity.Date(Maps.Select(m => m.Record.ApplicationInfo?.LastRecorded).Max());
-    public string MapUpdated => ApplicationMapIdentity.Date(Maps.Select(m => DateTimeOffset.TryParse(m.Record.Entry.UpdatedAt, out var at) ? at : m.UpdatedAt).Max());
+    public string LastRecorded => ApplicationMapIdentity.Date(CurrentRecord.ApplicationInfo?.LastRecorded);
+    public string MapUpdated => ApplicationMapIdentity.Date(DateTimeOffset.TryParse(CurrentRecord.Entry.UpdatedAt, out var at) ? at : UpdatedAt);
+    public string LatestRecordingSummary => CurrentRecord.ApplicationInfo is { } info
+        ? $"{info.RecordingIds.Length} source recording{(info.RecordingIds.Length == 1 ? "" : "s")} in latest map" : "Source count unavailable";
     public string LibraryStatusColor => LibraryStatus == "Ready" ? "#147B46" : LibraryStatus == "Archived" ? "#64748B" : "#A65D00";
-    public string LibraryStatus => IsArchived ? "Archived" : HasReadyMap ? "Ready" : NeedsReview ? "Review needed" : "Draft only";
+    public string LibraryStatus => CurrentRecord.Entry.Archived ? "Archived"
+        : CurrentRecord.Entry.IsReady && CurrentRecord.Entry.LatestMapRevisionRef.Length > 0 ? "Ready"
+        : CurrentRecord.Entry.BlockingReviewCount > 0 ? "Review needed" : "Draft only";
 
     public required string ApplicationRef { get; init; }
     public required string DisplayName { get; init; }

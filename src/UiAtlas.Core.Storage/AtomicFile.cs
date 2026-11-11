@@ -10,7 +10,14 @@ internal static class AtomicFile
         try
         {
             write(temp);
-            File.Move(temp, full, overwrite: true);
+            // Virus scanners and indexers can briefly retain large completed
+            // databases. Retry only the atomic replacement; never delete the old map.
+            for (var attempt = 0; ; attempt++)
+            {
+                try { File.Move(temp, full, overwrite: true); break; }
+                catch (Exception error) when (attempt < 9 && error is IOException or UnauthorizedAccessException)
+                { Thread.Sleep(100 * (attempt + 1)); }
+            }
         }
         finally
         {

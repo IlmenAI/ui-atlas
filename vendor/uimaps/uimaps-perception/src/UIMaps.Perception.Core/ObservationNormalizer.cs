@@ -67,8 +67,11 @@ public sealed class ObservationNormalizer
                         string.IsNullOrWhiteSpace(node.LocalizedControlType) ? node.ControlType : node.LocalizedControlType,
                         node.Name, node.AccessibilityEvidenceId, node.ParentEvidenceId, node.WindowEvidenceId,
                         [
+                            .. (node.HasIsContentElement ? new[] { Property("isContentElement", node.IsContentElement.ToString()) } : []),
+                            .. (node.HasIsControlElement ? new[] { Property("isControlElement", node.IsControlElement.ToString()) } : []),
                             Property("automationId", node.AutomationId),
                             Property("sourceAccessibilityEvidenceId", node.AccessibilityEvidenceId),
+                            .. (node.RuntimeIdEvidence.Count > 0 ? new[] { Property("runtimeId", string.Join(",", node.RuntimeIdEvidence)) } : []),
                             Property("controlType", node.ControlType),
                             Property("localizedControlType", node.LocalizedControlType),
                             Property("supportedPatterns", string.Join("|", node.SupportedPatterns.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))),

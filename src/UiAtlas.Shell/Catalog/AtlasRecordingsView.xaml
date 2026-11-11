@@ -69,6 +69,10 @@
    <StackPanel Grid.Row="3" Margin="0,16,0,6">
     <TextBlock x:Name="CountText" Foreground="{StaticResource MutedInkBrush}" FontSize="12"/>
     <TextBlock x:Name="StatusText" Margin="0,5,18,0" Foreground="{StaticResource MutedInkBrush}" FontSize="11.5" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+    <StackPanel x:Name="BuildResultActions" Visibility="Collapsed" Orientation="Horizontal" Margin="0,12,0,0">
+     <Button Content="Open built map" Click="OpenBuilt_Click" Style="{StaticResource QuietButtonStyle}" Margin="0,0,12,0"/>
+     <Button x:Name="PublishBuiltButton" Content="Publish after review" Click="PublishBuilt_Click" Style="{StaticResource QuietButtonStyle}"/>
+    </StackPanel>
    </StackPanel>
   </Grid>
  </ScrollViewer>

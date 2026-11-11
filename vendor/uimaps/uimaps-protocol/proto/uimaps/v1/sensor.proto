@@ -118,6 +118,8 @@ message AccessibilityNodeRecord {
   // acquisition. This is editing-owner evidence, not a UIA pattern or receipt.
   optional bool native_caret_owner_confirmed = 29;
   optional bool is_read_only = 30;
+  optional bool is_content_element = 32;
+  optional bool is_control_element = 33;
   optional string selection_evidence = 31;
 }
 

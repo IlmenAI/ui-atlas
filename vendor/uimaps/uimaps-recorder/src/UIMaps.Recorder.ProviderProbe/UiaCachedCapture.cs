@@ -34,6 +34,7 @@ internal static class UiaCachedCapture
 
     private static readonly AutomationProperty[] StateProperties =
     [
+        AutomationElement.IsContentElementProperty, AutomationElement.IsControlElementProperty,
         AutomationElement.HasKeyboardFocusProperty, SelectionItemPattern.IsSelectedProperty,
         TogglePattern.ToggleStateProperty, ExpandCollapsePattern.ExpandCollapseStateProperty,
         GridItemPattern.RowProperty, GridItemPattern.ColumnProperty,
@@ -149,6 +150,8 @@ internal static class UiaCachedCapture
             PropertyCoverage = coverage,
         };
         if (password is { } knownPassword) node.IsPassword = knownPassword;
+        if (ReadState(AutomationElement.IsContentElementProperty) is bool content) node.IsContentElement = content;
+        if (ReadState(AutomationElement.IsControlElementProperty) is bool control) node.IsControlElement = control;
         var runtime = Read(AutomationElement.RuntimeIdProperty);
         if (runtime is int[] runtimeId) node.RuntimeIdEvidence.AddRange(runtimeId);
         else if (runtime is not null) { coverage.Read--; coverage.Failed++; }

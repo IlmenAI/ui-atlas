@@ -21,6 +21,13 @@ public static class UiMapRevisionIntegrity
 
     public static void Sort(UiMapRevision revision)
     {
+        Replace(revision.ControlIdentityKnowledge, revision.ControlIdentityKnowledge.Order(StringComparer.Ordinal));
+        Replace(revision.LogicalControlGroups, revision.LogicalControlGroups.OrderBy(g => g.DefinitionRef, StringComparer.Ordinal));
+        foreach (var group in revision.LogicalControlGroups)
+        {
+            Replace(group.SupportingEntityRefs, group.SupportingEntityRefs.Order(StringComparer.Ordinal));
+            Replace(group.VariablePropertyKeys, group.VariablePropertyKeys.Order(StringComparer.Ordinal));
+        }
         Replace(revision.ParentRevisionRefs, revision.ParentRevisionRefs.Order(StringComparer.Ordinal));
         Replace(revision.Sources, revision.Sources.OrderBy(x => x.SourceObservationSetRef, StringComparer.Ordinal));
         Replace(revision.Entities, revision.Entities.OrderBy(x => x.MapEntityRef, StringComparer.Ordinal));

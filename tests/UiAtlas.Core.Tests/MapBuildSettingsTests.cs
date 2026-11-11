@@ -8,6 +8,28 @@ namespace UiAtlas.Core.Tests;
 public sealed class MapBuildSettingsTests
 {
     [Fact]
+    public async Task PublicationWaitsForTemporaryReaderLockWithoutDeletingThePreviousMap()
+    {
+        using var temp = new TempDirectory();
+        var graph = new RecordingGraphBuilder().Build(SyntheticBundleFactory.Create(temp.Path));
+        var path = Path.Combine(temp.Path, "locked.db"); SqliteGraphStore.Save(graph, path);
+        using var reader = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var release = Task.Run(async () => { await Task.Delay(700); reader.Dispose(); });
+        SqliteGraphStore.Save(graph, path);
+        await release;
+        Assert.Equal(graph.Metadata.SemanticHash, SqliteGraphStore.Load(path).Metadata.SemanticHash);
+    }
+    [Fact]
+    public void ExperimentalIdentityDefaultsOffAndRoundTripsIndependentlyOfLimits()
+    {
+        using var temp = new TempDirectory();
+        var store = new MapBuildSettingsStore(Path.Combine(temp.Path, "identity.json"));
+        Assert.False(store.Load().ExperimentalControlIdentity);
+        store.Save(new(ExperimentalControlIdentity: true));
+        Assert.True(store.Load().ExperimentalControlIdentity);
+        store.Save(new()); Assert.False(store.Load().ExperimentalControlIdentity);
+    }
+    [Fact]
     public void SqliteReadersShareTheMultiRecordingMapSizeLimit()
     {
         using var temp = new TempDirectory();

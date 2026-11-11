@@ -21,6 +21,68 @@ public sealed class AtlasWorkspaceTests : IDisposable
     public void Dispose() => Directory.Delete(_root, true);
     private string Map => Path.Combine(_root, "application.db");
     [Fact]
+    public async Task ReviewedIdentityKnowledgeIsPinnedInPublishedRevision()
+    {
+        await AtlasMapWorkspace.BuildAsync([await Record()], Map);
+        var workspace = AtlasMapWorkspace.Open(Map);
+        var draft = Assert.Single(workspace.Drafts);
+        var executable = workspace.Service.GetSession(draft.MappingSessionRef).Target.ExecutableName;
+        var rule = new UIMaps.Protocol.ControlIdentityKnowledge("reviewed-rule", executable,
+            [new("Reservations 09/11", "Window", "", "Window"), new("NEW", "Button", "new", "Button")],
+            [new(0, "Reservations 09/11", "Reservations ", "")], "Date changes", "reviewed-evidence");
+        var sources = workspace.Index.Sources.ToDictionary(source => source.SourceRef, source =>
+        {
+            var publication = GetPublicationResponse.Parser.ParseFrom(File.ReadAllBytes(workspace.Resolve(source.PublicationFile)));
+            var objects = publication.Snapshot?.WorldStateSnapshot.WorldObjects.ToArray()
+                ?? publication.Survey.WorldObjects.Select(o => o.WorldObject).ToArray();
+            return (IReadOnlyDictionary<string, WorldObject>)objects.ToDictionary(o => o.WorldObjectId);
+        });
+        workspace.Service.SetControlIdentity(draft.MapDraftRef, true, sources, [rule]);
+        var revision = workspace.MarkReady(draft.MapDraftRef, "qualification", requireReview: false);
+        Assert.Equal(UIMaps.Protocol.ControlIdentityKnowledge.Serialize(rule), Assert.Single(revision.ControlIdentityKnowledge));
+        Assert.Equal(revision.CanonicalPayloadHash, UIMaps.Protocol.UiMapRevisionIntegrity.Hash(revision));
+        var bytes = revision.ToByteArray();
+        workspace.Service.SetControlIdentity(draft.MapDraftRef, true, sources, []);
+        Assert.Empty(workspace.Service.GetDraft(draft.MapDraftRef).ControlIdentityKnowledge);
+        Assert.Equal(bytes, workspace.Service.GetRevision(revision.MapRevisionRef).ToByteArray());
+    }
+    [Fact]
+    public async Task RetainedRecordingBuildsExperimentalMapForQualification()
+    {
+        var input = Environment.GetEnvironmentVariable("UIMAPS_IDENTITY_MAP_SOURCE");
+        if (string.IsNullOrEmpty(input)) return;
+        var destination = Environment.GetEnvironmentVariable("UIMAPS_IDENTITY_MAP_OUTPUT") ?? throw new InvalidOperationException("Qualification output path is required.");
+        var original = AtlasMapWorkspace.Open(input);
+        await AtlasMapWorkspace.BuildAsync(original.Index.BundleFiles.Select(original.Resolve), destination,
+            buildSettings: new(ExperimentalControlIdentity: true));
+        var workspace = AtlasMapWorkspace.Open(destination);
+        var draft = Assert.Single(workspace.Drafts);
+        var revision = workspace.MarkReady(draft.MapDraftRef, "experimental-identity-qualification", requireReview: false);
+        Assert.Equal(UIMaps.Protocol.LogicalControlIdentity.Policy, revision.ControlIdentityPolicy);
+        Assert.NotEmpty(revision.LogicalControlGroups);
+        File.WriteAllBytes(destination + ".revision.pb", revision.ToByteArray());
+        Assert.Equal(revision.CanonicalPayloadHash, UIMaps.Protocol.UiMapRevisionIntegrity.Hash(revision));
+        Assert.Equal(original.Index.Sources.Count, workspace.Index.Sources.Count);
+    }
+    [Fact]
+    public async Task ExperimentalIdentityIsPublishedAndRebuildCanReturnToLegacyWithoutChangingHistory()
+    {
+        var recording = await Record();
+        await AtlasMapWorkspace.BuildAsync([recording], Map, buildSettings: new(ExperimentalControlIdentity: true));
+        var workspace = AtlasMapWorkspace.Open(Map); var draft = Assert.Single(workspace.Drafts);
+        Assert.Equal(UIMaps.Protocol.LogicalControlIdentity.Policy, draft.ControlIdentityPolicy);
+        Assert.NotEmpty(draft.LogicalControlGroups);
+        var revision = workspace.MarkReady(draft.MapDraftRef, "qualification", requireReview: false);
+        Assert.Equal(draft.ControlIdentityPolicy, revision.ControlIdentityPolicy);
+        Assert.Equal(draft.LogicalControlGroups.OrderBy(g => g.DefinitionRef), revision.LogicalControlGroups.OrderBy(g => g.DefinitionRef));
+        var bytes = revision.ToByteArray();
+        await AtlasMapWorkspace.BuildAsync([recording], Map, buildSettings: new(ExperimentalControlIdentity: false));
+        var reopened = AtlasMapWorkspace.Open(Map); var legacy = Assert.Single(reopened.Drafts);
+        Assert.Empty(legacy.ControlIdentityPolicy); Assert.Empty(legacy.LogicalControlGroups);
+        Assert.Equal(bytes, reopened.Service.GetRevision(revision.MapRevisionRef).ToByteArray());
+        Assert.NotEqual(revision.MapRevisionRef, reopened.MarkReady(legacy.MapDraftRef, "qualification", requireReview: false).MapRevisionRef);
+    }
+    [Fact]
     public async Task AppendRejectsStaleGenerationAndPreservesCurrentMap()
     {
         var recording = await Record();

@@ -10,6 +10,7 @@ internal static class AtlasMapListProjection
     {
         MapDraftRef = value.MapDraftRef, MappingSessionRef = value.MappingSessionRef,
         ApplicationRef = value.ApplicationRef, Etag = value.Etag, Version = value.Version, UpdatedAt = value.UpdatedAt,
+        ControlIdentityPolicy = value.ControlIdentityPolicy,
         Entities = { value.Entities.Select(Entity) }, Sources = { value.Sources.Select(Source) },
         ReviewItems = { value.ReviewItems.Where(item => item.Blocking && item.ReviewState == ReviewState.ReviewUnreviewed)
             .Select(item => new ReviewItem { Blocking = true, ReviewState = item.ReviewState }) },
@@ -20,6 +21,7 @@ internal static class AtlasMapListProjection
     {
         MapRevisionRef = value.MapRevisionRef, ApplicationRef = value.ApplicationRef,
         Target = value.Target?.Clone(), PublishedAt = value.PublishedAt,
+        ControlIdentityPolicy = value.ControlIdentityPolicy,
         Entities = { value.Entities.Select(Entity) }, Sources = { value.Sources.Select(Source) },
         Limitations = { value.Limitations },
         // Deliberately omit Immutable and CanonicalPayloadHash: this is not an authoritative revision.

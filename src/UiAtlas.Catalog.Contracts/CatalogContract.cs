@@ -9,7 +9,11 @@ public sealed record CatalogRequest(string Operation, string Root, string? Recor
     CatalogParameterConfirmation[]? ParameterConfirmations = null, string? ExpectedDraftEtag = null, string[]? IdentityConfirmations = null, string? ExpectedArtifactStamp = null,
     CatalogHeaderSettingsUpdate? HeaderSettingsUpdate = null, CatalogSimulationCaptureRequest? SimulationCapture = null,
     string? SemanticAfter = null, int SemanticLimit = 30, string? ExternalConsumerId = null, string? SemanticFieldId = null,
-    CatalogSimulationCaptureRequest? SurfaceCapture = null, string? SurfaceCaptureId = null);
+    CatalogSimulationCaptureRequest? SurfaceCapture = null, string? SurfaceCaptureId = null,
+    CatalogMapBuildSettings? BuildSettings = null);
+public sealed record CatalogMapBuildSettings(int MaxNodes, int MaxEdges, bool ExperimentalControlIdentity);
+public sealed record CatalogRecordingBuild(string RecordingId, string MapId, string IdentityPolicy,
+    int LogicalGroups, string[] PublishedRevisions, string PublicationProblem);
 public sealed record CatalogLearnedSurface(string MapId, string MapPath, string RevisionRef, string Detail,
     string CaptureId = "", string Stage = "Ready");
 public sealed record CatalogSimulationCaptureRequest(int ProcessId, long ProcessCreatedUtcTicks, long RootWindow);
@@ -95,6 +99,8 @@ public sealed record CatalogReply
     public string? MapId { get; init; }
     public int Nodes { get; init; }
     public int Edges { get; init; }
+    public CatalogMapBuildSettings? BuildSettings { get; init; }
+    public CatalogRecordingBuild? RecordingBuild { get; init; }
     public string? PreviewPng { get; init; }
 }
 // Local immutable export. Paths are relative to Directory; originals never become AI inputs implicitly.

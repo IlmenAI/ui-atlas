@@ -215,6 +215,15 @@ public static class AtlasMapProjection
                     new("reviewState", entity.ReviewState.ToString()), new("controlType", SemanticMapProjection.ControlKind(entity, sources.Select(id => nodes[id]).ToArray())), new("mappingEngine", "UIMaps"),
                     new("curationHidden", (entity.ReviewState == ReviewState.ReviewRejected).ToString()) };
                 properties.Add(new("mapEntityKind", entity.EntityKind.ToString()));
+                if (draft.ControlIdentityPolicy.Length > 0)
+                {
+                    properties.Add(new("controlIdentityPolicy", draft.ControlIdentityPolicy));
+                    if (draft.LogicalControlGroups.FirstOrDefault(g => g.SupportingEntityRefs.Contains(entity.MapEntityRef)) is { } definition)
+                        properties.AddRange([new("logicalDefinitionRef", definition.DefinitionRef),
+                            new("logicalSurfaceRef", definition.SurfaceDefinitionRef),
+                            new("logicalSupportingExamples", definition.SupportingEntityRefs.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                            new("logicalVariableProperties", string.Join(", ", definition.VariablePropertyKeys))]);
+                }
                 if (entity.HostedDataGrid is { } hostedGrid)
                 {
                     properties.Add(new("sourceGridRef", hostedGrid.SourceGridRef));

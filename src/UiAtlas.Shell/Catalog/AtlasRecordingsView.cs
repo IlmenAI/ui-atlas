@@ -17,6 +17,8 @@ public sealed partial class AtlasRecordingsView : UserControl
     private bool _initialized;
     private bool _changingFilters;
     private long _revision;
+    private CatalogReply? _built;
+    private string _buildMessage = "";
     public AtlasRecordingsView(AtlasCatalogClient client)
     {
         _client = client;
@@ -73,7 +75,7 @@ public sealed partial class AtlasRecordingsView : UserControl
             var reply = await _client.RequestAsync(new("recordings", _client.Root));
             if (revision != _revision) return;
             SetRecordings(reply.Recordings);
-            StatusText.Text = "";
+            StatusText.Text = _buildMessage;
         }
         catch (Exception error)
         {
@@ -97,14 +99,16 @@ public sealed partial class AtlasRecordingsView : UserControl
         finally { _changingFilters = false; }
         ApplyFilters();
     }
-    private async void OpenRecording_Click(object sender, RoutedEventArgs args)
+    private void OpenRecording_Click(object sender, RoutedEventArgs args)
     {
+        if (!ReferenceEquals(args.Source, sender)) return;
+        args.Handled = true;
         if (sender is not FrameworkElement { Tag: RecordingLibraryItem item }) return;
-        if (item.HasMap) await RunAsync(() => OpenAsync(item.Recording));
-        else ShowRecordingMenu((Button)sender, item);
+        ShowRecordingMenu((Button)sender, item);
     }
     private void RecordingMenu_Click(object sender, RoutedEventArgs args)
     {
+        args.Handled = true;
         if (sender is Button { Tag: RecordingLibraryItem item } button) ShowRecordingMenu(button, item);
     }
     private void Recording_ContextMenuOpening(object sender, ContextMenuEventArgs e)
@@ -118,11 +122,11 @@ public sealed partial class AtlasRecordingsView : UserControl
         void Add(string label, Func<Task> action, bool enabled = true)
         {
             var entry = new MenuItem { Header = label, IsEnabled = enabled };
-            entry.Click += async (_, _) => await RunAsync(action);
+            entry.Click += async (_, e) => { e.Handled = true; await RunAsync(action); };
             menu.Items.Add(entry);
         }
-        Add("Open map", () => OpenAsync(item.Recording), item.HasMap);
-        Add(item.HasMap ? "Rebuild UI Map" : "Build UI Map", () => BuildAsync(item.Recording), _job is null && !item.IsInvalid && !item.Recording.Archived);
+        Add("Open latest map built from this recording", () => OpenAsync(item.Recording), item.HasMap);
+        Add("Build new UI Map from this recording", () => BuildAsync(item.Recording), _job is null && !item.IsInvalid && !item.Recording.Archived);
         menu.Items.Add(new Separator());
         Add(item.Recording.Archived ? "Restore recording" : "Archive recording", () => SetArchivedAsync(item.Recording), _job is null);
         var delete = new MenuItem { Header = "Delete recording…", Foreground = System.Windows.Media.Brushes.Firebrick, IsEnabled = _job is null && !_refreshing };
@@ -171,14 +175,50 @@ public sealed partial class AtlasRecordingsView : UserControl
         _job = new(); CancelButton.Visibility = Visibility.Visible;
         try
         {
-            StatusText.Text = $"UI Atlas is building {item.ProcessName} using your saved recording and map-build settings…";
-            var reply = await _client.RequestAsync(new("build", _client.Root, RecordingId: item.Id, MapId: item.MapId), _job.Token);
-            StatusText.Text = reply.Message;
+            BuildResultActions.Visibility = Visibility.Collapsed; _built = null; _buildMessage = "";
+            var settings = (await _client.RequestAsync(new("map-build-settings", _client.Root), _job.Token)).BuildSettings
+                ?? throw new InvalidOperationException("The Atlas tools did not return build settings. Rebuild the app deployment.");
+            StatusText.Text = $"Building recording {item.Id} ({item.StartedUtc.ToLocalTime():g}) with "
+                + (settings.ExperimentalControlIdentity ? "experimental" : "legacy") + " control identity…";
+            StatusText.BringIntoView();
+            var reply = await _client.RequestAsync(new("recording-build", _client.Root, RecordingId: item.Id,
+                ExpectedArtifactStamp: item.Stamp, BuildSettings: settings), _job.Token);
+            _built = reply;
+            StatusText.Text = _buildMessage = reply.Message;
+            BuildResultActions.Visibility = Visibility.Visible;
+            PublishBuiltButton.Visibility = reply.RecordingBuild?.PublicationProblem.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+            BuildResultActions.BringIntoView();
         }
         catch (OperationCanceledException) { StatusText.Text = "Build cancelled. Previous maps and recordings were preserved."; }
         catch (Exception error) { StatusText.Text = "Build failed: " + error.GetBaseException().Message; }
         finally { _job.Dispose(); _job = null; CancelButton.Visibility = Visibility.Collapsed; }
         var message = StatusText.Text; await RefreshAsync(); StatusText.Text = message;
+    }
+    private void OpenBuilt_Click(object sender, RoutedEventArgs args)
+    {
+        args.Handled = true;
+        if (_built?.MapId is { } id) _client.Start("map", "open", id);
+    }
+    private async void PublishBuilt_Click(object sender, RoutedEventArgs args)
+    {
+        args.Handled = true;
+        if (_built?.MapId is not { } id || _job is not null) return;
+        await RunAsync(async () =>
+        {
+            _job = new(); PublishBuiltButton.IsEnabled = false;
+            try
+            {
+                var maps = (await _client.RequestAsync(new("maps-summary", _client.Root), _job.Token)).Maps.Where(m => m.Id == id).ToArray();
+                foreach (var map in maps)
+                {
+                    var entry = UIMaps.Protocol.V3.MapLibraryEntry.Parser.ParseFrom(Convert.FromBase64String(map.Entry));
+                    await _client.RequestAsync(new("ready", _client.Root, MapId: id, Generation: map.Generation, Entry: map.Entry, DraftRef: entry.MapDraftRef), _job.Token);
+                }
+                StatusText.Text = _buildMessage = "Ready for task analysis. Open the recorded task and choose New analysis. Map: " + id;
+                PublishBuiltButton.Visibility = Visibility.Collapsed;
+            }
+            finally { _job.Dispose(); _job = null; PublishBuiltButton.IsEnabled = true; }
+        });
     }
     private async Task ImportAsync()
     {

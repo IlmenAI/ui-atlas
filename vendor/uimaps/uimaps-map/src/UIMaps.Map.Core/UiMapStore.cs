@@ -710,6 +710,13 @@ public static class UiMapCanonicalizer
 
     public static void Sort(UiMapDraft draft)
     {
+        Replace(draft.LogicalControlGroups, draft.LogicalControlGroups.OrderBy(g => g.DefinitionRef, StringComparer.Ordinal));
+        Replace(draft.ControlIdentityKnowledge, draft.ControlIdentityKnowledge.Order(StringComparer.Ordinal));
+        foreach (var group in draft.LogicalControlGroups)
+        {
+            Replace(group.SupportingEntityRefs, group.SupportingEntityRefs.Order(StringComparer.Ordinal));
+            Replace(group.VariablePropertyKeys, group.VariablePropertyKeys.Order(StringComparer.Ordinal));
+        }
         Replace(draft.Sources, draft.Sources.OrderBy(x => x.SourceObservationSetRef, StringComparer.Ordinal));
         Replace(draft.Entities, draft.Entities.OrderBy(x => x.MapEntityRef, StringComparer.Ordinal));
         Replace(draft.Relationships, draft.Relationships.OrderBy(x => x.RelationshipKind).ThenBy(x => x.FromEntityRef, StringComparer.Ordinal).ThenBy(x => x.ToEntityRef, StringComparer.Ordinal));
@@ -727,6 +734,13 @@ public static class UiMapCanonicalizer
 
     public static void Sort(UiMapRevision revision)
     {
+        Replace(revision.LogicalControlGroups, revision.LogicalControlGroups.OrderBy(g => g.DefinitionRef, StringComparer.Ordinal));
+        Replace(revision.ControlIdentityKnowledge, revision.ControlIdentityKnowledge.Order(StringComparer.Ordinal));
+        foreach (var group in revision.LogicalControlGroups)
+        {
+            Replace(group.SupportingEntityRefs, group.SupportingEntityRefs.Order(StringComparer.Ordinal));
+            Replace(group.VariablePropertyKeys, group.VariablePropertyKeys.Order(StringComparer.Ordinal));
+        }
         Replace(revision.ParentRevisionRefs, revision.ParentRevisionRefs.Order(StringComparer.Ordinal));
         Replace(revision.Sources, revision.Sources.OrderBy(x => x.SourceObservationSetRef, StringComparer.Ordinal));
         Replace(revision.Entities, revision.Entities.OrderBy(x => x.MapEntityRef, StringComparer.Ordinal));
