@@ -34,9 +34,14 @@ public sealed record ControlIdentityKnowledge(string Id, string Executable, Iden
                 throw new InvalidDataException("Invalid identity anchor.");
         foreach (var change in Changes)
         {
+            // Empty is an observed value too. An explicitly identified editable
+            // leaf may later contain text without becoming a different control.
+            var emptyFieldValue = change.Index == Path.Length - 1 && change.Original.Length == 0
+                && change.Prefix == "" && change.Suffix == "" && Path[change.Index].Type == "edit"
+                && Path[change.Index].AutomationId.Length > 0 && Path[change.Index].ClassName.Length > 0;
             if (change.Index < 0 || change.Index >= Path.Length || change.Original != Path[change.Index].Name
                 || change.Prefix is null || change.Suffix is null || !change.Matches(change.Original)
-                || change.Variable && change.Original.Length <= change.Prefix.Length + change.Suffix.Length)
+                || change.Variable && change.Original.Length <= change.Prefix.Length + change.Suffix.Length && !emptyFieldValue)
                 throw new InvalidDataException("The content rule does not describe the selected evidence.");
             var node = Path[change.Index];
             if (change.Variable && change.Prefix.Length + change.Suffix.Length == 0
