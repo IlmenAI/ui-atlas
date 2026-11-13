@@ -51,6 +51,8 @@ internal static class AtlasCatalogCommand
                 return new() { Root = catalog.Root, BuildSettings = new(buildOptions.MaxNodes, buildOptions.MaxEdges, buildOptions.ExperimentalControlIdentity) };
             case "recording-build":
                 return await AtlasRecordingBuild.ExecuteAsync(catalog, request, token);
+            case "recording-append":
+                return await AtlasRecordingAppend.ExecuteAsync(catalog, request, token);
             case "surface-learn":
                 return await AtlasSurfaceLearning.CaptureAndAppendAsync(catalog, request, token);
             case "surface-capture": case "surface-build": case "surface-publish":
@@ -182,15 +184,25 @@ internal static class AtlasCatalogCommand
             // An old revision remains readable; only the currently published Ready
             // entry is eligible for new analysis. Completed work retains its own bytes.
             MapLibraryEntry? entry = null;
+            MapLibraryEntry? exactEntry = null;
+            MapLibraryEntry? replayEntry = null;
+            string? retainedDraft = null;
+            var retainedPath = Path.Combine(workspace.DirectoryPath, "retained-replay-revisions.json");
+            if (request.AllowRetainedForReplay && request.Operation is "revision-read" or "revision-eligibility" && File.Exists(retainedPath))
+                retainedDraft = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(retainedPath))?.GetValueOrDefault(reference);
             var cursor = "";
             do
             {
                 token.ThrowIfCancellationRequested();
                 var page = workspace.Service.ListLibrary(new ListMapLibraryRequest { IncludeArchived = true, PageSize = 500, ContinuationToken = cursor });
-                entry = page.Entries.FirstOrDefault(value => value.LatestMapRevisionRef == reference) ?? entry;
+                exactEntry = page.Entries.FirstOrDefault(value => value.LatestMapRevisionRef == reference) ?? exactEntry;
+                replayEntry = retainedDraft is null ? null : page.Entries.FirstOrDefault(value => value.MapDraftRef == retainedDraft) ?? replayEntry;
                 cursor = page.ContinuationToken;
             } while (cursor.Length > 0);
-            var ready = entry is { IsReady: true, Archived: false };
+            entry = retainedDraft is null ? exactEntry : replayEntry;
+            var ready = entry is { IsReady: true, Archived: false } && exactEntry?.Archived != true
+                && !catalog.IsMapLibraryEntryDeleted(Path.GetFileNameWithoutExtension(path), LibrarySubject(entry))
+                && (exactEntry is null || !catalog.IsMapLibraryEntryDeleted(Path.GetFileNameWithoutExtension(path), LibrarySubject(exactEntry)));
             if ((request.RequireReady || request.Operation == "parameter-confirm") && !ready)
                 throw new InvalidOperationException("This exact revision is no longer a Ready published Atlas entry. Select an eligible revision; completed drafts retain their original map.");
             if (request.Operation == "revision-eligibility")

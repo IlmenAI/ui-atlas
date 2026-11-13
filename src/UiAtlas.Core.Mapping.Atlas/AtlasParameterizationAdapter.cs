@@ -8,8 +8,13 @@ public static class AtlasParameterizationAdapter
     public static IReadOnlyList<ParameterGridSource> LoadGrids(AtlasMapWorkspace workspace, UiKnowledgeGraph graph)
     {
         var result = new List<ParameterGridSource>();
+        var descriptors = workspace.Drafts.SelectMany(d => d.Entities).Where(e => e.HostedDataGrid is not null)
+            .Select(e => e.HostedDataGrid).ToArray();
         foreach (var entry in workspace.Index.GridReviews ?? [])
         {
+            var sourceRef = "atlas:grid:" + entry.GridId;
+            if (descriptors.Any(d => d.SchemaVersions.Any(v => v.SourceGridRefs.Contains(sourceRef)))
+                && !descriptors.Any(d => d.SourceGridRef == sourceRef)) continue; // Available through Schema history.
             var path = workspace.Resolve(entry.ReviewFile);
             if (new FileInfo(path).Length > 16 * 1024 * 1024)
                 throw new InvalidDataException("Grid review exceeds its size limit.");

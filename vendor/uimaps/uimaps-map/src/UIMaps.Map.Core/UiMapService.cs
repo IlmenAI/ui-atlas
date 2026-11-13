@@ -209,6 +209,21 @@ public sealed partial class UiMapService
 
     public MappingSessionDescriptor GetSession(string sessionRef) => _store.LoadSession(sessionRef).Clone();
     public UiMapDraft GetDraft(string draftRef) => _store.LoadDraft(draftRef).Clone();
+
+    // Caller holds the authoritative workspace writer lease. Reconcile retained
+    // evidence against its original observation; never duplicate observations.
+    public void ReconcileReviewedGridSchemas(string draftRef, string sourceRef, DataGridMapPackage gridMap,
+        IReadOnlyList<WorldObject> objects)
+    {
+        var draft = _store.LoadDraft(draftRef);
+        var source = draft.Sources.Single(s => s.SourceObservationSetRef == sourceRef);
+        _construction.ReconcileReviewedGrids(draft, source, gridMap, objects);
+        draft.Version++;
+        UiMapConstructionEngine.UpdateEtag(draft, Now());
+        var session = _store.LoadSession(draft.MappingSessionRef);
+        session.BlockingReviewCount = draft.ReviewItems.Count(r => r.Blocking && r.ReviewState == ReviewState.ReviewUnreviewed);
+        _store.SaveSessionAndDraft(session, draft);
+    }
     public UiMapRevision GetRevision(string revisionRef) => _store.LoadRevision(revisionRef).Clone();
     public bool IsPublishedDraftCurrent(string draftRef)
     {
@@ -1207,6 +1222,12 @@ public sealed partial class UiMapService
                     else AcceptInteraction(draft, draft.Interactions.Single(x => x.InteractionRef == subjectRef));
                 }
                 break;
+            case ReviewCommandKind.ReviewSelectGridSchema:
+                var schemaGrid = draft.Entities.SingleOrDefault(e => e.MapEntityRef == command.SubjectRef
+                    && e.EntityKind == MapEntityKind.MapDataGrid && e.HostedDataGrid is not null)
+                    ?? throw new UiMapException("MAP_GRID_SCHEMA_UNKNOWN", "Select a mapped data grid.");
+                GridSchemaHistory.Select(draft, schemaGrid, command.Value);
+                break;
             default:
                 throw new UiMapException("MAP_DRAFT_COMMAND_INVALID", "The review command is not supported by this Phase 3 implementation.");
         }
@@ -1214,6 +1235,9 @@ public sealed partial class UiMapService
 
     private static void AcceptEntity(UiMapDraft draft, MapEntity entity)
     {
+        if (draft.ReviewItems.Any(r => r.SubjectRef == entity.MapEntityRef && r.Category == "data-grid-schema-conflict"
+            && r.ReviewState == ReviewState.ReviewUnreviewed))
+            throw new UiMapException("MAP_GRID_SCHEMA_DECISION_REQUIRED", "Retain and reconcile the new grid schema before accepting this conflict. Add its recording again to recover its schema history.");
         entity.ReviewState = ReviewState.ReviewAccepted;
         foreach (var matcher in entity.Matchers) matcher.ReviewState = ReviewState.ReviewAccepted;
         foreach (var relationship in draft.Relationships.Where(x => x.FromEntityRef == entity.MapEntityRef || x.ToEntityRef == entity.MapEntityRef))

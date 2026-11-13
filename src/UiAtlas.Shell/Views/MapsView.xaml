@@ -205,6 +205,7 @@
                                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0">
                                                             <TextBlock Text="{Binding Counts}" Foreground="{StaticResource MutedInkBrush}" FontSize="11.5" TextWrapping="Wrap"/>
                                                             <TextBlock Text="{Binding Detail}" Foreground="{StaticResource MutedInkBrush}" FontSize="10.5" Margin="0,4,0,0"/>
+                                                            <TextBlock Text="New observations in draft" Foreground="{StaticResource AccentBrush}" FontSize="11.5" Margin="0,4,0,0"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasAddedObservations}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
                                                         </StackPanel>
                                                         <Border Grid.Column="2" Style="{StaticResource StatusPillStyle}" VerticalAlignment="Center" Margin="8,0,18,0">
                                                             <TextBlock Text="{Binding Status}" Style="{StaticResource StatusTextStyle}" FontSize="11.5"/>
@@ -214,7 +215,7 @@
                                                             <Button.Style>
                                                                 <Style TargetType="Button" BasedOn="{StaticResource QuietButtonStyle}">
                                                                     <Setter Property="Visibility" Value="Visible"/><Setter Property="Foreground" Value="{StaticResource AccentBrush}"/><Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
-                                                                    <Style.Triggers><DataTrigger Binding="{Binding IsReady}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding IsArchived}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
+                                                                    <Style.Triggers><DataTrigger Binding="{Binding CanMarkReady}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding IsArchived}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
                                                                 </Style>
                                                             </Button.Style>
                                                         </Button>
@@ -222,7 +223,7 @@
                                                             <Button.Style>
                                                                 <Style TargetType="Button" BasedOn="{StaticResource QuietButtonStyle}">
                                                                     <Setter Property="Visibility" Value="Collapsed"/>
-                                                                    <Style.Triggers><DataTrigger Binding="{Binding IsReady}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger><DataTrigger Binding="{Binding IsArchived}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
+                                                                    <Style.Triggers><DataTrigger Binding="{Binding CanMarkDraft}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger><DataTrigger Binding="{Binding IsArchived}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
                                                                 </Style>
                                                             </Button.Style>
                                                         </Button>
@@ -272,11 +273,11 @@
                     </Border>
                     <Grid Grid.Row="3" Margin="0,22,0,0">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                        <TextBlock Text="Ready replaces the current Ready map for this version. Draft leaves it unchanged." Foreground="{StaticResource MutedInkBrush}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                        <TextBlock x:Name="RecordingCompletionDetail" Text="Ready replaces the current Ready map for this version. Draft leaves it unchanged." Foreground="{StaticResource MutedInkBrush}" VerticalAlignment="Center" TextWrapping="Wrap"/>
                         <Button Grid.Column="1" Content="Archive" Click="RecordingArchive_Click" MinWidth="110" Height="42" Margin="10,0,0,0" Style="{StaticResource ArchiveActionButtonStyle}"/>
                         <Button Grid.Column="2" Content="Review" Click="RecordingReview_Click" MinWidth="110" Height="42" Margin="10,0,0,0" Style="{StaticResource RecorderSecondaryButtonStyle}"/>
-                        <Button Grid.Column="3" Content="Draft" Click="RecordingDraft_Click" MinWidth="110" Height="42" Margin="10,0,0,0" Style="{StaticResource RecorderSecondaryButtonStyle}"/>
-                        <Button Grid.Column="4" Content="Ready" Click="RecordingReady_Click" MinWidth="110" Height="42" Margin="10,0,0,0" Style="{StaticResource PrimaryActionButtonStyle}"/>
+                        <Button x:Name="RecordingKeepDraftButton" Grid.Column="3" Content="Draft" Click="RecordingDraft_Click" MinWidth="110" Height="42" Margin="10,0,0,0" Style="{StaticResource RecorderSecondaryButtonStyle}"/>
+                        <Button x:Name="RecordingPublishButton" Grid.Column="4" Content="Ready" Click="RecordingReady_Click" MinWidth="110" Height="42" Margin="10,0,0,0" Style="{StaticResource PrimaryActionButtonStyle}"/>
                     </Grid>
                 </Grid>
             </ScrollViewer>

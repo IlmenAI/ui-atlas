@@ -44,8 +44,10 @@ public sealed class MapRowPresentation
     public bool IsDraft => Kind == "Draft";
     public bool IsReady => Kind == "Ready";
     public bool IsArchived => Record.Entry.Archived;
-    public bool CanMarkReady => !IsReady;
-    public bool CanMarkDraft => IsReady;
+    public bool HasAddedObservations => Record.Draft is { } draft && Record.Revision is { } revision
+        && draft.Sources.Any(s => !revision.Sources.Any(r => r.SourceObservationSetRef == s.SourceObservationSetRef));
+    public bool CanMarkReady => !IsReady || HasAddedObservations;
+    public bool CanMarkDraft => IsReady && !HasAddedObservations;
     public bool NeedsReview => BlockingReviewCount > 0;
 }
 
@@ -171,10 +173,11 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
         set { if (value is not null && Set(ref _selectedSort, value)) ApplyView(); }
     }
 
-    public async Task RefreshAsync(CancellationToken cancellationToken)
+    public async Task RefreshAsync(CancellationToken cancellationToken, bool waitForPending = false)
     {
         // Activation refreshes are opportunistic; confirmed actions share this gate and wait for an in-flight read.
-        if (!_operations.Wait(0)) return;
+        if (waitForPending) await _operations.WaitAsync(cancellationToken);
+        else if (!_operations.Wait(0)) return;
         IsBusy = true;
         LastRefreshSucceeded = false;
         Status = "Loading recorded maps…";
@@ -229,9 +232,10 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
             .FirstOrDefault();
     }
 
-    public MapApplicationPresentation? FindTransferredApplication(IReadOnlyList<string> draftRefs)
+    public MapApplicationPresentation? FindTransferredApplication(IReadOnlyList<string> draftRefs, bool showDraft = false)
     {
-        var records = _allRecords.Where(record => draftRefs.Contains(record.Entry.MapDraftRef, StringComparer.Ordinal)).ToArray();
+        var records = _allRecords.Where(record => draftRefs.Contains(record.Entry.MapDraftRef, StringComparer.Ordinal))
+            .Select(record => showDraft && record.Draft is not null ? record with { Revision = null } : record).ToArray();
         return records.Length == 0 ? null : BuildGroup(records[0].ApplicationGroupRef, records);
     }
 
@@ -332,6 +336,7 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
         ArgumentNullException.ThrowIfNull(application);
         return _allRecords
             .Where(value => string.Equals(value.ApplicationGroupRef, application.ApplicationRef, StringComparison.Ordinal))
+            .Where(value => application.Maps.Any(map => map.Record.Entry.MapDraftRef == value.Entry.MapDraftRef))
             .Where(value => !requireDraft || value.Draft is not null)
             .OrderByDescending(value => ParseDate(MapUpdatedValue(value)))
             .FirstOrDefault()

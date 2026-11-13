@@ -63,6 +63,7 @@ public sealed class LauncherTests
             {
                 app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
                 app.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/UiAtlas.Shell;component/ShellTheme.xaml") });
+                RecordingAppendUiTests.AppendDuringRefreshOpensPickerAndIgnoresObsoleteRefreshFailure();
                 var host = new AtlasShellHost(catalog: new LocalArtifactCatalog(root), preferences: new LauncherPreferences(Path.Combine(root, "startup.json")));
                 window = new ShellWindow(host) { ShowActivated = false };
                 window.Show();

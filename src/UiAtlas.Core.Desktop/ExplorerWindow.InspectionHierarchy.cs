@@ -97,6 +97,13 @@ public sealed partial class ExplorerWindow
                 item.Items.Add(child);
             }
             if (item.Items.Count == 0) item.Items.Add(TreeItem("No retained column schema", null, false, Muted, FontWeights.Normal));
+            if (grid.HostBound)
+            {
+                item.Items.Add(new TreeViewItem { Header = SchemaHistoryButton(grid) });
+                var history = new MenuItem { Header = "Schema history…" };
+                history.Click += (_, _) => SchemaHistoryButton(grid).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                item.ContextMenu = new ContextMenu(); item.ContextMenu.Items.Add(history);
+            }
         }
         if (branch.Items.Count == 0) branch.Items.Add(TreeItem(_parameterError is not null ? "Retained grids unavailable: " + _parameterError
             : grids.Count == 0 ? "No retained data grids for this variant" : "No matching data grids", null, false, Muted, FontWeights.Normal));

@@ -81,7 +81,7 @@ public sealed class AtlasCatalogClient(string? root = null, string? executable =
         catch (Exception error) { return new(false, error.GetBaseException().Message); }
     }
     public ProcessStartInfo RecordingStartInfo(RecordableApplicationTarget target, DateTimeOffset started) =>
-        StartInfo("recording", "start", target.WindowHandle.ToString(CultureInfo.InvariantCulture),
+        StartInfo("recording", target.AppendDestination is null ? "start" : "append", target.WindowHandle.ToString(CultureInfo.InvariantCulture),
             "--expected-process-id", target.ProcessId.ToString(CultureInfo.InvariantCulture), "--expected-process-start", started.ToString("O", CultureInfo.InvariantCulture));
     public CapabilityLaunchResult OpenMap(MapsLibraryRecord record) => record.LocalPath is { } path
         ? Start("open", path) : new(false, "Refresh Maps to resolve its Atlas workspace.");
@@ -113,6 +113,8 @@ public sealed class AtlasCatalogClient(string? root = null, string? executable =
             if (target.ProcessStartedUtc is not { } expected) return new(false, "Refresh the application list to verify this application's identity.");
             using var targetProcess = Process.GetProcessById(target.ProcessId);
             if (new DateTimeOffset(targetProcess.StartTime.ToUniversalTime()) != expected) return new(false, "The application instance changed. Refresh the application list.");
+            if (target.AppendDestination is { } destination)
+                return await RecordAppendAsync(target, expected, destination, token);
             var before = (await RequestAsync(new("maps-summary", Root), token)).Maps.Select(map => map.Draft).ToHashSet();
             var start = RecordingStartInfo(target, expected);
             using var recorder = Process.Start(start) ?? throw new IOException("UI Atlas recording did not start.");
@@ -126,5 +128,31 @@ public sealed class AtlasCatalogClient(string? root = null, string? executable =
                 : new(true, "Recording and map saved in the shared UI Atlas library.", MapDraftRefs: drafts);
         }
         catch (Exception error) { return new(false, error.GetBaseException().Message); }
+    }
+
+    private async Task<CapabilityLaunchResult> RecordAppendAsync(RecordableApplicationTarget target, DateTimeOffset started,
+        CatalogRequest destination, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        var start = RecordingStartInfo(target, started);
+        start.RedirectStandardInput = start.RedirectStandardOutput = start.RedirectStandardError = true;
+        start.StandardInputEncoding = start.StandardOutputEncoding = start.StandardErrorEncoding = new UTF8Encoding(false);
+        using var recorder = Process.Start(start) ?? throw new IOException("UI Atlas recording did not start.");
+        var output = recorder.StandardOutput.ReadToEndAsync(); var errors = recorder.StandardError.ReadToEndAsync();
+        await recorder.StandardInput.WriteLineAsync(JsonSerializer.Serialize(destination with { Root = Root }));
+        await recorder.StandardInput.FlushAsync();
+        await recorder.WaitForExitAsync(); // The attended recorder owns Finish and Cancel.
+        var text = await output; var error = await errors;
+        if (recorder.ExitCode == 3) return new(false, "Recording cancelled.", Cancelled: true);
+        const string prefix = "ATLAS_APPEND_RESULT:";
+        var receipt = text.Split('\n').LastOrDefault(line => line.StartsWith(prefix, StringComparison.Ordinal));
+        if (recorder.ExitCode != 0 || receipt is null)
+            return new(false, "Observations could not be added. Any saved recording is available in Recordings → Add to existing map. " + error.Trim());
+        var reply = JsonSerializer.Deserialize<CatalogReply>(receipt[prefix.Length..])
+            ?? throw new IOException("The append result was missing.");
+        if (reply.MapId != destination.MapId || reply.RecordingAppend is null)
+            throw new IOException("The append result did not identify the selected map.");
+        return new(true, reply.Message, MapDraftRefs: reply.Maps.Select(m =>
+            UIMaps.Protocol.V3.MapLibraryEntry.Parser.ParseFrom(Convert.FromBase64String(m.Entry)).MapDraftRef).Where(r => r.Length > 0).ToArray());
     }
 }

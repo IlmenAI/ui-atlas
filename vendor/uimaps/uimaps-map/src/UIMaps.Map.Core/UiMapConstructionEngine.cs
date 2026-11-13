@@ -541,6 +541,18 @@ public sealed class UiMapConstructionEngine(StableMapRefAllocator? allocator = n
             draft.Relationships.Add(Relationship(MapRelationshipKind.MapIncludesVariant, state.MapEntityRef, variantRef, ReviewState.ReviewUnreviewed));
     }
 
+    internal void ReconcileReviewedGrids(UiMapDraft draft, SourceObservationSet source, DataGridMapPackage gridMap,
+        IReadOnlyList<WorldObject> objects)
+    {
+        var byId = objects.ToDictionary(o => o.WorldObjectId);
+        var bindings = draft.Entities.Where(e => e.EntityKind == MapEntityKind.MapControl)
+            .SelectMany(e => e.EvidenceLinks.Where(link => link.SourceObservationSetRef == source.SourceObservationSetRef)
+                .Select(link => (link.SourceObjectRef, e.MapEntityRef)))
+            .GroupBy(v => v.SourceObjectRef).Where(g => g.Select(v => v.MapEntityRef).Distinct().Count() == 1)
+            .ToDictionary(g => g.Key, g => g.First().MapEntityRef);
+        AttachReviewedGrids(draft, source, gridMap, bindings, byId);
+    }
+
     private void AttachReviewedGrids(
         UiMapDraft draft,
         SourceObservationSet source,
@@ -566,26 +578,25 @@ public sealed class UiMapConstructionEngine(StableMapRefAllocator? allocator = n
                 continue;
             }
 
-            var normalizedHeaders = NormalizeHeaders(mappedGrid.ExpectedHeaderSet);
-            var existingGrid = draft.Entities.FirstOrDefault(x => x.EntityKind == MapEntityKind.MapDataGrid
-                && SameLogicalControl(draft, x.ParentEntityRef, hostRef)
-                && NormalizeHeaders(x.HostedDataGrid?.ExpectedHeaders ?? []).SequenceEqual(normalizedHeaders, StringComparer.Ordinal));
+            var matchingGrids = draft.Entities.Where(x => x.EntityKind == MapEntityKind.MapDataGrid
+                && SameLogicalControl(draft, x.ParentEntityRef, hostRef)).ToArray();
+            if (matchingGrids.Length > 1)
+            {
+                AddReviewItem(draft, mappedGrid.DataGridRef, "data-grid-host", "More than one retained grid matches this host; select the intended grid.", true);
+                continue;
+            }
+            var existingGrid = matchingGrids.SingleOrDefault();
             var hostSource = sourceToMap.FirstOrDefault(x => x.Value == hostRef).Key;
             if (existingGrid is not null)
             {
+                GridSchemaHistory.Observe(draft, existingGrid, mappedGrid, gridMap.MapRevisionRef, source, _allocator);
+                foreach (var review in draft.ReviewItems.Where(r => r.SubjectRef == existingGrid.MapEntityRef && r.Category == "data-grid-schema-conflict"))
+                    review.ReviewState = ReviewState.ReviewAccepted;
                 if (!string.IsNullOrWhiteSpace(hostSource) && byId.TryGetValue(hostSource, out var reobservedHost))
                     AddEvidence(existingGrid, source, reobservedHost, "data-grid-host-reobservation");
                 MarkGridInternals(draft, source.SourceObservationSetRef, hostRef, existingGrid.MapEntityRef, mappedGrid.ExpectedRelativeBounds);
                 continue;
             }
-            var conflictingGrid = draft.Entities.FirstOrDefault(x => x.EntityKind == MapEntityKind.MapDataGrid
-                && SameLogicalControl(draft, x.ParentEntityRef, hostRef));
-            if (conflictingGrid is not null)
-            {
-                AddReviewItem(draft, conflictingGrid.MapEntityRef, "data-grid-schema-conflict", "A reviewed grid on the same host Control has materially different headers and requires an explicit same-table decision.", true);
-                continue;
-            }
-
             var gridRef = _allocator.Allocate("data-grid");
             var grid = new MapEntity
             {
@@ -635,6 +646,7 @@ public sealed class UiMapConstructionEngine(StableMapRefAllocator? allocator = n
                 draft.Entities.Add(column);
                 draft.Relationships.Add(Relationship(MapRelationshipKind.MapHasColumn, gridRef, column.MapEntityRef, ReviewState.ReviewAccepted));
             }
+            GridSchemaHistory.Observe(draft, grid, mappedGrid, gridMap.MapRevisionRef, source, _allocator);
             MarkGridInternals(draft, source.SourceObservationSetRef, hostRef, gridRef, mappedGrid.ExpectedRelativeBounds);
         }
     }

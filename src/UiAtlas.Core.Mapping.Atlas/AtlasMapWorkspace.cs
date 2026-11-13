@@ -77,7 +77,8 @@ public sealed class AtlasMapWorkspace : IMappingReviewStore
 
     public static async Task<UiKnowledgeGraph> BuildAsync(IEnumerable<string> bundlePaths, string graphPath,
         string? logicalMapId = null, CancellationToken cancellationToken = default, IReadOnlyList<SavedDataGridReview>? gridReviews = null,
-        MapBuildSettings? buildSettings = null, string? expectedGeneration = null)
+        MapBuildSettings? buildSettings = null, string? expectedGeneration = null,
+        Func<AtlasMapWorkspace, bool>? validateAppend = null, bool retainReadyForReplay = false)
     {
         buildSettings ??= new MapBuildSettingsStore().Load();
         buildSettings.Validate();
@@ -87,6 +88,12 @@ public sealed class AtlasMapWorkspace : IMappingReviewStore
         Directory.CreateDirectory(root);
         using var lease = new FileStream(Path.Combine(root, "write.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
         var existing = Exists(graphPath) ? Open(graphPath) : null;
+        // Append admission and duplicate detection share the writer lease with commit.
+        if (validateAppend is not null)
+        {
+            if (existing is null) throw new InvalidDataException("The destination map is unavailable.");
+            if (validateAppend(existing)) return existing.Project();
+        }
         if (expectedGeneration is not null && (existing is null || Path.GetFileName(existing.DirectoryPath) != expectedGeneration))
             throw new InvalidOperationException("The UI Map changed during capture. The capture was retained; refresh the map before merging it.");
         var generation = Guid.NewGuid().ToString("N");
@@ -120,7 +127,41 @@ public sealed class AtlasMapWorkspace : IMappingReviewStore
                 retainedGrids.Add(retained);
             }
             var service = new UiMapService(Path.Combine(output, "map"));
+            if (retainReadyForReplay && existing is not null)
+            {
+                var retainedPath = Path.Combine(output, "retained-replay-revisions.json");
+                var retained = File.Exists(retainedPath)
+                    ? JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(retainedPath))! : new();
+                var cursor = "";
+                do
+                {
+                    var page = existing.Service.ListLibrary(new ListMapLibraryRequest { IncludeArchived = true, PageSize = 500, ContinuationToken = cursor });
+                    foreach (var entry in page.Entries.Where(e => e.IsReady && !e.Archived && e.LatestMapRevisionRef.Length > 0
+                        && existing.Index.Sessions.Any(s => s.DraftRef == e.MapDraftRef)))
+                        retained[entry.LatestMapRevisionRef] = entry.MapDraftRef;
+                    cursor = page.ContinuationToken;
+                } while (cursor.Length > 0);
+                File.WriteAllText(retainedPath, JsonSerializer.Serialize(retained));
+            }
             string? application = existing?.Index.ApplicationName;
+            // Upgrade retained schema evidence before new observations are attached.
+            // This also repairs a formerly rejected schema on an idempotent retry.
+            var priorReviews = retainedGrids.Select(entry => JsonSerializer.Deserialize<SavedDataGridReview>(
+                File.ReadAllText(Path.Combine(output, entry.ReviewFile)))!).ToArray();
+            foreach (var prior in sources)
+            {
+                var relevant = priorReviews.Where(r => r.Context.SourceBundleId == prior.BundleId && r.Context.SourceFrame == prior.Frame).ToArray();
+                if (relevant.Length == 0) continue;
+                var owner = sessions.Single(s => service.GetDraft(s.DraftRef).Sources.Any(v => v.SourceObservationSetRef == prior.SourceRef));
+                var publication = GetPublicationResponse.Parser.ParseFrom(File.ReadAllBytes(Path.Combine(output, prior.PublicationFile)));
+                var package = AtlasGridReviewAdapter.Bind(relevant, retainedGrids, prior.BundleId, prior.Frame,
+                    publication, service.GetSession(owner.SessionRef).Target);
+                if (package is null) continue;
+                var objects = publication.Snapshot?.WorldStateSnapshot.WorldObjects.ToArray()
+                    ?? publication.Survey.WorldObjects.Select(o => o.WorldObject).ToArray();
+                service.ReconcileReviewedGridSchemas(owner.DraftRef, prior.SourceRef, package, objects);
+                UpdateGridRetention(retainedGrids, package, service.GetDraft(owner.DraftRef));
+            }
             foreach (var bundlePath in bundlePaths.Distinct(StringComparer.OrdinalIgnoreCase))
             {
                 // Temporal ownership evidence belongs to one continuous recording.
@@ -201,13 +242,7 @@ public sealed class AtlasMapWorkspace : IMappingReviewStore
                         frame.Sequence, publication, recordedTarget);
                     request.RecordingContext = interactions.ForFrame(frame.Sequence, service.GetDraft(session.DraftRef), sources);
                     var attached = service.AttachObservationFromSelectedRecording(request, recordedTarget);
-                    if (request.ReviewedGridMap is { } gridMap)
-                        foreach (var grid in gridMap.DataGrids)
-                        {
-                            if (attached.Draft.Entities.Any(entity => entity.HostedDataGrid?.SourceGridRef == grid.DataGridRef)) continue;
-                            var gridIndex = retainedGrids.FindIndex(value => "atlas:grid:" + value.GridId == grid.DataGridRef);
-                            retainedGrids[gridIndex] = retainedGrids[gridIndex] with { Status = "pending-host-binding", Detail = "The Map engine could not attach this reviewed schema to a unique stable host. Retained evidence remains available for review." };
-                        }
+                    if (request.ReviewedGridMap is { } gridMap) UpdateGridRetention(retainedGrids, gridMap, attached.Draft);
                     var stem = "evidence/" + hash + "-" + frame.Sequence;
                     Directory.CreateDirectory(Path.Combine(output, "evidence"));
                     await File.WriteAllBytesAsync(Path.Combine(output, stem + ".episode.pb"), episode.ToByteArray(), cancellationToken).ConfigureAwait(false);
@@ -239,6 +274,12 @@ public sealed class AtlasMapWorkspace : IMappingReviewStore
             File.WriteAllText(Path.Combine(output, "atlas-map.json"), JsonSerializer.Serialize(index, Json));
             File.WriteAllText(Path.Combine(output, "build-settings.json"), JsonSerializer.Serialize(buildSettings, Json));
             var workspace = new AtlasMapWorkspace(graphPath, output);
+            if (validateAppend is not null && existing is not null)
+            {
+                var retained = workspace.Drafts.SelectMany(d => d.Entities).Select(e => e.MapEntityRef).ToHashSet(StringComparer.Ordinal);
+                if (existing.Drafts.SelectMany(d => d.Entities).Any(e => !retained.Contains(e.MapEntityRef)))
+                    throw new InvalidDataException("Append must retain every existing map entity.");
+            }
             var graph = AtlasMapProjection.Create(workspace, buildSettings);
             var validation = GraphValidator.Validate(graph);
             if (!validation.IsValid) throw new InvalidDataException(string.Join("; ", validation.Issues.Select(issue => issue.Code + ":" + issue.Message)));
@@ -264,8 +305,33 @@ public sealed class AtlasMapWorkspace : IMappingReviewStore
         if (Index.Sessions.All(session => session.DraftRef != command.MapDraftRef)) throw new ArgumentException("The review command names a different workspace's draft.");
         MappingReviewGuard.ValidateParent(command, Service.GetDraft(command.MapDraftRef));
         var result = Service.ApplyReviewCommand(command);
+        if (command.CommandKind == ReviewCommandKind.ReviewSelectGridSchema)
+        {
+            var session = Service.GetSession(result.Draft.MappingSessionRef);
+            if (session.PublishedMapRevisionRef.Length > 0)
+            {
+                var path = Path.Combine(DirectoryPath, "retained-replay-revisions.json");
+                var retained = File.Exists(path) ? JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(path))! : new();
+                retained[session.PublishedMapRevisionRef] = command.MapDraftRef;
+                var temporary = path + ".tmp";
+                File.WriteAllText(temporary, JsonSerializer.Serialize(retained)); File.Move(temporary, path, true);
+            }
+        }
         SaveProjection(Project(), _graphPath);
         return result;
+    }
+
+    private static void UpdateGridRetention(List<AtlasGridReview> retained, UIMaps.Protocol.V2_1.DataGridMapPackage package, UiMapDraft draft)
+    {
+        foreach (var grid in package.DataGrids)
+        {
+            var index = retained.FindIndex(value => "atlas:grid:" + value.GridId == grid.DataGridRef);
+            var entity = draft.Entities.FirstOrDefault(e => e.HostedDataGrid?.SchemaVersions.Any(v => v.SourceGridRefs.Contains(grid.DataGridRef)) == true);
+            retained[index] = retained[index] with { SchemaHistoryVersion = 1,
+                Status = entity is null ? "pending-host-binding" : "mapped-schema",
+                Detail = entity is null ? "Retained schema needs a unique mapped host. Open Data grids to inspect its evidence."
+                    : "Schema retained in grid history. The selected default is used after publication." };
+        }
     }
     public IReadOnlyList<UiMapRevision> Publish(string reviewer)
     {

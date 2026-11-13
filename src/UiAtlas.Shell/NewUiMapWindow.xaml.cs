@@ -17,16 +17,24 @@ public partial class NewUiMapWindow : Window
     private readonly IRecordableApplicationDiscovery _discovery;
     private readonly RecordingDisplayScope? _displayScope;
     private bool _positioned;
+    private readonly MapsLibraryRecord? _appendMap;
 
     public NewUiMapWindow() : this(new RecordableApplicationDiscovery()) { }
 
     internal NewUiMapWindow(
         IRecordableApplicationDiscovery discovery,
-        RecordingDisplayScope? displayScope = null)
+        RecordingDisplayScope? displayScope = null, MapsLibraryRecord? appendMap = null)
     {
         _discovery = discovery;
         _displayScope = displayScope;
+        _appendMap = appendMap;
         InitializeComponent();
+        if (appendMap is not null)
+        {
+            Title = Heading.Text = "Record more observations";
+            Description.Text = "Add to " + appendMap.Entry.ApplicationDisplayName + " · " + appendMap.CatalogMapId
+                + ". Choose the matching application window. Existing tasks keep their current map.";
+        }
         DisplayScopeText.Text = displayScope?.PickerDescription ?? "Showing visible apps on all displays";
         Loaded += (_, _) => RefreshTargets();
         if (displayScope is not null)
@@ -64,6 +72,13 @@ public partial class NewUiMapWindow : Window
     private void RefreshTargets()
     {
         var targets = _discovery.Discover(_displayScope);
+        if (_appendMap is not null)
+        {
+            var executable = _appendMap.ApplicationInfo?.Executable ?? _appendMap.Session?.Target.ExecutableName
+                ?? _appendMap.Revision?.Target.ExecutableName ?? "";
+            targets = targets.Where(t => UIMaps.Protocol.WindowsExecutableIdentity.ProcessName(t.ExecutableName).Equals(
+                UIMaps.Protocol.WindowsExecutableIdentity.ProcessName(executable), StringComparison.OrdinalIgnoreCase)).ToArray();
+        }
         var view = new ListCollectionView(targets.ToList());
         view.GroupDescriptions.Add(new PropertyGroupDescription(nameof(RecordableApplicationTarget.Category)));
         ApplicationsList.ItemsSource = view;
@@ -86,7 +101,9 @@ public partial class NewUiMapWindow : Window
     {
         if (ApplicationsList.SelectedItem is not RecordableApplicationTarget target || ScopeApproval.IsChecked != true)
             return;
-        SelectedTarget = target;
+        SelectedTarget = _appendMap is null ? target : target with { AppendDestination =
+            new UiAtlas.Catalog.CatalogRequest("recording-append", "", MapId: _appendMap.CatalogMapId,
+                Generation: _appendMap.CatalogGeneration, Entry: Convert.ToBase64String(Google.Protobuf.MessageExtensions.ToByteArray(_appendMap.Entry))) };
         DialogResult = true;
     }
 

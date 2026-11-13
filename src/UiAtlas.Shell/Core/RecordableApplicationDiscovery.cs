@@ -20,6 +20,7 @@ public sealed record RecordableApplicationTarget(
 {
     public bool RecordingDiagnosticsEnabled { get; init; }
     public DateTimeOffset? ProcessStartedUtc { get; init; }
+    public UiAtlas.Catalog.CatalogRequest? AppendDestination { get; init; }
     public string Initial => string.IsNullOrWhiteSpace(DisplayName) ? "?" : char.ToUpperInvariant(DisplayName.Trim()[0]).ToString();
     public string ScopeSummary => $"{ExecutableName}  ·  {DisplayLabel}";
     public int CategoryOrder => Category switch

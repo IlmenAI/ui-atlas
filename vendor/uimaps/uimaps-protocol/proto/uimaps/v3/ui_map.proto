@@ -248,6 +248,7 @@ enum ReviewCommandKind {
   REVIEW_ACCEPT_ALL_BLOCKING = 12;
   REVIEW_SET_ALIAS = 13;
   REVIEW_CLEAR_ALIAS = 14;
+  REVIEW_SELECT_GRID_SCHEMA = 15;
 }
 
 enum ValidationSeverity {
@@ -517,6 +518,22 @@ message HostedDataGridDescriptor {
   string source_candidate_ref = 15;
   DataGridExplorationReceipt exploration_receipt = 16;
   uimaps.v2_1.ReviewedGridImageSchema reviewed_image_schema = 17;
+  repeated HostedGridSchemaVersion schema_versions = 18;
+  string default_schema_version_ref = 19;
+  bool schema_default_pinned = 20;
+}
+
+// The snapshot has no nested history. Published map revisions freeze both the
+// selected descriptor and its history; tasks never follow a mutable default.
+message HostedGridSchemaVersion {
+  string schema_version_ref = 1;
+  HostedDataGridDescriptor snapshot = 2;
+  repeated MapEntity columns = 3;
+  repeated double column_width_ratios = 4;
+  repeated string source_observation_set_refs = 5;
+  repeated string source_grid_refs = 6;
+  string observed_at = 7;
+  string selection_reason = 8;
 }
 
 message MapEntity {

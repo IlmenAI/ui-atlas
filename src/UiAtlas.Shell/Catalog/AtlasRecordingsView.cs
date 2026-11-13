@@ -10,6 +10,7 @@ namespace UiAtlas.Shell.Catalog;
 public sealed partial class AtlasRecordingsView : UserControl
 {
     private readonly AtlasCatalogClient _client;
+    private readonly Func<CatalogRequest, CancellationToken, Task<CatalogReply>> _request;
     private CatalogRecording[] _recordings = [];
     private CancellationTokenSource? _job;
     private Window? _owner;
@@ -19,9 +20,10 @@ public sealed partial class AtlasRecordingsView : UserControl
     private long _revision;
     private CatalogReply? _built;
     private string _buildMessage = "";
-    public AtlasRecordingsView(AtlasCatalogClient client)
+    public AtlasRecordingsView(AtlasCatalogClient client) : this(client, client.RequestAsync) { }
+    internal AtlasRecordingsView(AtlasCatalogClient client, Func<CatalogRequest, CancellationToken, Task<CatalogReply>> request)
     {
-        _client = client;
+        _client = client; _request = request;
         InitializeComponent();
         ApplicationFilter.ItemsSource = new[] { "All applications" };
         ApplicationFilter.SelectedIndex = 0;
@@ -65,20 +67,21 @@ public sealed partial class AtlasRecordingsView : UserControl
     {
         if (sender is Button { ContextMenu: { } menu } button) { menu.PlacementTarget = button; menu.Placement = PlacementMode.Bottom; menu.IsOpen = true; }
     }
-    private async Task RefreshAsync()
+    internal async Task RefreshAsync()
     {
         if (_job is not null || _refreshing) return;
         _refreshing = true;
+        var revision = _revision;
         try
         {
-            var revision = _revision;
-            var reply = await _client.RequestAsync(new("recordings", _client.Root));
-            if (revision != _revision) return;
+            var reply = await _request(new("recordings", _client.Root), CancellationToken.None);
+            if (revision != _revision || _job is not null) return;
             SetRecordings(reply.Recordings);
             StatusText.Text = _buildMessage;
         }
         catch (Exception error)
         {
+            if (revision != _revision || _job is not null) return;
             StatusText.Text = "Could not read recordings: " + error.GetBaseException().Message;
             if (_recordings.Length == 0) EmptyMessage.Text = "Recordings could not be loaded. Try Refresh.";
         }
@@ -127,6 +130,8 @@ public sealed partial class AtlasRecordingsView : UserControl
         }
         Add("Open latest map built from this recording", () => OpenAsync(item.Recording), item.HasMap);
         Add("Build new UI Map from this recording", () => BuildAsync(item.Recording), _job is null && !item.IsInvalid && !item.Recording.Archived);
+        Add("Add to existing map…", () => AppendAsync(item.Recording), _job is null && !item.IsInvalid && !item.Recording.Archived
+            && item.Recording.Outcome is "complete" or "partial");
         menu.Items.Add(new Separator());
         Add(item.Recording.Archived ? "Restore recording" : "Archive recording", () => SetArchivedAsync(item.Recording), _job is null);
         var delete = new MenuItem { Header = "Delete recording…", Foreground = System.Windows.Media.Brushes.Firebrick, IsEnabled = _job is null && !_refreshing };
@@ -194,6 +199,35 @@ public sealed partial class AtlasRecordingsView : UserControl
         finally { _job.Dispose(); _job = null; CancelButton.Visibility = Visibility.Collapsed; }
         var message = StatusText.Text; await RefreshAsync(); StatusText.Text = message;
     }
+    internal async Task AppendAsync(CatalogRecording item)
+    {
+        if (_job is not null) { StatusText.Text = "Another operation is running. Wait for it to finish or cancel it."; StatusText.BringIntoView(); return; }
+        // Activation can refresh the library while this command is being clicked.
+        // Invalidate that display request, but never discard the user's command.
+        ++_revision; _job = new(); var job = _job;
+        try
+        {
+            var picker = new AppendMapPicker(item.ProcessName, async () =>
+            {
+                using var timeout = CancellationTokenSource.CreateLinkedTokenSource(job.Token);
+                timeout.CancelAfter(TimeSpan.FromSeconds(30));
+                try { return (await _request(new("maps-summary", _client.Root), timeout.Token).WaitAsync(timeout.Token)).Maps; }
+                catch (OperationCanceledException) when (!job.IsCancellationRequested) { throw new TimeoutException("The map catalog did not respond within 30 seconds."); }
+            }) { Owner = Window.GetWindow(this) };
+            if (picker.ShowDialog() != true || picker.SelectedMap is not { } map) return;
+            CancelButton.Visibility = Visibility.Visible;
+            BuildResultActions.Visibility = Visibility.Collapsed; _built = null;
+            StatusText.Text = _buildMessage = "Adding retained observations to the selected map…"; StatusText.BringIntoView();
+            _built = await _request(new("recording-append", _client.Root, RecordingId: item.Id,
+                MapId: map.Id, Generation: map.Generation, Entry: map.Entry, ExpectedArtifactStamp: item.Stamp), job.Token);
+            StatusText.Text = _buildMessage = _built.Message;
+            PublishBuiltButton.Visibility = BuildResultActions.Visibility = Visibility.Visible; BuildResultActions.BringIntoView();
+        }
+        catch (OperationCanceledException) { StatusText.Text = _buildMessage = "Adding observations was cancelled. The original recording is retained."; StatusText.BringIntoView(); }
+        catch (Exception error) { StatusText.Text = _buildMessage = "Could not add observations: " + error.GetBaseException().Message; StatusText.BringIntoView(); }
+        finally { job.Cancel(); job.Dispose(); _job = null; CancelButton.Visibility = Visibility.Collapsed; }
+    }
+
     private void OpenBuilt_Click(object sender, RoutedEventArgs args)
     {
         args.Handled = true;
@@ -212,9 +246,15 @@ public sealed partial class AtlasRecordingsView : UserControl
                 foreach (var map in maps)
                 {
                     var entry = UIMaps.Protocol.V3.MapLibraryEntry.Parser.ParseFrom(Convert.FromBase64String(map.Entry));
+                    if (entry.MapDraftRef.Length == 0 || !_built.Maps.Any(b =>
+                        UIMaps.Protocol.V3.MapLibraryEntry.Parser.ParseFrom(Convert.FromBase64String(b.Entry)).MapDraftRef == entry.MapDraftRef)) continue;
+                    if (_built.RecordingAppend is not null && !_built.Maps.Any(b => b.Generation == map.Generation))
+                        throw new InvalidOperationException("The map changed after these observations were added. Open it from Maps and review the current draft before marking it Ready.");
                     await _client.RequestAsync(new("ready", _client.Root, MapId: id, Generation: map.Generation, Entry: map.Entry, DraftRef: entry.MapDraftRef), _job.Token);
                 }
-                StatusText.Text = _buildMessage = "Ready for task analysis. Open the recorded task and choose New analysis. Map: " + id;
+                StatusText.Text = _buildMessage = _built.RecordingAppend is not null
+                    ? "Updated map is Ready. Existing tasks retain their previous map. Map: " + id
+                    : "Ready for task analysis. Open the recorded task and choose New analysis. Map: " + id;
                 PublishBuiltButton.Visibility = Visibility.Collapsed;
             }
             finally { _job.Dispose(); _job = null; PublishBuiltButton.IsEnabled = true; }

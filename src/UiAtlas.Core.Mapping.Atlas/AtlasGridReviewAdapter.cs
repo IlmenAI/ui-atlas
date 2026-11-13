@@ -12,7 +12,7 @@ using UIMaps.Protocol.V3;
 namespace UiAtlas.Core.Mapping.Atlas;
 
 public sealed record AtlasGridReview(string GridId, string Name, string ReviewFile, string ImageFile,
-    string Status, string Detail);
+    string Status, string Detail, int SchemaHistoryVersion = 0);
 
 /// <summary>Only explicit, uniquely bound header reviews become Map schema.
 /// Retained images and unresolved reviews remain inspectable independently.</summary>

@@ -28,6 +28,7 @@ internal static class CatalogMapRecovery
                     continue;
 
                 var recordingPath = catalog.RecordingPath(recording.Id);
+                if (File.Exists(recordingPath + ".append.json")) continue;
                 var mapPath = catalog.MapPath(recording.Id);
                 var sessionManifestPath = catalog.MapSessionPath(recording.Id);
                 var needsMap = !File.Exists(mapPath);

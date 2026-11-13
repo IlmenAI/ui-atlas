@@ -213,7 +213,7 @@ public static class AtlasMapProjection
                     && parentEntity.EntityKind is MapEntityKind.MapControl or MapEntityKind.MapDataGrid ? parentEntity.MapEntityRef : surface!;
                 var properties = new List<GraphProperty> { new("layer", "semantic-world"), new("mapDraftRef", draft.MapDraftRef),
                     new("reviewState", entity.ReviewState.ToString()), new("controlType", SemanticMapProjection.ControlKind(entity, sources.Select(id => nodes[id]).ToArray())), new("mappingEngine", "UIMaps"),
-                    new("curationHidden", (entity.ReviewState == ReviewState.ReviewRejected).ToString()) };
+                    new("curationHidden", (entity.ReviewState == ReviewState.ReviewRejected || !entity.Applicable).ToString()) };
                 properties.Add(new("mapEntityKind", entity.EntityKind.ToString()));
                 if (draft.ControlIdentityPolicy.Length > 0)
                 {
@@ -228,6 +228,9 @@ public static class AtlasMapProjection
                 {
                     properties.Add(new("sourceGridRef", hostedGrid.SourceGridRef));
                     properties.Add(new("gridHostControlRef", hostedGrid.HostControlRef));
+                    properties.Add(new("gridSchemaVersions", hostedGrid.SchemaVersions.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+                    properties.Add(new("gridSchemaDefault", hostedGrid.DefaultSchemaVersionRef));
+                    properties.Add(new("gridSchemaSelection", hostedGrid.SchemaDefaultPinned ? "Pinned" : "Automatic"));
                 }
                 if (!string.IsNullOrWhiteSpace(entity.GridInternalDataGridRef))
                     properties.Add(new("gridInternalDataGridRef", entity.GridInternalDataGridRef));

@@ -325,6 +325,7 @@ public sealed partial class ExplorerWindow
         var columns = new CheckBox { Content = "Additional / reordered columns allowed", IsChecked = RuleFor(p).AllowColumnChanges };
         if (p.IsGrid)
         {
+            if (p.HostBound) _properties.Children.Add(SchemaHistoryButton(p));
             _properties.Children.Add(mode);
             var policy = new StackPanel(); policy.Children.Add(rowCount); policy.Children.Add(rowOrder); policy.Children.Add(columns);
             _properties.Children.Add(policy);

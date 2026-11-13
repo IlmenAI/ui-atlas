@@ -126,17 +126,22 @@ public partial class MapsView : UserControl, UiAtlas.Shell.IShellBackNavigation
             return;
         }
 
-        await ViewModel.RefreshAsync(_load?.Token ?? CancellationToken.None);
+        await ViewModel.RefreshAsync(_load?.Token ?? CancellationToken.None, waitForPending: true);
         if (!ViewModel.LastRefreshSucceeded)
             return;
         var completed = result.MapDraftRefs is { Count: > 0 } draftRefs
-            ? ViewModel.FindTransferredApplication(draftRefs) : null;
+            ? ViewModel.FindTransferredApplication(draftRefs, showDraft: true) : null;
         if (completed is null)
         {
             Launch(new CapabilityLaunchResult(false, "The recording process finished, but its saved draft was not present in the Map library yet. Refresh Maps to retry."));
             return;
         }
         RecordingCompletePanel.DataContext = completed;
+        RecordingCompletionDetail.Text = result.Message;
+        if (target.AppendDestination is not null)
+            RecordingCompletionDetail.Text += " Publish updates to use these observations in new tasks. Keeping the draft leaves the earlier Ready version in use.";
+        RecordingKeepDraftButton.Content = target.AppendDestination is null ? "Draft" : "Keep draft";
+        RecordingPublishButton.Content = target.AppendDestination is null ? "Ready" : "Publish updates";
         _completedRecording = completed;
         RecordingCompletePanel.Visibility = Visibility.Visible;
     }
@@ -233,6 +238,16 @@ public partial class MapsView : UserControl, UiAtlas.Shell.IShellBackNavigation
     {
         var menu = new ContextMenu { PlacementTarget = anchor, Placement = placement };
         var open = new MenuItem { Header = "Open UI Map" }; open.Click += (_, _) => OpenMapViewer(map.Record); menu.Items.Add(open); menu.Items.Add(new Separator());
+        if (AllowRecording && !map.IsArchived && !string.IsNullOrEmpty(map.Record.CatalogGeneration) && map.Record.Entry.MapDraftRef.Length > 0)
+        {
+            var record = new MenuItem { Header = "Record more observations…" };
+            record.Click += async (_, _) =>
+            {
+                var picker = new NewUiMapWindow(_applicationDiscovery, appendMap: map.Record) { Owner = Window.GetWindow(this) };
+                if (picker.ShowDialog() == true && picker.SelectedTarget is { } target) await RunUiMapRecordingAsync(target);
+            };
+            menu.Items.Add(record);
+        }
         var delete = new MenuItem { Header = "Delete UI Map…", Foreground = System.Windows.Media.Brushes.Firebrick };
         delete.Click += async (_, _) =>
         {
@@ -472,6 +487,7 @@ public partial class MapsView : UserControl, UiAtlas.Shell.IShellBackNavigation
         try
         {
             await action(_completedRecording, CancellationToken.None);
+            RefreshSelectedApplication();
             DismissRecordingCompletion();
         }
         catch (Exception ex)

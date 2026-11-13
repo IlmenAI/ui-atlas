@@ -379,6 +379,32 @@ internal static class Program
     private static async Task<int> RecordingCommand(string[] args)
     {
         if (args.Length == 0 || args.Length == 1 && IsCommand(args[0], "help")) return HelpRecording();
+        if (IsCommand(args[0], "append"))
+        {
+            if (args.Length != 6 || args[2] != "--expected-process-id" || args[4] != "--expected-process-start")
+                return Fail("recording append requires an exact live target and a destination request on stdin.");
+            var target = DesktopShellCommand.CheckedTarget(ParseHwnd(args[1]), args[3], args[5]);
+            var json = await Console.In.ReadLineAsync() ?? throw new InvalidDataException("A destination request is required.");
+            if (json.Length > 1024 * 1024) throw new InvalidDataException("Destination request is too large.");
+            var request = JsonSerializer.Deserialize<UiAtlas.Catalog.CatalogRequest>(json)
+                ?? throw new InvalidDataException("A destination request is required.");
+            var catalog = Catalog(); catalog.EnsureSafe();
+            AtlasRecordingAppend.ValidateDestination(catalog, request, target.ProcessName);
+            var id = catalog.CreateId(target.ProcessName) + "-append";
+            var workspace = RecorderWorkspace.CreateCatalogWorkspace(catalog, id, target.ProcessName);
+            // Durable intent also prevents orphan recovery from building a separate map.
+            File.WriteAllText(catalog.RecordingPath(id) + ".append.json", JsonSerializer.Serialize(request));
+            using var panel = new RecordingControlPanel(id, target.ProcessName, target, allowTargetSelection: false);
+            panel.Start();
+            return await RunRecorderWorkflow(target, workspace, panel, catalog.EnsureSafe,
+                initialMode: SessionLaunchMode.Manual, appendRecording: async session =>
+                {
+                    var reply = await AtlasRecordingAppend.ExecuteAsync(catalog, request with {
+                        RecordingId = session.SessionId, ExpectedArtifactStamp = catalog.RecordingStamp(session.SessionId)
+                    }, CancellationToken.None, workspace.DataGrids);
+                    Console.WriteLine("ATLAS_APPEND_RESULT:" + JsonSerializer.Serialize(reply));
+                }).ConfigureAwait(false);
+        }
         if (IsCommand(args[0], "start"))
         {
             return args.Length switch
@@ -969,7 +995,8 @@ internal static class Program
         bool restoreExistingHighlights = false,
         Func<WindowTarget, RecorderWorkspace>? createNewWorkspace = null,
         bool showResumeChooserInitially = false,
-        Action<string>? completedHandoff = null)
+        Action<string>? completedHandoff = null,
+        Func<RecorderSessionTarget, Task>? appendRecording = null)
     {
         SessionLaunchMode? nextMode = initialMode;
         var restoreHighlightsWithNextSession = restoreExistingHighlights;
@@ -1123,6 +1150,13 @@ internal static class Program
                 var mergedRecordingPaths = workspace.RecordingPaths().Append(sessionTarget.RecordingPath).ToArray();
                 try
                 {
+                    if (appendRecording is not null)
+                    {
+                        panel.SetStatus("Recording saved. Adding observations to the selected map…");
+                        workspace.AddCompletedSession(sessionTarget.SessionId, sessionTarget.RecordingPath);
+                        await appendRecording(sessionTarget).ConfigureAwait(false);
+                        return 0;
+                    }
                     if (selectedLaunchMode == SessionLaunchMode.AutoTabs)
                     {
                         var quality = AutoCaptureQualityGate.Inspect(mergedRecordingPaths, workspace.AutoMapping);
@@ -1214,7 +1248,7 @@ internal static class Program
                         : "Finish map failed. The recording bundle was retained.");
                     Console.Error.WriteLine($"error: finish-map.failed at {BundleSecurity.SafeDiagnostic(Path.GetFullPath(sessionTarget.RecordingPath))}: {BundleSecurity.SafeDiagnostic(ex.Message, 500)}");
                     Console.WriteLine($"Retained recording bundle: {Path.GetFullPath(sessionTarget.RecordingPath)}");
-                    if (completedHandoff is not null) return 2;
+                    if (completedHandoff is not null || appendRecording is not null) return 2;
                     Console.WriteLine("Map build failed. The toolbar stayed open so you can try again.");
                 }
                 if (panelClosed)
@@ -1224,7 +1258,7 @@ internal static class Program
 
             if (outcome == RecordingPhaseOutcome.Failed)
             {
-                if (completedHandoff is not null) return 2;
+                if (completedHandoff is not null || appendRecording is not null) return 2;
                 workspace.DiscardQuickMapSnapshot(sessionTarget.SessionId);
                 if (HasBuiltMap(workspace))
                     panel.MarkMapReady(workspace.MapPath, null, workspace.DefaultExportPath);
@@ -1236,7 +1270,7 @@ internal static class Program
             }
 
             workspace.DiscardQuickMapSnapshot(sessionTarget.SessionId);
-            if (completedHandoff is not null) return 3;
+            if (completedHandoff is not null || appendRecording is not null) return 3;
             if (!HasBuiltMap(workspace))
             {
                 panel.ShowPreStartState();

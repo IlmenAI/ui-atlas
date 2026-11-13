@@ -1,7 +1,7 @@
 <Window x:Class="UIMaps.Application.NewUiMapWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="New UI Map" Width="520" MinHeight="610" WindowStartupLocation="CenterOwner"
+        Title="New UI Map" Width="520" Height="700" MinHeight="610" WindowStartupLocation="CenterOwner"
         Background="White" Foreground="{StaticResource InkBrush}" ShowInTaskbar="False">
     <Grid Margin="28,24">
         <Grid.RowDefinitions>
@@ -10,8 +10,8 @@
         <Grid>
             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <StackPanel>
-                <TextBlock Text="New UI Map" FontSize="24" FontWeight="SemiBold"/>
-                <TextBlock Text="Choose the application you want to map." Margin="0,7,0,0" Foreground="{StaticResource MutedInkBrush}"/>
+                <TextBlock x:Name="Heading" Text="New UI Map" FontSize="24" FontWeight="SemiBold"/>
+                <TextBlock x:Name="Description" Text="Choose the application you want to map." TextWrapping="Wrap" Margin="0,7,16,0" Foreground="{StaticResource MutedInkBrush}"/>
             </StackPanel>
             <Button Grid.Column="1" Content="Refresh" Click="Refresh_Click" Padding="12,6" Background="Transparent" BorderThickness="0" Foreground="{StaticResource AccentBrush}"/>
         </Grid>
