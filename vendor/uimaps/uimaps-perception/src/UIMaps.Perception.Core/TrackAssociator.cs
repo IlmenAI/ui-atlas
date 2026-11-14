@@ -29,7 +29,10 @@ public sealed class TrackAssociator(AssociationPolicyV1 policy)
                 .Where(x => CompatibleScope(value, x))
                 // Positive UIA identities distinguish overlapping Ribbon panes.
                 // Never alias two different provider IDs in one process/window.
-                .Where(x => providerId is null || providerIds[x] is not { } priorId || priorId == providerId)
+                // A current positive identity must not inherit an uncertain
+                // history from a prior capture that lacked provider identity.
+                // Start a new track instead; duplicate positive IDs still fail.
+                .Where(x => providerId is null || providerIds[x] == providerId)
                 .Select(x => (Object: x, Result: policy.Score(value, NormalizePreviousParent(x, previousByWorldId), parentTrack)))
                 .Where(x => x.Result.Score > int.MinValue)
                 .OrderByDescending(x => x.Result.Score)

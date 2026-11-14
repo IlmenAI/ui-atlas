@@ -7,6 +7,27 @@ namespace UiAtlas.Core.Mapping.Tests;
 public sealed class ScopedRuntimeTrackTests
 {
     [Fact]
+    public void UniqueCurrentIdentityStartsNewTrackAfterUnidentifiedPartialCapture()
+    {
+        var a = Pane("old-a", "", "a"); var b = Pane("old-b", "", "b");
+        a.Health.State = b.Health.State = HealthState.Partial;
+        var current = Pane("current", "42,103");
+        var previous = new WorldStateSnapshot { WorldObjects = { a, b } };
+        var track = Assert.Single(new TrackAssociator(new()).Associate([current], previous));
+        Assert.Equal(AssociationState.New, track.AssociationState);
+        Assert.NotEqual("a", track.TrackId); Assert.NotEqual("b", track.TrackId);
+        Assert.DoesNotContain(current.Health.Issues, i => i.State == HealthState.IdentityAmbiguous);
+    }
+
+    [Fact]
+    public void UnidentifiedCurrentObjectStillRejectsAmbiguousHistory()
+    {
+        var previous = new WorldStateSnapshot { WorldObjects = { Pane("old-a", "", "a"), Pane("old-b", "", "b") } };
+        var current = Pane("current", "");
+        var track = Assert.Single(new TrackAssociator(new()).Associate([current], previous));
+        Assert.Equal(AssociationState.Ambiguous, track.AssociationState);
+    }
+    [Fact]
     public void OverlappingRibbonPanesKeepTheirOwnRuntimeIdentity()
     {
         var previous = new WorldStateSnapshot();

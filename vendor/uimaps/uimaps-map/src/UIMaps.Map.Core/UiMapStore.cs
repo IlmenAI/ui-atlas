@@ -192,13 +192,15 @@ public sealed partial class UiMapStore
         return revision;
     }
 
-    public IReadOnlyList<UiMapRevision> ListRevisions()
+    public IReadOnlyList<UiMapRevision> ListRevisions(string? revisionRef = null)
     {
         lock (_gate)
         {
             using var connection = Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "SELECT payload FROM revisions ORDER BY updated_at DESC, revision_ref";
+            command.CommandText = "SELECT payload FROM revisions"
+                + (revisionRef is null ? "" : " WHERE revision_ref=$revision") + " ORDER BY updated_at DESC, revision_ref";
+            if (revisionRef is not null) command.Parameters.AddWithValue("$revision", revisionRef);
             using var reader = command.ExecuteReader();
             var values = new List<UiMapRevision>();
             while (reader.Read()) values.Add(UiMapRevision.Parser.ParseFrom((byte[])reader[0]));

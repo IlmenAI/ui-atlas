@@ -148,10 +148,20 @@ internal static class AtlasCatalogCommand
     private static Dictionary<string, string> RecordingMapLinks(LocalArtifactCatalog catalog, CancellationToken token)
     {
         var result = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var map in catalog.ListMaps().OrderByDescending(m => m.BuiltUtc))
+        // Recording links only need map order and retained source identities.
+        // ListMaps also counts controls across every projection, which makes
+        // this recovery screen scan gigabytes of unrelated node JSON.
+        var maps = catalog.ListMapPaths().Select(path =>
+        {
+            var built = File.GetCreationTimeUtc(path);
+            try { built = SqliteGraphStore.ReadCatalogMetadata(path).BuiltUtc.UtcDateTime; }
+            catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException or JsonException) { }
+            return (Path: path, Id: Path.GetFileNameWithoutExtension(path), Built: built);
+        });
+        foreach (var map in maps.OrderByDescending(m => m.Built))
         {
             token.ThrowIfCancellationRequested();
-            var path = catalog.MapPath(map.Id);
+            var path = map.Path;
             if (!AtlasMapWorkspace.Exists(path)) continue;
             foreach (var source in AtlasMapWorkspace.Open(path).Index.Sources) result.TryAdd(source.BundleId, map.Id);
         }
@@ -178,8 +188,9 @@ internal static class AtlasCatalogCommand
             UiMapRevision revision;
             try { revision = workspace.Service.GetRevision(reference); }
             catch (UIMaps.Map.Core.UiMapException error) when (error.Code == "MAP_REVISION_NOT_FOUND") { continue; }
-            if (!revision.Immutable || !revision.NotAuthorization
-                || revision.CanonicalPayloadHash != UIMaps.Protocol.UiMapRevisionIntegrity.Hash(revision))
+            // GetRevision validates the stored payload hash and hash-derived
+            // revision identity. Do not clone/sort/hash the same large map twice.
+            if (!revision.Immutable || !revision.NotAuthorization)
                 throw new InvalidDataException("Atlas revision failed its canonical integrity check.");
             // An old revision remains readable; only the currently published Ready
             // entry is eligible for new analysis. Completed work retains its own bytes.
@@ -194,7 +205,7 @@ internal static class AtlasCatalogCommand
             do
             {
                 token.ThrowIfCancellationRequested();
-                var page = workspace.Service.ListLibrary(new ListMapLibraryRequest { IncludeArchived = true, PageSize = 500, ContinuationToken = cursor });
+                var page = workspace.Service.ListLibraryForRevision(new ListMapLibraryRequest { IncludeArchived = true, PageSize = 500, ContinuationToken = cursor }, reference, retainedDraft);
                 exactEntry = page.Entries.FirstOrDefault(value => value.LatestMapRevisionRef == reference) ?? exactEntry;
                 replayEntry = retainedDraft is null ? null : page.Entries.FirstOrDefault(value => value.MapDraftRef == retainedDraft) ?? replayEntry;
                 cursor = page.ContinuationToken;

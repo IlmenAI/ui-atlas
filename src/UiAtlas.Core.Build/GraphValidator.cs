@@ -393,7 +393,8 @@ public static class GraphValidator
                           semanticSurface?.Properties.Any(property => property.Name == "sourceRawSurfaceId" && property.Value == reportedSurface) == true &&
                           rawNodes.TryGetValue(reportedSurface, out var reported) && rawControl.Evidence.All(evidence => reported.Evidence.Any(item =>
                               item.BundleId == evidence.BundleId && item.FrameSequence == evidence.FrameSequence))))
-                        issues.Add(new("graph.lineage-surface", "error", semantic.Id, "Semantic control lineage crosses a surface boundary."));
+                        issues.Add(new("graph.lineage-surface", "error", semantic.Id,
+                            $"Semantic control lineage crosses a surface boundary: control {semantic.Id}, raw control {sourceId}, raw surface {sourceSurface}, semantic surface {semanticSurfaceId}."));
             }
         }
     }

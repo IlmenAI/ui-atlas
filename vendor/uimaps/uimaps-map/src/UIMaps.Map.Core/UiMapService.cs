@@ -776,6 +776,14 @@ public sealed partial class UiMapService
     }
 
     public ListMapLibraryResponse ListLibrary(ListMapLibraryRequest request)
+        => ListLibrary(request, null, null);
+
+    // Replay needs the exact revision entry plus its retained draft's current
+    // publication. Do not deserialize unrelated historical maps for this check.
+    public ListMapLibraryResponse ListLibraryForRevision(ListMapLibraryRequest request, string revisionRef, string? retainedDraft)
+        => ListLibrary(request, revisionRef, retainedDraft);
+
+    private ListMapLibraryResponse ListLibrary(ListMapLibraryRequest request, string? revisionRef, string? retainedDraft)
     {
         request ??= new ListMapLibraryRequest();
         var pageSize = Math.Clamp(request.PageSize <= 0 ? 100 : request.PageSize, 1, 500);
@@ -783,6 +791,8 @@ public sealed partial class UiMapService
         var query = request.Query?.Trim() ?? "";
         var allSessions = _store.ListSessions();
         var sessions = allSessions
+            .Where(x => revisionRef is null || x.PublishedMapRevisionRef == revisionRef
+                || retainedDraft is not null && x.MapDraftRef == retainedDraft)
             .Where(x => string.IsNullOrWhiteSpace(query)
                 || x.Target.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase)
                 || x.Target.ApplicationRef.Contains(query, StringComparison.OrdinalIgnoreCase)
@@ -816,7 +826,7 @@ public sealed partial class UiMapService
             entries.Add(entry);
         }
         var sessionRevisionRefs = allSessions.Select(x => x.PublishedMapRevisionRef).Where(x => !string.IsNullOrWhiteSpace(x)).ToHashSet(StringComparer.Ordinal);
-        entries.AddRange(_store.ListRevisions().Where(x => !sessionRevisionRefs.Contains(x.MapRevisionRef))
+        entries.AddRange(_store.ListRevisions(revisionRef).Where(x => !sessionRevisionRefs.Contains(x.MapRevisionRef))
             .Where(x => string.IsNullOrWhiteSpace(query)
                 || x.Target.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase)
                 || x.ApplicationRef.Contains(query, StringComparison.OrdinalIgnoreCase)

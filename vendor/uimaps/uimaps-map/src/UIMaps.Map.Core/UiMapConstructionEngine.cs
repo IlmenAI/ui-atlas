@@ -810,6 +810,23 @@ public sealed class UiMapConstructionEngine(StableMapRefAllocator? allocator = n
         var first = draft.Entities.FirstOrDefault(value => value.MapEntityRef == firstRef && value.EntityKind == MapEntityKind.MapControl);
         var second = draft.Entities.FirstOrDefault(value => value.MapEntityRef == secondRef && value.EntityKind == MapEntityKind.MapControl);
         if (first is null || second is null) return false;
+        // A provider key identifies a control only inside its owning surface.
+        // Re-observation must not graft another surface's raw evidence onto a
+        // grid whose semantic containment still belongs to the original one.
+        string? Surface(MapEntity control)
+        {
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            while (seen.Add(control.MapEntityRef))
+            {
+                if (control.EntityKind == MapEntityKind.MapSurface) return control.MapEntityRef;
+                var parent = draft.Entities.FirstOrDefault(e => e.MapEntityRef == control.ParentEntityRef);
+                if (parent is null) return null;
+                control = parent;
+            }
+            return null;
+        }
+        var surface = Surface(first);
+        if (surface is null || surface != Surface(second)) return false;
         var firstKeys = first.Matchers.Where(value => value.Family == "stableObject" && value.Key == "key")
             .Select(value => value.ExpectedValue).Where(value => !string.IsNullOrWhiteSpace(value)).ToHashSet(StringComparer.Ordinal);
         return second.Matchers.Any(value => value.Family == "stableObject" && value.Key == "key" && firstKeys.Contains(value.ExpectedValue));

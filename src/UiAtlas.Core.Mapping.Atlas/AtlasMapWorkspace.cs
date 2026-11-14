@@ -282,7 +282,9 @@ public sealed class AtlasMapWorkspace : IMappingReviewStore
             }
             var graph = AtlasMapProjection.Create(workspace, buildSettings);
             var validation = GraphValidator.Validate(graph);
-            if (!validation.IsValid) throw new InvalidDataException(string.Join("; ", validation.Issues.Select(issue => issue.Code + ":" + issue.Message)));
+            if (!validation.IsValid) throw new InvalidDataException(
+                string.Join("; ", validation.Issues.Take(3).Select(issue => issue.Code + ":" + issue.Message))
+                + (validation.Issues.Count > 3 ? $"; {validation.Issues.Count - 3} additional validation issues." : ""));
             cancellationToken.ThrowIfCancellationRequested();
             SaveProjection(graph, graphPath);
             var pointer = Path.Combine(root, "active.json");

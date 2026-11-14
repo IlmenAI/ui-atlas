@@ -101,8 +101,9 @@ public static class LogicalControlIdentity
             .Where(g => g.Select(o => o.Identity.Signature).Distinct().Count() > 1).Select(g => g.Key).ToHashSet();
         var layoutConflicts = observations.GroupBy(o => o.Identity.Signature).Where(g =>
         {
-            var layouts = g.Select(o => RelativeNativeLayout(o.Identity)).Where(v => v is not null).ToArray();
-            return layouts.Length > 1 && Enumerable.Range(0, 4).Any(i => layouts.Max(v => v![i]) - layouts.Min(v => v![i]) > .035);
+            var layouts = g.Select(o => RelativeNativeLayout(o.Identity)).Where(v => v is not null).Distinct().ToArray();
+            return layouts.SelectMany((a, i) => layouts.Skip(i + 1).Select(b => (a, b)))
+                .Any(pair => NativeControlLayout.Conflicts(pair.a!.Value.Box, pair.a.Value.Owner, pair.b!.Value.Box, pair.b.Value.Owner));
         }).Select(g => g.Key).ToHashSet();
         return observations.Where(o => !ambiguous.Contains(o.Identity.Signature) && !layoutConflicts.Contains(o.Identity.Signature) && !inconsistent.Contains(o.Entity.MapEntityRef))
             .GroupBy(o => o.Identity.Signature).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g =>
@@ -128,7 +129,7 @@ public static class LogicalControlIdentity
         return runtime.Length > 0 ? node.ProcessInstanceEvidence + "/runtime:" + runtime : node.WorldObjectId;
     }
 
-    private static double[]? RelativeNativeLayout(Description identity)
+    private static (RectPx Box, RectPx Owner)? RelativeNativeLayout(Description identity)
     {
         if (identity.Parts.Length < 2) return null;
         var leaf = identity.Parts[^1]; var box = leaf.Original.BoundsPx;
@@ -138,7 +139,6 @@ public static class LogicalControlIdentity
         if (leaf.Locator.Length == 0 || !leaf.Locator.All(char.IsAsciiDigit)
             || !Property(leaf.Original, "providerId").Equals("uia", StringComparison.OrdinalIgnoreCase)
             || box is not { Width: > 0, Height: > 0 } || owner is not { Width: > 0, Height: > 0 }) return null;
-        return [(box.X - (double)owner.X) / owner.Width, (box.Y - (double)owner.Y) / owner.Height,
-            (double)box.Width / owner.Width, (double)box.Height / owner.Height];
+        return (box, owner);
     }
 }
