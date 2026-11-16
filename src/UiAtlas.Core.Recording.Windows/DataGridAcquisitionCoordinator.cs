@@ -192,10 +192,11 @@ public sealed class DataGridAcquisitionCoordinator
             if (string.IsNullOrWhiteSpace(request.AcquisitionId) || request.AcquisitionId.Length > 128 ||
                 string.IsNullOrWhiteSpace(request.EvidenceDirectory)) Stop("invalid-request", GridAcquisitionStage.Bind);
             var limits = request.Limits;
+            var imageExploration = request.Mode == GridAcquisitionMode.ImageExploration;
             var optimized = request.OptimizeImageTraversal && request.Mode == GridAcquisitionMode.ImageExploration && !RowBandOnly;
             if (request.OptimizeImageTraversal && !optimized || limits.MaxDurationMs < 1 || limits.MaxDurationMs > (optimized ? 120_000 : 60_000) ||
-                limits.MaxMovements < 1 || limits.MaxMovements > (optimized ? 192 : 32) ||
-                limits.MaxTiles < 1 || limits.MaxTiles > (optimized ? 96 : 24) || limits.MaxPngBytes is < 1 or > 64L * 1024 * 1024 ||
+                limits.MaxMovements < 1 || limits.MaxMovements > (imageExploration ? TableCaptureSettings.MaximumAllowedImages + 64 : 32) ||
+                limits.MaxTiles < 1 || limits.MaxTiles > (imageExploration ? TableCaptureSettings.MaximumAllowedImages : 24) || limits.MaxPngBytes is < 1 or > 64L * 1024 * 1024 ||
                 limits.RestorationReserveMs < 0 || limits.RestorationReserveMs > (optimized ? 30_000 : 5_000) ||
                 limits.RestorationReserveMovements < 0 || limits.RestorationReserveMovements > (optimized ? 64 : 2))
                 Stop("invalid-limits", GridAcquisitionStage.Bind);

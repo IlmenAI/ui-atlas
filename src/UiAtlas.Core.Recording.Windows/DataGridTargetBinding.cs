@@ -109,6 +109,8 @@ public static class DataGridTargetBinding
                 if (!NativeMethods.IsWindowVisible(hwnd) || !NativeMethods.GetWindowRect(hwnd, out var rect)) return true;
                 if (NativeMethods.DwmGetWindowAttribute(hwnd, NativeMethods.DwmaCloaked, out var cloaked, sizeof(int)) == 0 && cloaked != 0)
                     return true;
+                if (IsPassiveHandwritingCanvas(WindowCatalog.GetClass(hwnd),
+                    NativeMethods.GetWindowLongPtr(hwnd, NativeMethods.GwlExStyle).ToInt64())) return true;
                 if (Intersects(data, new(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top)))
                 {
                     Console.WriteLine($"Grid capture occluded: title={WindowCatalog.GetText(hwnd)}; hwnd=0x{hwnd:X}; bounds={rect.Left},{rect.Top},{rect.Right},{rect.Bottom}; table={data}.");
@@ -178,6 +180,16 @@ public static class DataGridTargetBinding
         (long)inner.Y + inner.Height <= (long)outer.Y + outer.Height;
     private static bool Intersects(RectI a, RectI b) => b.Width > 0 && b.Height > 0 &&
         a.X < (long)b.X + b.Width && b.X < (long)a.X + a.Width && a.Y < (long)b.Y + b.Height && b.Y < (long)a.Y + a.Height;
+    // TabTip keeps this full-screen shell input surface visible even when it
+    // paints no handwriting UI. Its rectangle alone is not an obstruction.
+    // Do not exempt arbitrary layered/click-through windows: they can paint over
+    // captured pixels. The data-scope hit tests below still run for this case.
+    internal static bool IsPassiveHandwritingCanvas(string className, long exStyle)
+    {
+        const long passiveStyles = 0x00000020 | 0x00080000 | 0x08000000; // Transparent, Layered, NoActivate
+        return className.Equals("ShellHandwritingCanvas {18E91349-E229-4995-8049-7437243BBCC3}", StringComparison.Ordinal)
+            && (exStyle & passiveStyles) == passiveStyles;
+    }
     private static bool Matches(string selector, string value) => string.IsNullOrEmpty(selector) || selector.Equals(value, StringComparison.Ordinal);
 }
 

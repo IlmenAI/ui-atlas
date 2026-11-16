@@ -8,6 +8,31 @@ namespace UiAtlas.Core.Windows.Tests;
 
 public sealed class DataGridAcquisitionTests : IDisposable
 {
+    [Theory]
+    [InlineData(100, false)]
+    [InlineData(100, true)]
+    [InlineData(1000, false)]
+    [InlineData(1000, true)]
+    public async Task ConfiguredImageLimitsPassCoordinatorValidationButStillRequireApproval(int images, bool optimized)
+    {
+        var request = Request() with { Mode = GridAcquisitionMode.ImageExploration,
+            Scope = optimized ? GridCaptureScope.FullTable : GridCaptureScope.VisibleRowBand,
+            OptimizeImageTraversal = optimized, Limits = new TableCaptureSettings(images).Limits(60_000, optimized), Approval = null };
+        var result = await Coordinator(new FixtureSession()).AcquireAsync(request);
+        Assert.Contains("approval-required", result.Reasons);
+        Assert.DoesNotContain("invalid-limits", result.Reasons);
+    }
+
+    [Theory]
+    [InlineData(GridAcquisitionMode.ImageExploration, 1001)]
+    [InlineData(GridAcquisitionMode.MappingSurvey, 100)]
+    public async Task CoordinatorStillRejectsOutOfRangeAndNonImageCaptureLimits(GridAcquisitionMode mode, int images)
+    {
+        var request = Request() with { Mode = mode, Limits = new(MaxTiles: images), Approval = null };
+        var result = await Coordinator(new FixtureSession()).AcquireAsync(request);
+        Assert.Contains("invalid-limits", result.Reasons);
+    }
+
     private readonly string _directory = Path.Combine(Path.GetTempPath(), "ui-atlas-grid-tests-" + Guid.NewGuid().ToString("N"));
 
     [Theory]

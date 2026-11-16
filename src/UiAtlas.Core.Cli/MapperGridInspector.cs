@@ -206,12 +206,40 @@ internal sealed class MapperGridInspector : Window
         }
         if (!IsExploring)
         {
+            var captureSettings = ActionButton("Capture settings", OpenCaptureSettings, false);
+            captureSettings.Margin = new Thickness(0, 8, 0, 0);
+            stack.Children.Add(captureSettings);
             var settings = ActionButton("Header reading settings", OpenHeaderSettings, false);
             settings.Margin = new Thickness(0, 8, 0, 0);
             settings.ToolTip = "Choose Local OCR or a saved OpenAI / Azure OpenAI connection for reading column headers.";
             stack.Children.Add(settings);
         }
         Content = shell;
+    }
+
+    private void OpenCaptureSettings()
+    {
+        var store = new TableCaptureSettingsStore();
+        var panel = new StackPanel { Margin = new Thickness(20) };
+        var dialog = new Window { Title = "Table capture settings", Owner = this, Width = 380,
+            SizeToContent = SizeToContent.Height, ResizeMode = ResizeMode.NoResize,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner, Content = panel };
+        panel.Children.Add(Label("Maximum captured images", 16, AtlasFluent.Ink));
+        panel.Children.Add(Label("2–1000 images per capture. Default: 100. The time limit still applies.", 12, AtlasFluent.Muted));
+        var input = new TextBox { Text = store.Load().MaximumImages.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            Margin = new Thickness(0, 8, 0, 8) };
+        System.Windows.Automation.AutomationProperties.SetName(input, "Maximum captured images");
+        panel.Children.Add(input);
+        var error = Label("", 12, AtlasFluent.Amber); panel.Children.Add(error);
+        panel.Children.Add(ActionButton("Save", () =>
+        {
+            if (!int.TryParse(input.Text, out var count) || count is < 2 or > 1000)
+            { error.Text = "Enter a whole number between 2 and 1000."; return; }
+            try { store.Save(new(count)); dialog.DialogResult = true; }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            { error.Text = "Settings could not be saved. Check access and try again."; }
+        }, true));
+        if (dialog.ShowDialog() == true) Render();
     }
 
     private async void OpenHeaderSettings()
@@ -320,7 +348,7 @@ internal sealed class MapperGridInspector : Window
         stack.Children.Add(Label("Explore this table", 17, AtlasFluent.Ink));
         stack.Children.Add(Label("Capture the table and identify its header row.", 13, AtlasFluent.Ink));
         stack.Children.Add(Label("Scrolls horizontally to find columns, using visible rows as a sample.", 12, AtlasFluent.Muted));
-        stack.Children.Add(Label("Up to 60 seconds · 24 views", 12, AtlasFluent.Muted));
+        stack.Children.Add(Label($"Up to 60 seconds · {new TableCaptureSettingsStore().Load().MaximumImages} images", 12, AtlasFluent.Muted));
         stack.Children.Add(AtlasFluent.Card(Label("Stops if you take control. Returns to the starting view when safe.", 12, AtlasFluent.Muted), "#E9F4FF"));
         var button = ActionButton("Explore table", explore, true); button.Margin = new Thickness(0, 10, 0, 0); stack.Children.Add(button);
     }
@@ -333,6 +361,7 @@ internal sealed class MapperGridInspector : Window
     internal static string FriendlyReason(string reason, GridScrollAxis? axis = null) => reason switch
     {
         "operation-busy" => "Finish the current recording before exploring this table.",
+        "invalid-limits" => "The capture limits were rejected. Check Capture settings and restart the mapping session after updating the app.",
         "header-row-not-identified" => "Could not identify a header row in this table.",
         "human-takeover" => "Stopped because you took control.",
         "foreground-lost" => "Stopped because the app is no longer in front.",

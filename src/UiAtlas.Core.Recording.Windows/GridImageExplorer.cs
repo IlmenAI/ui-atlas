@@ -5,6 +5,35 @@ using UiAtlas.Core.Recording;
 
 namespace UiAtlas.Core.Recording.Windows;
 
+public sealed record TableCaptureSettings(int MaximumImages = 100)
+{
+    public const int MaximumAllowedImages = 1000;
+    public TableCaptureSettings Validate() => MaximumImages is >= 2 and <= MaximumAllowedImages ? this
+        : throw new ArgumentOutOfRangeException(nameof(MaximumImages), "Maximum images must be between 2 and 1000.");
+
+    public GridCaptureLimits Limits(int durationMs, bool readTable) => readTable
+        ? new(MaxDurationMs: durationMs, MaxMovements: Math.Max(192, MaximumImages + 64), MaxTiles: MaximumImages,
+            RestorationReserveMs: 30_000, RestorationReserveMovements: 64)
+        : new(MaxDurationMs: durationMs, MaxMovements: Math.Max(32, MaximumImages + 2), MaxTiles: MaximumImages);
+}
+
+public sealed class TableCaptureSettingsStore(string? path = null)
+{
+    private readonly string _path = path ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "UiAtlas", "table-capture-settings.json");
+    public TableCaptureSettings Load() => !File.Exists(_path) ? new() :
+        (JsonSerializer.Deserialize<TableCaptureSettings>(File.ReadAllText(_path))
+            ?? throw new InvalidDataException("Table capture settings could not be read.")).Validate();
+    public void Save(TableCaptureSettings settings)
+    {
+        settings.Validate();
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_path))!);
+        var temporary = _path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try { File.WriteAllText(temporary, JsonSerializer.Serialize(settings)); File.Move(temporary, _path, true); }
+        finally { if (File.Exists(temporary)) File.Delete(temporary); }
+    }
+}
+
 /// <summary>The inspector's bounded image operation. Explore is its only input authorization.</summary>
 public sealed class GridImageExplorer
 {
@@ -86,8 +115,7 @@ public sealed class GridImageExplorer
         }
         var remainingMs = budgetMs - (int)elapsed.ElapsedMilliseconds;
         if (remainingMs < 5_000) throw new InvalidOperationException("duration-limit");
-        var limits = readTable ? new GridCaptureLimits(MaxDurationMs: remainingMs, MaxMovements: 192, MaxTiles: 95,
-            RestorationReserveMs: 30_000, RestorationReserveMovements: 64) : new GridCaptureLimits(MaxDurationMs: remainingMs, MaxTiles: 23);
+        var limits = new TableCaptureSettingsStore().Load().Limits(remainingMs, readTable);
         var approval = new GridOperationApproval(id, target, limits, true, scope == GridCaptureScope.FullTable, DateTimeOffset.UtcNow);
         var coordinator = new DataGridAcquisitionCoordinator(GridImageLayout.DescribeAsync,
             (d, t) => new DataGridCaptureSession(d, t, uiaBounds, imageOnly: true, worker: _worker));

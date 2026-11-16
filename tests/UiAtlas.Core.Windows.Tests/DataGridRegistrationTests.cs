@@ -5,6 +5,46 @@ namespace UiAtlas.Core.Windows.Tests;
 
 public sealed class DataGridRegistrationTests
 {
+    [Fact]
+    public void TableCaptureImageLimitDefaultsTo100AndPersistsForBothCaptureModes()
+    {
+        var directory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "atlas-capture-settings-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var path = System.IO.Path.Combine(directory, "settings.json");
+            var store = new TableCaptureSettingsStore(path);
+            Assert.Equal(100, store.Load().MaximumImages);
+            foreach (var readTable in new[] { false, true })
+                Assert.Equal(100, store.Load().Limits(60_000, readTable).MaxTiles);
+            store.Save(new(150));
+            var saved = new TableCaptureSettingsStore(path).Load();
+            foreach (var readTable in new[] { false, true })
+            {
+                var limits = saved.Limits(60_000, readTable);
+                Assert.Equal(150, limits.MaxTiles);
+                Assert.True(limits.MaxMovements >= limits.MaxTiles);
+                Assert.Equal(60_000, limits.MaxDurationMs);
+            }
+            foreach (var invalid in new[] { 0, 1, 1001 })
+                Assert.Throws<ArgumentOutOfRangeException>(() => store.Save(new(invalid)));
+            Assert.Equal(150, store.Load().MaximumImages);
+        }
+        finally { if (System.IO.Directory.Exists(directory)) System.IO.Directory.Delete(directory, true); }
+    }
+
+    [Theory]
+    [InlineData("ShellHandwritingCanvas {18E91349-E229-4995-8049-7437243BBCC3}", 0x0A0800A8L, true)]
+    [InlineData("ShellHandwritingCanvas {18E91349-E229-4995-8049-7437243BBCC3}", 0x08080000L, false)]
+    [InlineData("ShellHandwritingCanvas {18E91349-E229-4995-8049-7437243BBCC3}", 0x08000020L, false)]
+    [InlineData("ShellHandwritingCanvas {18E91349-E229-4995-8049-7437243BBCC3}", 0x00080020L, false)]
+    [InlineData("ShellHandwritingCanvas", 0x0A0800A8L, false)]
+    [InlineData("Popup", 0x0A0800A8L, false)]
+    [InlineData("#32770", 0L, false)]
+    public void OnlyPassiveShellHandwritingCanvasIsExemptFromRectangleOcclusion(string className, long styles, bool expected)
+    {
+        Assert.Equal(expected, DataGridTargetBinding.IsPassiveHandwritingCanvas(className, styles));
+    }
+
     [Theory]
     [InlineData(GridScrollAxis.Horizontal, 31)]
     [InlineData(GridScrollAxis.Horizontal, 7)]
