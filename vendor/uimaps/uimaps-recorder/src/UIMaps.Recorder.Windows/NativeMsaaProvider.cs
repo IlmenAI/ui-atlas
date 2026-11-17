@@ -102,6 +102,12 @@ public static class NativeMsaaProvider
             node.Name = Read(() => accessible.get_accName(child) ?? "", "");
             var role = Read(() => Convert.ToInt32(accessible.get_accRole(child)), 0);
             node.ControlType = Role(role); node.LocalizedControlType = "MSAA.Role" + role;
+            // WindowFromAccessibleObject returns a host for virtual descendants.
+            // Only ROLE_SYSTEM_WINDOW / CHILDID_SELF claims the native window
+            // itself; never stamp its handle onto all children in that host.
+            if (role == 9 && child is int self && self == 0)
+                node.NativeWindowHandleEvidence = Read(() => WindowFromAccessibleObject(accessible, out var native) == 0 && native != 0
+                    ? native.ToInt64().ToString(System.Globalization.CultureInfo.InvariantCulture) : "", "");
             ReadState(node, () => accessible.get_accState(child));
             node.BoundsPx = Read(() => { accessible.accLocation(out var x, out var y, out var w, out var h, child);
                 return new RectPx { X = x, Y = y, Width = Math.Max(0, w), Height = Math.Max(0, h) }; }, new RectPx());
@@ -191,6 +197,8 @@ public static class NativeMsaaProvider
         52 => "Spinner", 56 or 57 or 58 or 62 => "SplitButton", 60 => "Tab", _ => "Custom"
     };
 
+    [DllImport("oleacc.dll")]
+    private static extern int WindowFromAccessibleObject([MarshalAs(UnmanagedType.Interface)] IAccessible accessible, out nint hwnd);
     [DllImport("oleacc.dll")]
     private static extern int AccessibleObjectFromWindow(nint hwnd, uint objectId, ref Guid iid,
         [MarshalAs(UnmanagedType.Interface)] out IAccessible? accessible);

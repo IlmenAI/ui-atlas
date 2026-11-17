@@ -80,6 +80,15 @@ message WorldObject {
   string window_scope_ref = 16;
   string first_observed_at = 17;
   string last_observed_at = 18;
+  // Observation-scoped fusion. Members retain their original properties,
+  // geometry, ancestry and lineage; they are evidence, not live authority.
+  ControlFusion fusion = 19;
+}
+
+message ControlFusion {
+  string policy_version = 1;
+  repeated WorldObject members = 2;
+  repeated string reasons = 3;
 }
 
 enum PublicationKind {

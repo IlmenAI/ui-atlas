@@ -19,7 +19,8 @@ public static class LogicalControlIdentity
     public static string Property(WorldObject node, string key) => node.Properties.FirstOrDefault(p => p.Key == key)?.Value ?? "";
     public static string Normalize(string value) => string.Join(" ", value.Trim().ToLowerInvariant().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
     public static string Id(string signature) => "uimaps:logical:sha256:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(signature))).ToLowerInvariant();
-    public static string Parent(WorldObject node) => node.ObjectKind != WorldObjectKind.WindowObject && Property(node, "sceneReconstruction").Length > 0
+    public static string Parent(WorldObject node) => Property(node, "sceneOwnerReason") == "nearest-direct-native-surface"
+        ? node.ParentWorldObjectId : node.ObjectKind != WorldObjectKind.WindowObject && Property(node, "sceneReconstruction").Length > 0
         ? Property(node, "sceneReportedParentRef") : node.ParentWorldObjectId;
     public static WorldObject[] Path(WorldObject node, IReadOnlyDictionary<string, WorldObject> objects)
     {
@@ -33,18 +34,22 @@ public static class LogicalControlIdentity
         return [];
     }
     public static Description Describe(string executable, IReadOnlyList<WorldObject> original, IEnumerable<ControlIdentityKnowledge>? knowledge = null,
-        bool variableWindowTitle = true)
+        bool variableWindowTitle = true, bool distinguishMsaaWindows = false)
     {
         if (original.Count == 0) return new([], "", "");
         // UIA can expose an owned dialog below its main window even when native
         // topology begins at that dialog. The closest window owns the field.
         var start = 0;
         for (var i = 0; i < original.Count; i++)
-            if (original[i].ObjectKind == WorldObjectKind.WindowObject || Normalize(Property(original[i], "controlType")) == "window") start = i;
+            if (original[i].ObjectKind == WorldObjectKind.WindowObject || Normalize(Property(original[i], "controlType")) == "window"
+                && !(distinguishMsaaWindows && IsMsaa(original[i]))) start = i;
         var parts = original.Skip(start).Select((node, i) =>
         {
             var role = Normalize(node.Role); var type = Normalize(Property(node, "controlType"));
             if (type.Length == 0) type = role;
+            // MSAA ROLE_SYSTEM_WINDOW wrappers are not proof of an owning native
+            // surface. Preserve their names and ancestors, with a distinct signature.
+            if (distinguishMsaaWindows && i > 0 && type == "window" && IsMsaa(node)) type = "msaa-window";
             var cls = Normalize(Property(node, "className")); var id = Normalize(Property(node, "automationId"));
             if (id.StartsWith("native:", StringComparison.Ordinal)) id = "";
             var name = Normalize(node.Name); var variable = "";
@@ -89,7 +94,7 @@ public static class LogicalControlIdentity
             {
                 if (!sources.TryGetValue(link.SourceObservationSetRef, out var objects) || !objects.TryGetValue(link.SourceObjectRef, out var node)) continue;
                 var path = Path(node, objects); if (path.Length == 0) continue;
-                var identity = Describe(executable, path, knowledge);
+                var identity = Describe(executable, path, knowledge, distinguishMsaaWindows: true);
                 if (identity.Parts.Any(p => p.Class.Length == 0 && p.Name.Length == 0 && p.Locator.Length == 0)) continue;
                 observations.Add((entity, link.SourceObservationSetRef, node, identity));
             }
@@ -117,6 +122,9 @@ public static class LogicalControlIdentity
                 return group;
             }).ToArray();
     }
+
+    private static bool IsMsaa(WorldObject node) => Property(node, "providerId").Equals("msaa", StringComparison.OrdinalIgnoreCase)
+        || node.Role.StartsWith("MSAA.", StringComparison.OrdinalIgnoreCase);
 
     private static string Instance(WorldObject node)
     {

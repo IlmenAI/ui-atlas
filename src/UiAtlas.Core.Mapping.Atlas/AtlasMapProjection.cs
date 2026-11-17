@@ -15,6 +15,7 @@ public static class AtlasMapProjection
     public static UiKnowledgeGraph Create(AtlasMapWorkspace workspace, MapBuildSettings? buildSettings = null)
     {
         var nodes = new Dictionary<string, GraphNode>(StringComparer.Ordinal);
+        var observedTransitions = new List<GraphEdge>();
         var appId = "atlas-app:" + AtlasEpisodeAdapter.Hash(System.Text.Encoding.UTF8.GetBytes(workspace.Index.LogicalMapId))[..32];
         nodes.Add(appId, new(appId, GraphNodeKind.Application, "", appId, workspace.Index.ApplicationName,
             [new("layer", "shared"), new("mappingEngine", "UIMaps"), new("workspaceFormat", AtlasMapWorkspace.Format)], []));
@@ -39,6 +40,7 @@ public static class AtlasMapProjection
             var episode = SensorEpisodeBundle.Parser.ParseFrom(File.ReadAllBytes(workspace.Resolve(source.EpisodeFile)));
             objects = WorldObjectBuilder.CompleteAccessibility(episode, objects).ToArray();
             reconstruction.Apply(episode, objects);
+            objects = UIMaps.Protocol.RawWorldControlFusion.Reconstruct(objects).ToArray();
             var byId = objects.ToDictionary(value => value.WorldObjectId, StringComparer.Ordinal);
             var projectedIds = objects.ToDictionary(value => value.WorldObjectId, value => value.ObjectKind == WorldObjectKind.WindowObject
                 ? "world-surface:" + SurfaceSceneReconstructor.Property(value, "sceneSurfaceKey") : "world:" + value.WorldObjectId, StringComparer.Ordinal);
@@ -81,7 +83,8 @@ public static class AtlasMapProjection
                     }
                 }
                 else properties.Add(new("rawSurfaceId", projectedIds[surface]));
-                if (!isWindow && SurfaceSceneReconstructor.Property(value, "sourceAccessibilityEvidenceId") is { Length: > 0 } accessibilityEvidence)
+                foreach (var member in UIMaps.Protocol.RawWorldControlFusion.Members(value))
+                if (!isWindow && SurfaceSceneReconstructor.Property(member, "sourceAccessibilityEvidenceId") is { Length: > 0 } accessibilityEvidence)
                 {
                     var key = (source.SourceRef, accessibilityEvidence);
                     if (!controlsByEvidence.TryGetValue(key, out var controlIds)) controlsByEvidence[key] = controlIds = [];
@@ -97,6 +100,14 @@ public static class AtlasMapProjection
                         : existing.Properties } : node;
                 if (isWindow)
                 {
+                    var previousSurface = "world-surface:" + SurfaceSceneReconstructor.Property(value, "sceneEnteredFromSurfaceKey");
+                    if (nodes.TryGetValue(previousSurface, out var previous) && previousSurface != id
+                        && previous.Evidence.LastOrDefault(e => e.BundleId == source.BundleId && e.FrameSequence < source.Frame) is { } priorEvidence)
+                        observedTransitions.Add(new GraphEdge("surface-transition:" + source.SourceRef + ":" + value.WorldObjectId,
+                            "observed-surface-transition", previousSurface, id,
+                            [new("evidence", "observed foreground change; causality unverified"),
+                                new("priorObservation", SurfaceSceneReconstructor.Property(value, "sceneTransitionPriorObservation")),
+                                new("resultObservation", source.SourceRef)], new[] { priorEvidence }.Concat(node.Evidence).ToArray()));
                     var stateId = "world-state:" + AtlasEpisodeAdapter.Hash(System.Text.Encoding.UTF8.GetBytes(source.SourceRef + "|" + value.WorldObjectId))[..32];
                     var handle = SurfaceSceneReconstructor.Property(value, "windowHandleEvidence");
                     var coveringDialog = objects.FirstOrDefault(other => other.ObjectKind == WorldObjectKind.WindowObject &&
@@ -117,6 +128,8 @@ public static class AtlasMapProjection
                             new("sceneAlignment", SurfaceSceneReconstructor.Property(value, "sceneAlignment"))], node.Evidence));
                 }
                 worldBySource[(source.SourceRef, value.WorldObjectId)] = id;
+                foreach (var member in UIMaps.Protocol.RawWorldControlFusion.Members(value))
+                    worldBySource[(source.SourceRef, member.WorldObjectId)] = id;
             }
         }
 
@@ -300,7 +313,7 @@ public static class AtlasMapProjection
             "semantic-interpreted-from", p.Source, p.Target.Id,
             [new("materializer", "map-interpretation/1"), new("cardinality", (targetCounts[p.Target.Id] > 1 ? "many" : "one") + "-to-" + (sourceCounts[p.Source] > 1 ? "many" : "one")),
                 new("authority", "Map draft interpretation")], p.Target.Evidence.Where(e => nodes[p.Source].Evidence.Any(s => s.BundleId == e.BundleId && s.FrameSequence == e.FrameSequence)).ToArray()));
-        var edges = containment.Concat(relationships).Concat(lineage).OrderBy(edge => edge.Id, StringComparer.Ordinal).ToArray();
+        var edges = containment.Concat(relationships).Concat(lineage).Concat(observedTransitions).OrderBy(edge => edge.Id, StringComparer.Ordinal).ToArray();
         // Reject an over-limit build before serializing its entire projection for hashing.
         buildSettings?.CheckCounts(values.Length, edges.Length);
         var bundleIds = workspace.Index.Sources.Select(source => source.BundleId).Distinct(StringComparer.Ordinal).ToArray();

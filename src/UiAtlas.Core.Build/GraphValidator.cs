@@ -72,7 +72,7 @@ public static class GraphValidator
             if (string.IsNullOrEmpty(edge.Id) || edge.Id.Length > 128 || string.IsNullOrEmpty(edge.Kind) || edge.Kind.Length > 128 ||
                 string.IsNullOrEmpty(edge.FromId) || string.IsNullOrEmpty(edge.ToId) || edge.Properties is null || edge.Evidence is null)
             { issues.Add(new("graph.required", "error", edge.Id, "Edge fields are invalid.")); continue; }
-            if (edge.Kind is not ("contains" or "presents" or "occludes" or "observed-transition" or "opens-popup" or "interaction" or
+            if (edge.Kind is not ("contains" or "presents" or "occludes" or "observed-transition" or "observed-surface-transition" or "opens-popup" or "interaction" or
                 "predicts-transition" or "confirmed-as" or "contradicted-by" or "semantic-interpreted-from"))
                 issues.Add(new("graph.edge-kind", "error", edge.Id, "Edge kind is unsupported."));
             if (!ids.Add(edge.Id)) issues.Add(new("graph.duplicate-id", "error", edge.Id, "Duplicate edge identifier."));
@@ -174,6 +174,13 @@ public static class GraphValidator
             if (!rawNodes.TryGetValue(edge.FromId, out var from) || !rawNodes.TryGetValue(edge.ToId, out var to) ||
                 from.Kind != GraphNodeKind.State || to.Kind != GraphNodeKind.State || from.ParentId != to.ParentId)
                 issues.Add(new("graph.transition", "error", edge.Id, "Observed transition must connect Raw World states on one surface."));
+        foreach (var edge in edges.Where(edge => edge is not null && edge.Kind == "observed-surface-transition"))
+            if (!rawNodes.TryGetValue(edge.FromId, out var from) || !rawNodes.TryGetValue(edge.ToId, out var to)
+                || from.Kind != GraphNodeKind.Surface || to.Kind != GraphNodeKind.Surface || from.Id == to.Id
+                || edge.Evidence.Count != 2 || edge.Evidence[0].BundleId != edge.Evidence[1].BundleId
+                || edge.Evidence[0].FrameSequence >= edge.Evidence[1].FrameSequence
+                || !from.Evidence.Contains(edge.Evidence[0]) || !to.Evidence.Contains(edge.Evidence[1]))
+                issues.Add(new("graph.surface-transition", "error", edge.Id, "Surface transition requires ordered observations of two Raw World surfaces in one recording."));
         foreach (var edge in edges.Where(edge => edge is not null && edge.Kind is "presents" or "occludes"))
             if (!rawNodes.TryGetValue(edge.FromId, out var surface) || surface.Kind != GraphNodeKind.Surface ||
                 !rawNodes.TryGetValue(edge.ToId, out var control) || control.Kind != GraphNodeKind.Control || edge.Evidence.Count == 0 ||
@@ -449,7 +456,7 @@ public static class GraphValidator
                 issues.Add(new("graph.safe-profile", "error", node.Id, "Safe profile node retains non-redacted content."));
         }
         foreach (var edge in graph.Edges.Where(edge => edge is not null))
-            if (!OpaqueId(edge.Id, "edge") || edge.Kind is not ("contains" or "presents" or "occludes" or "observed-transition" or "opens-popup" or "interaction" or
+            if (!OpaqueId(edge.Id, "edge") || edge.Kind is not ("contains" or "presents" or "occludes" or "observed-transition" or "observed-surface-transition" or "opens-popup" or "interaction" or
                     "predicts-transition" or "confirmed-as" or "contradicted-by" or "semantic-interpreted-from") || edge.Properties is null || edge.Properties.Count != 0 || edge.Evidence is null || edge.Evidence.Any(evidence => evidence?.Bounds is not null))
                 issues.Add(new("graph.safe-profile", "error", edge.Id, "Safe profile edge retains non-redacted content."));
     }

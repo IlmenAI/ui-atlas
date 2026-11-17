@@ -118,6 +118,7 @@ public sealed partial class PerceptionEngine
     {
         var objects = _objectBuilder.Build(bundle, observations).Select(x => x.Clone()).ToList();
         _sceneReconstructor.Apply(bundle, objects);
+        objects = UIMaps.Protocol.RawWorldControlFusion.Reconstruct(objects).ToList();
         var tracks = _associator.Associate(objects, null);
         var version = checked(_surveyVersion + 1);
         var publicationId = Guid.NewGuid().ToString("N");
@@ -228,6 +229,7 @@ public sealed partial class PerceptionEngine
         }
         var objects = _objectBuilder.Build(bundle, observations, cancellationToken).Select(value => value.Clone()).ToList();
         _sceneReconstructor.Apply(bundle, objects);
+        objects = UIMaps.Protocol.RawWorldControlFusion.Reconstruct(objects, cancellationToken).ToList();
         var tracks = _associator.Associate(objects, previous);
         var snapshot = new WorldStateSnapshot { PerceptionEpoch = epoch, WorldStateVersion = version,
             EpisodeId = bundle.EpisodeId, FrameId = frame.FrameId, DisplayId = bundle.DisplayDescriptor.DisplayId,

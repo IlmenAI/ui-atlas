@@ -10,7 +10,9 @@ public sealed class WorldObjectBuilder(PerceptionPolicy policy)
     {
         var result = objects.ToList();
         var byEvidence = result.Where(v => v.ObjectKind == WorldObjectKind.AccessibilityElement)
-            .GroupBy(v => SurfaceSceneReconstructor.Property(v, "sourceAccessibilityEvidenceId"))
+            .SelectMany(v => UIMaps.Protocol.RawWorldControlFusion.Members(v).Select(member =>
+                (Evidence: SurfaceSceneReconstructor.Property(member, "sourceAccessibilityEvidenceId"), v.WorldObjectId)))
+            .GroupBy(v => v.Evidence)
             .ToDictionary(g => g.Key, g => g.First().WorldObjectId, StringComparer.Ordinal);
         foreach (var native in bundle.SensorPackets.Where(p => p.WindowTopology is not null).SelectMany(p => p.WindowTopology.Windows))
         {

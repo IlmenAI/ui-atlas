@@ -8,6 +8,41 @@ namespace UiAtlas.Core.Mapping.Tests;
 public sealed class SurfaceSceneReconstructionTests
 {
     [Fact]
+    public void ForegroundChangeRetainsBothObservationIdentitiesWithoutClaimingCreation()
+    {
+        var before = Scene(); Windows(before)[0].IsForeground = true;
+        var reconstruction = new SurfaceSceneReconstructor();
+        var first = Build(before, reconstruction);
+        var after = before.Clone(); after.EpisodeId = "after";
+        Windows(after)[0].IsForeground = false; Windows(after)[1].IsForeground = true;
+        var second = Build(after, reconstruction);
+        Assert.Equal(Property(Window(first, "100"), "sceneSurfaceKey"), Property(Window(second, "200"), "sceneEnteredFromSurfaceKey"));
+        Assert.Equal(before.EpisodeId, Property(Window(second, "200"), "sceneTransitionPriorObservation"));
+        Assert.Contains("unverified", Property(Window(second, "200"), "sceneTransitionEvidence"));
+        after.ClockMetadata.ClockId = "another-recording";
+        Assert.Equal("", Property(Window(Build(after, reconstruction), "200"), "sceneEnteredFromSurfaceKey"));
+    }
+    [Fact]
+    public void NativeDialogInsideOwnerTreeOwnsItsControls()
+    {
+        var bundle = Scene();
+        Windows(bundle)[1].ClassName = "#32770";
+        Windows(bundle)[1].Title = "Confirmation";
+        var nodes = Nodes(bundle); nodes.Clear();
+        var dialog = Node("dialog", "", "Confirmation", "Window", "#32770", Rect(500, 200, 250, 300), 200);
+        dialog.NativeWindowHandleEvidence = "200";
+        nodes.Add(dialog);
+        nodes.Add(Node("ok", "dialog", "OK", "Button", "Button", Rect(550, 400, 75, 23), 201));
+        var reconstruction = new SurfaceSceneReconstructor();
+        var scene = Build(bundle, reconstruction);
+        var ok = Control(scene, "ok");
+        Assert.Equal(Window(scene, "200").WorldObjectId, Property(ok, "sceneOwnerSurfaceRef"));
+        Assert.Equal("nearest-direct-native-surface", Property(ok, "sceneOwnerReason"));
+        Assert.Equal("first-observed-in-scope", Property(Window(scene, "200"), "sceneSurfaceContinuity"));
+        scene = Build(bundle, reconstruction);
+        Assert.Equal("observed-previously", Property(Window(scene, "200"), "sceneSurfaceContinuity"));
+    }
+    [Fact]
     public void PopupBranchReportedThroughMainWindowMovesWithoutChangingRawEvidence()
     {
         var episode = Scene();

@@ -9,14 +9,16 @@ namespace UIMaps.Perception.Core;
 /// History is used only to recognize stable ownership; it never supplies missing scene content.</summary>
 public sealed class SurfaceSceneReconstructor
 {
-    public const string Version = "surface-scene/2";
+    public const string Version = "surface-scene/3";
     private Dictionary<string, List<RectPx>> _previous = new(StringComparer.Ordinal);
+    private HashSet<string> _previousSurfaces = new(StringComparer.Ordinal);
+    private (string Process, string Handle, string Key, string Episode)? _foreground;
     private string _clock = string.Empty;
 
     public void Apply(SensorEpisodeBundle bundle, IReadOnlyList<WorldObject> objects)
     {
         OfficeMsaaGeometry.Apply(bundle, objects);
-        if (_clock != bundle.ClockMetadata.ClockId) _previous.Clear();
+        if (_clock != bundle.ClockMetadata.ClockId) { _previous.Clear(); _previousSurfaces.Clear(); _foreground = null; }
         _clock = bundle.ClockMetadata.ClockId;
         var byId = objects.ToDictionary(value => value.WorldObjectId, StringComparer.Ordinal);
         var originalParents = objects.ToDictionary(value => value.WorldObjectId,
@@ -42,6 +44,8 @@ public sealed class SurfaceSceneReconstructor
             Set(window, "sceneObservation", bundle.EpisodeId);
             Set(window, "sceneAlignment", bundle.ObservationConsistency?.Status ?? "unverified");
             Set(window, "sceneReconstruction", Version);
+            var identity = window.ProcessInstanceEvidence + "|" + Property(window, "windowHandleEvidence");
+            Set(window, "sceneSurfaceContinuity", _previousSurfaces.Contains(identity) ? "observed-previously" : "first-observed-in-scope");
         }
         WorldObject? ReportedOwner(WorldObject value)
         {
@@ -81,13 +85,28 @@ public sealed class SurfaceSceneReconstructor
             Set(control, "sceneReportedParentRef", originalParents[control.WorldObjectId]);
             Set(control, "sceneOwnerReason", reported is null ? "unresolved-source-owner" : "reported-owner");
             var ancestry = Ancestry(control).ToArray();
+            // An owned dialog is often repeated inside the owner's UIA tree.
+            // The nearest directly identified native surface owns its descendants,
+            // regardless of which root was queried. Preserve the reported path.
+            foreach (var boundary in ancestry.Where(value => Property(value, "controlType") == "Window"))
+            {
+                var handle = Property(boundary, "nativeWindowHandleEvidence");
+                if (handle.Length == 0) continue;
+                var nativeOwners = windows.Where(window => SameProcess(boundary, window)
+                    && Property(window, "windowHandleEvidence") == handle).ToArray();
+                if (nativeOwners.Length != 1) continue;
+                owner = nativeOwners[0];
+                Set(control, "sceneOwnerReason", "nearest-direct-native-surface");
+                Set(control, "sceneRelationshipConfidence", "direct-identity");
+                break;
+            }
             var popupRoots = ancestry.Where(root => IsPopupBoundary(root) ||
                 Property(root, "providerId") == "msaa" && Property(root, "controlType") == "Window" &&
                 windows.Any(window => IsPopup(window) && SameProcess(root, window) &&
                     Contains(window.BoundsPx, root.BoundsPx, 2) && Contains(root.BoundsPx, window.BoundsPx, 2))).ToArray();
             var hidden = ancestry.Any(value => Property(value, "isOffscreen").Equals("True", StringComparison.OrdinalIgnoreCase));
             Set(control, "sceneOffscreen", hidden.ToString());
-            if (reported is not null && popupRoots.Length > 0)
+            if (reported is not null && owner == reported && popupRoots.Length > 0)
             {
                 var candidates = windows.Where(window => IsPopup(window) && IsVisible(window) &&
                     SameProcess(reported, window) && CompatibleOwner(reported, window) &&
@@ -204,7 +223,22 @@ public sealed class SurfaceSceneReconstructor
         foreach (var control in controls)
             if (ownerById[control.WorldObjectId] is { } owner)
                 Set(control, "sceneOwnerSurfaceKey", Property(owner, "sceneSurfaceKey"));
+        foreach (var window in windows) { Clear(window, "sceneEnteredFromSurfaceKey"); Clear(window, "sceneTransitionPriorObservation"); }
+        var foreground = windows.Where(w => Property(w, "isForeground") == "True" && IsVisible(w)).ToArray();
+        if (foreground.Length == 1)
+        {
+            var current = foreground[0]; var handle = Property(current, "windowHandleEvidence");
+            if (_foreground is { } prior && prior.Process.Length > 0 && prior.Process == current.ProcessInstanceEvidence && prior.Handle != handle)
+            {
+                Set(current, "sceneEnteredFromSurfaceKey", prior.Key);
+                Set(current, "sceneTransitionPriorObservation", prior.Episode);
+                Set(current, "sceneTransitionEvidence", "observed-foreground-change; intervening-action-and-creation-unverified");
+            }
+            _foreground = (current.ProcessInstanceEvidence, handle, Property(current, "sceneSurfaceKey"), bundle.EpisodeId);
+        }
+        else _foreground = null;
         _previous = nextHistory;
+        _previousSurfaces = windows.Select(window => window.ProcessInstanceEvidence + "|" + Property(window, "windowHandleEvidence")).ToHashSet(StringComparer.Ordinal);
     }
 
     public static string Property(WorldObject value, string key) => value.Properties.FirstOrDefault(property => property.Key == key)?.Value ?? string.Empty;
