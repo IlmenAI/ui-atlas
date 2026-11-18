@@ -1,0 +1,61 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <LinearGradientBrush x:Key="CanvasBrush" StartPoint="0.5,0.0" EndPoint="0.5,1.0">
+    <GradientStop Color="#FFFFFFFF" Offset="0.0" />
+    <GradientStop Color="#FFF7F9FD" Offset="1.0" />
+  </LinearGradientBrush>
+  <SolidColorBrush x:Key="PanelBrush" Color="#FFFFFFFF" />
+  <LinearGradientBrush x:Key="SidebarBrush" StartPoint="0.01704,0.37059" EndPoint="0.98296,0.62941">
+    <GradientStop Color="#FFE2E8F1" Offset="0.0" />
+    <GradientStop Color="#FFF6F8FB" Offset="1.0" />
+  </LinearGradientBrush>
+  <SolidColorBrush x:Key="InkBrush" Color="#FF293B62" />
+  <SolidColorBrush x:Key="MutedInkBrush" Color="#FF526381" />
+  <SolidColorBrush x:Key="LineBrush" Color="#FFCBD7E7" />
+  <SolidColorBrush x:Key="AccentBrush" Color="#FF356EB5" />
+  <LinearGradientBrush x:Key="AccentSelectionBrush" StartPoint="0.5,0.0" EndPoint="0.5,1.0">
+    <GradientStop Color="#FFD6D8ED" Offset="0.0" />
+    <GradientStop Color="#FFF1F4FC" Offset="1.0" />
+  </LinearGradientBrush>
+  <SolidColorBrush x:Key="AccentTextBrush" Color="#FFFFFFFF" />
+  <SolidColorBrush x:Key="InputBrush" Color="#FFFFFFFF" />
+  <SolidColorBrush x:Key="HoverBrush" Color="#FFE4EDFA" />
+  <SolidColorBrush x:Key="FocusBrush" Color="#FF6E8FBF" />
+  <LinearGradientBrush x:Key="ChromeBrush" StartPoint="0.0076,0.41318" EndPoint="0.9924,0.58682">
+    <GradientStop Color="#FF4C83CB" Offset="0.0" />
+    <GradientStop Color="#FF7AB9F7" Offset="0.65" />
+    <GradientStop Color="#FF5A92D8" Offset="1.0" />
+  </LinearGradientBrush>
+  <SolidColorBrush x:Key="ChromeInkBrush" Color="#FFFFFFFF" />
+  <LinearGradientBrush x:Key="ButtonBrush" StartPoint="0.5,0.0" EndPoint="0.5,1.0">
+    <GradientStop Color="#FFFFFFFF" Offset="0.0" />
+    <GradientStop Color="#FFE7F0FC" Offset="0.47" />
+    <GradientStop Color="#FFD4E2F5" Offset="0.5" />
+    <GradientStop Color="#FFF8FBFF" Offset="1.0" />
+  </LinearGradientBrush>
+  <SolidColorBrush x:Key="SoftBrush" Color="#FFEDF2FA" />
+  <SolidColorBrush x:Key="SelectionBorderBrush" Color="#FFAEBEDB" />
+  <SolidColorBrush x:Key="SuccessBrush" Color="#FF337453" />
+  <SolidColorBrush x:Key="SuccessSurfaceBrush" Color="#FFE9F5EF" />
+  <SolidColorBrush x:Key="WarningBrush" Color="#FF8A661A" />
+  <SolidColorBrush x:Key="WarningSurfaceBrush" Color="#FFFFF5DD" />
+  <SolidColorBrush x:Key="ErrorBrush" Color="#FFAF4040" />
+  <SolidColorBrush x:Key="ErrorSurfaceBrush" Color="#FFFFF0F0" />
+  <SolidColorBrush x:Key="InfoBrush" Color="#FF3F689A" />
+  <SolidColorBrush x:Key="InfoSurfaceBrush" Color="#FFE9F2FD" />
+  <SolidColorBrush x:Key="RawEvidenceBrush" Color="#FF925719" />
+  <SolidColorBrush x:Key="SemanticEvidenceBrush" Color="#FF25735E" />
+  <SolidColorBrush x:Key="AtlasEvidenceBrush" Color="#FF7854BF" />
+  <SolidColorBrush x:Key="DisabledInkBrush" Color="#FF526381" />
+  <SolidColorBrush x:Key="DisabledFillBrush" Color="#FFEDF2FA" />
+  <FontFamily x:Key="BodyFontFamily">Trebuchet MS, Segoe UI, Tahoma</FontFamily>
+  <FontFamily x:Key="HeadingFontFamily">Trebuchet MS, Segoe UI, Tahoma</FontFamily>
+  <CornerRadius x:Key="ControlCornerRadius">5</CornerRadius>
+  <CornerRadius x:Key="PanelCornerRadius">9</CornerRadius>
+  <Thickness x:Key="ControlPadding">12,7</Thickness>
+  <Thickness x:Key="ContentPadding">24</Thickness>
+  <SolidColorBrush x:Key="AccentHoverBrush" Color="#FF3165A7" />
+  <SolidColorBrush x:Key="AccentPressedBrush" Color="#FF2D5C98" />
+  <SolidColorBrush x:Key="PressedBrush" Color="#FFAEBEDB" />
+  <SolidColorBrush x:Key="SelectionInkBrush" Color="#FF293B62" />
+  <DropShadowEffect x:Key="WindowShadow" Color="#FF152d67" BlurRadius="35" ShadowDepth="6" Opacity="0.3333" Direction="270" />
+</ResourceDictionary>

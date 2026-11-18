@@ -1,0 +1,43 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <SolidColorBrush x:Key="CanvasBrush" Color="#FFFFFFFF" />
+  <SolidColorBrush x:Key="PanelBrush" Color="#FFFFFFFF" />
+  <SolidColorBrush x:Key="SidebarBrush" Color="#FFF7F7F8" />
+  <SolidColorBrush x:Key="InkBrush" Color="#FF202124" />
+  <SolidColorBrush x:Key="MutedInkBrush" Color="#FF696D73" />
+  <SolidColorBrush x:Key="LineBrush" Color="#FFE3E3E3" />
+  <SolidColorBrush x:Key="AccentBrush" Color="#FF222222" />
+  <SolidColorBrush x:Key="AccentSelectionBrush" Color="#FFECECEE" />
+  <SolidColorBrush x:Key="AccentTextBrush" Color="#FFFFFFFF" />
+  <SolidColorBrush x:Key="InputBrush" Color="#FFFFFFFF" />
+  <SolidColorBrush x:Key="HoverBrush" Color="#FFECECEE" />
+  <SolidColorBrush x:Key="FocusBrush" Color="#FF777777" />
+  <SolidColorBrush x:Key="ChromeBrush" Color="#FFFAFAFA" />
+  <SolidColorBrush x:Key="ChromeInkBrush" Color="#FF222222" />
+  <SolidColorBrush x:Key="ButtonBrush" Color="#FFFFFFFF" />
+  <SolidColorBrush x:Key="SoftBrush" Color="#FFF4F4F5" />
+  <SolidColorBrush x:Key="SelectionBorderBrush" Color="#FFE3E3E3" />
+  <SolidColorBrush x:Key="SuccessBrush" Color="#FF297545" />
+  <SolidColorBrush x:Key="SuccessSurfaceBrush" Color="#FFEAF5ED" />
+  <SolidColorBrush x:Key="WarningBrush" Color="#FF8A661A" />
+  <SolidColorBrush x:Key="WarningSurfaceBrush" Color="#FFFFF5DD" />
+  <SolidColorBrush x:Key="ErrorBrush" Color="#FFAF4040" />
+  <SolidColorBrush x:Key="ErrorSurfaceBrush" Color="#FFFFF0F0" />
+  <SolidColorBrush x:Key="InfoBrush" Color="#FF396989" />
+  <SolidColorBrush x:Key="InfoSurfaceBrush" Color="#FFEEF5FA" />
+  <SolidColorBrush x:Key="RawEvidenceBrush" Color="#FF925719" />
+  <SolidColorBrush x:Key="SemanticEvidenceBrush" Color="#FF25735E" />
+  <SolidColorBrush x:Key="AtlasEvidenceBrush" Color="#FF7854BF" />
+  <SolidColorBrush x:Key="DisabledInkBrush" Color="#FF696D73" />
+  <SolidColorBrush x:Key="DisabledFillBrush" Color="#FFF4F4F5" />
+  <FontFamily x:Key="BodyFontFamily">Segoe UI, Arial</FontFamily>
+  <FontFamily x:Key="HeadingFontFamily">Segoe UI, Arial</FontFamily>
+  <CornerRadius x:Key="ControlCornerRadius">8</CornerRadius>
+  <CornerRadius x:Key="PanelCornerRadius">10</CornerRadius>
+  <Thickness x:Key="ControlPadding">12,7</Thickness>
+  <Thickness x:Key="ContentPadding">24</Thickness>
+  <SolidColorBrush x:Key="AccentHoverBrush" Color="#FF1F1F1F" />
+  <SolidColorBrush x:Key="AccentPressedBrush" Color="#FF1D1D1D" />
+  <SolidColorBrush x:Key="PressedBrush" Color="#FFE3E3E3" />
+  <SolidColorBrush x:Key="SelectionInkBrush" Color="#FF202124" />
+  <DropShadowEffect x:Key="WindowShadow" Color="#FF000000" BlurRadius="35" ShadowDepth="6" Opacity="0.0745" Direction="270" />
+</ResourceDictionary>

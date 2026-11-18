@@ -6387,7 +6387,7 @@ internal sealed partial class RecordingHighlightOverlay : IDisposable
             Height = System.Windows.SystemParameters.VirtualScreenHeight,
             IsHitTestVisible = false
         };
-        _window = new System.Windows.Window
+        _window = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Window
         {
             Title = "UiAtlas mapped controls overlay",
             Left = System.Windows.SystemParameters.VirtualScreenLeft,
@@ -6397,13 +6397,12 @@ internal sealed partial class RecordingHighlightOverlay : IDisposable
             WindowStyle = System.Windows.WindowStyle.None,
             ResizeMode = System.Windows.ResizeMode.NoResize,
             AllowsTransparency = true,
-            Background = System.Windows.Media.Brushes.Transparent,
             ShowInTaskbar = false,
             ShowActivated = false,
             Topmost = true,
             IsHitTestVisible = false,
             Content = _canvas
-        };
+        }, ("Background", "TransparentBrush"));
         _window.SourceInitialized += (_, _) => MakeClickThrough();
         _window.Closed += (_, _) =>
         {
@@ -7661,13 +7660,12 @@ internal sealed partial class RecordingControlPanel : IDisposable
             contentHost.Children.Add(_captionShell);
             contentHost.Children.Add(shellHost);
 
-            var root = new System.Windows.Controls.Grid
+            var root = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Grid
             {
-                Background = System.Windows.Media.Brushes.Transparent,
                 Children = { contentHost }
-            };
+            }, ("Background", "TransparentBrush"));
             root.PreviewMouseLeftButtonDown += HandlePanelDragMove;
-            _window = new System.Windows.Window
+            _window = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Window
             {
                 Title = $"UiAtlas recording - {_recordingId}",
                 Topmost = true,
@@ -7677,14 +7675,9 @@ internal sealed partial class RecordingControlPanel : IDisposable
                 SizeToContent = System.Windows.SizeToContent.WidthAndHeight,
                 WindowStartupLocation = System.Windows.WindowStartupLocation.Manual,
                 AllowsTransparency = true,
-                Background = System.Windows.Media.Brushes.Transparent,
-                FontFamily = new System.Windows.Media.FontFamily("Inter, Segoe UI"),
                 Content = root
-            };
-            _window.Resources.MergedDictionaries.Add(new System.Windows.ResourceDictionary
-            {
-                Source = new Uri("pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.Light.xaml")
-            });
+            },("Background", "TransparentBrush"),("FontFamily", "BodyFontFamily"));
+            UiAtlas.Presentation.Appearance.Apply(_window);
             // User screenshots include the toolbar; recorder evidence hides it
             // temporarily through HideForScreenshotAsync.
             _window.SourceInitialized += (_, _) => UpdateWindowScale();
@@ -7889,27 +7882,25 @@ internal sealed partial class RecordingControlPanel : IDisposable
 
     private System.Windows.Controls.Border BuildCaptionShell()
     {
-        _captionBlock = new System.Windows.Controls.TextBlock
+        _captionBlock = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = "READY TO RECORD",
             FontSize = 12,
             FontWeight = System.Windows.FontWeights.SemiBold,
-            Foreground = CaptionForeground,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             TextAlignment = System.Windows.TextAlignment.Center,
             Opacity = 0.92,
             Effect = Shadow(0.14, 2, 0)
-        };
+        }, ("Foreground", "MutedInkBrush"));
 
-        return new System.Windows.Controls.Border
+        return global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
         {
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             Margin = new System.Windows.Thickness(0),
             Padding = new System.Windows.Thickness(0),
-            Background = CaptionBackground,
             Visibility = System.Windows.Visibility.Collapsed,
             Child = _captionBlock
-        };
+        }, ("Background", "TransparentBrush"));
     }
 
     private System.Windows.Controls.Border BuildSessionModeChooser()
@@ -8026,10 +8017,10 @@ internal sealed partial class RecordingControlPanel : IDisposable
         void Apply(bool enabled)
         {
             labelBlock.Text = $"{label}  {(enabled ? "ON" : "OFF")}";
-            labelBlock.Foreground = enabled ? Accent : PanelMuted;
+            global::UiAtlas.Presentation.Appearance.Bind(labelBlock, ("Foreground", (enabled ? "AccentBrush" : "MutedInkBrush")));
             option.Foreground = labelBlock.Foreground;
-            option.Background = enabled ? Brush("#EAF4FF") : SourceSwitchBackground;
-            option.BorderBrush = enabled ? Accent : Divider;
+            global::UiAtlas.Presentation.Appearance.Bind(option, ("Background", (enabled ? "PanelBrush" : "SoftBrush")));
+            global::UiAtlas.Presentation.Appearance.Bind(option, ("BorderBrush", (enabled ? "AccentBrush" : "LineBrush")));
             changed(enabled);
         }
 
@@ -8103,28 +8094,26 @@ internal sealed partial class RecordingControlPanel : IDisposable
             Fill = Accent,
             Margin = new System.Windows.Thickness(0, 0, 14, 0)
         };
-        _idleStatusBlock = new System.Windows.Controls.TextBlock
+        _idleStatusBlock = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = "Start Recording",
             FontSize = 34,
             FontWeight = System.Windows.FontWeight.FromOpenTypeWeight(690),
-            Foreground = Ink,
             TextAlignment = System.Windows.TextAlignment.Center,
             LineHeight = IdleStatusHeadlineLineHeight,
             LineStackingStrategy = System.Windows.LineStackingStrategy.BlockLineHeight
-        };
+        }, ("Foreground", "InkBrush"));
         statusRow.Children.Add(_idleStatusDot);
         statusRow.Children.Add(_idleStatusBlock);
-        _idleDetailBlock = new System.Windows.Controls.TextBlock
+        _idleDetailBlock = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = "Select a window to get started",
             FontSize = StatusDetailFontSize,
             FontWeight = System.Windows.FontWeights.Medium,
-            Foreground = Muted,
             TextAlignment = System.Windows.TextAlignment.Center,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             Margin = new System.Windows.Thickness(0, 10, 0, 0)
-        };
+        }, ("Foreground", "MutedInkBrush"));
         statusStack.Children.Add(statusRow);
         statusStack.Children.Add(_idleDetailBlock);
         System.Windows.Controls.Grid.SetRow(statusStack, 1);
@@ -8251,17 +8240,16 @@ internal sealed partial class RecordingControlPanel : IDisposable
             HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
             VerticalAlignment = System.Windows.VerticalAlignment.Center
         };
-        _elapsedBlock = new System.Windows.Controls.TextBlock
+        _elapsedBlock = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = "00:00:00",
             FontSize = StatusTimerFontSize,
             FontWeight = System.Windows.FontWeight.FromOpenTypeWeight(520),
-            Foreground = Muted,
             Width = ActiveStatusTimerWidth,
             TextAlignment = System.Windows.TextAlignment.Center,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             Margin = new System.Windows.Thickness(0, 0, 0, 2)
-        };
+        }, ("Foreground", "MutedInkBrush"));
         _elapsedBlock.SetValue(System.Windows.FrameworkElement.SnapsToDevicePixelsProperty, true);
         System.Windows.Media.TextOptions.SetTextFormattingMode(_elapsedBlock, System.Windows.Media.TextFormattingMode.Display);
         System.Windows.Media.TextOptions.SetTextRenderingMode(_elapsedBlock, System.Windows.Media.TextRenderingMode.ClearType);
@@ -8273,14 +8261,13 @@ internal sealed partial class RecordingControlPanel : IDisposable
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalAlignment = System.Windows.VerticalAlignment.Center
         };
-        _activeStatusBlock = new System.Windows.Controls.TextBlock
+        _activeStatusBlock = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = "Recording in Progress...",
             FontSize = 34,
             FontWeight = System.Windows.FontWeight.FromOpenTypeWeight(690),
-            Foreground = Ink,
             TextAlignment = System.Windows.TextAlignment.Center
-        };
+        }, ("Foreground", "InkBrush"));
         var activeStatusDot = BuildActiveStatusDot();
         activeStatusDot.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
         activeStatusDot.Margin = new System.Windows.Thickness(-(ActiveStatusDotOuterSize + ActiveStatusDotGap), 0, 0, 0);
@@ -8491,17 +8478,14 @@ internal sealed partial class RecordingControlPanel : IDisposable
         BuildPanelSurface(child, new System.Windows.Thickness(PanelSurfacePadding));
 
     private System.Windows.Controls.Border BuildPanelSurface(System.Windows.UIElement child, System.Windows.Thickness padding) =>
-        new()
-        {
+        global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border(){
             Height = ContentPanelHeight,
             CornerRadius = new System.Windows.CornerRadius(ContentPanelCornerRadius),
-            Background = Brush("#FFFFFF"),
-            BorderBrush = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(0),
             Padding = padding,
             Effect = CreateRecorderSurfaceShadow(),
             Child = child
-        };
+        },("BorderBrush", "TransparentBrush"),("Background", "PanelBrush"));
 
     private static System.Windows.Controls.StackPanel BuildPanelHeader(string title, string subtitle)
     {
@@ -8510,21 +8494,18 @@ internal sealed partial class RecordingControlPanel : IDisposable
             Orientation = System.Windows.Controls.Orientation.Vertical
         };
 
-        stack.Children.Add(new System.Windows.Controls.TextBlock
+        stack.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = title,
             FontSize = PanelHeaderTitleFontSize,
-            FontWeight = System.Windows.FontWeight.FromOpenTypeWeight(700),
-            Foreground = PanelInk
-        });
-        stack.Children.Add(new System.Windows.Controls.TextBlock
+            FontWeight = System.Windows.FontWeight.FromOpenTypeWeight(700)        }, ("Foreground", "InkBrush")));
+        stack.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = subtitle,
             FontSize = PanelHeaderSubtitleFontSize,
-            Foreground = PanelMuted,
             Margin = new System.Windows.Thickness(0, 2, 0, 0),
             TextWrapping = System.Windows.TextWrapping.Wrap
-        });
+        }, ("Foreground", "MutedInkBrush")));
 
         return stack;
     }
@@ -8602,14 +8583,13 @@ internal sealed partial class RecordingControlPanel : IDisposable
         {
             Width = System.Windows.GridLength.Auto
         });
-        titleRow.Children.Add(new System.Windows.Controls.TextBlock
+        titleRow.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = "Your Saved Maps",
             FontSize = PanelHeaderTitleFontSize,
             FontWeight = System.Windows.FontWeight.FromOpenTypeWeight(700),
-            Foreground = PanelInk,
             VerticalAlignment = System.Windows.VerticalAlignment.Center
-        });
+        }, ("Foreground", "InkBrush")));
 
         var chevron = new System.Windows.Controls.Viewbox
         {
@@ -8620,15 +8600,13 @@ internal sealed partial class RecordingControlPanel : IDisposable
             RenderTransform = new System.Windows.Media.RotateTransform(0),
             Child = CreateStrokedPath("M3.5 5.5L8 10L12.5 5.5", PanelMuted, 1.8)
         };
-        var searchToggle = new System.Windows.Controls.Button
+        var searchToggle = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
             Width = 44,
             Height = 44,
             Margin = new System.Windows.Thickness(8, -6, -6, -6),
             Padding = new System.Windows.Thickness(11),
             Content = chevron,
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderBrush = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(0),
             HorizontalContentAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalContentAlignment = System.Windows.VerticalAlignment.Center,
@@ -8636,10 +8614,10 @@ internal sealed partial class RecordingControlPanel : IDisposable
             Cursor = System.Windows.Input.Cursors.Hand,
             ToolTip = "Show search",
             Template = RoundedButtonTemplate(new System.Windows.CornerRadius(22))
-        };
+        }, ("Background", "TransparentBrush"), ("BorderBrush", "TransparentBrush"));
         System.Windows.Automation.AutomationProperties.SetName(searchToggle, "Show map search");
-        searchToggle.MouseEnter += (_, _) => searchToggle.Background = SourceSelectedBackground;
-        searchToggle.MouseLeave += (_, _) => searchToggle.Background = System.Windows.Media.Brushes.Transparent;
+        searchToggle.MouseEnter += (_, _) => global::UiAtlas.Presentation.Appearance.Bind(searchToggle, ("Background", "PanelBrush"));
+        searchToggle.MouseLeave += (_, _) => global::UiAtlas.Presentation.Appearance.Bind(searchToggle, ("Background", "TransparentBrush"));
         Place(titleRow, searchToggle, 1);
         header.Children.Add(titleRow);
 
@@ -8648,14 +8626,13 @@ internal sealed partial class RecordingControlPanel : IDisposable
             Orientation = System.Windows.Controls.Orientation.Vertical,
             Visibility = System.Windows.Visibility.Collapsed
         };
-        searchPanel.Children.Add(new System.Windows.Controls.TextBlock
+        searchPanel.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = "Continue from where you left off or manage your recorded maps.",
             FontSize = PanelHeaderSubtitleFontSize,
-            Foreground = PanelMuted,
             Margin = new System.Windows.Thickness(0, 2, 0, 0),
             TextWrapping = System.Windows.TextWrapping.Wrap
-        });
+        }, ("Foreground", "MutedInkBrush")));
 
         var search = BuildSearchField(
             "Search maps...",
@@ -8715,28 +8692,24 @@ internal sealed partial class RecordingControlPanel : IDisposable
         {
             Orientation = System.Windows.Controls.Orientation.Vertical
         };
-        _libraryTitleBlock = new System.Windows.Controls.TextBlock
+        _libraryTitleBlock = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             FontSize = 27,
-            FontWeight = System.Windows.FontWeight.FromOpenTypeWeight(700),
-            Foreground = Ink
-        };
+            FontWeight = System.Windows.FontWeight.FromOpenTypeWeight(700)        }, ("Foreground", "InkBrush"));
         stack.Children.Add(_libraryTitleBlock);
-        _libraryDetailBlock = new System.Windows.Controls.TextBlock
+        _libraryDetailBlock = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             FontSize = 18,
-            Foreground = Muted,
             Margin = new System.Windows.Thickness(0, 6, 0, 0),
             TextWrapping = System.Windows.TextWrapping.Wrap
-        };
+        }, ("Foreground", "MutedInkBrush"));
         stack.Children.Add(_libraryDetailBlock);
-        _libraryHintBlock = new System.Windows.Controls.TextBlock
+        _libraryHintBlock = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             FontSize = 18,
-            Foreground = Muted,
             Margin = new System.Windows.Thickness(0, 28, 0, 0),
             TextWrapping = System.Windows.TextWrapping.Wrap
-        };
+        }, ("Foreground", "MutedInkBrush"));
         stack.Children.Add(_libraryHintBlock);
 
         _libraryPrimaryButton = BuildPrimaryPanelButton("Import Map", HandleLibraryPrimaryAction);
@@ -8753,7 +8726,7 @@ internal sealed partial class RecordingControlPanel : IDisposable
 
         _libraryCleanupRecordingsButton = BuildTextLinkButton("Delete unused recordings", DeleteUnusedRecordingsFromLibrary);
         _libraryCleanupRecordingsButton.Margin = new System.Windows.Thickness(0, 8, 0, 0);
-        _libraryCleanupRecordingsButton.Foreground = Danger;
+        global::UiAtlas.Presentation.Appearance.Bind(_libraryCleanupRecordingsButton, ("Foreground", "ErrorBrush"));
         stack.Children.Add(_libraryCleanupRecordingsButton);
 
         RefreshLibraryPanel();
@@ -8782,25 +8755,22 @@ internal sealed partial class RecordingControlPanel : IDisposable
         Place(host, icon, 0);
 
         var textHost = new System.Windows.Controls.Grid();
-        var localTextBox = new System.Windows.Controls.TextBox
+        var localTextBox = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBox
         {
-            Background = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(0),
             FontSize = 28,
-            Foreground = Ink,
             CaretBrush = Accent,
             VerticalContentAlignment = System.Windows.VerticalAlignment.Center,
             Padding = new System.Windows.Thickness(0),
             Margin = new System.Windows.Thickness(0)
-        };
-        var watermark = new System.Windows.Controls.TextBlock
+        },("Background", "TransparentBrush"),("Foreground", "InkBrush"));
+        var watermark = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = placeholder,
             FontSize = 24,
-            Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 154, 162, 175)),
             VerticalAlignment = System.Windows.VerticalAlignment.Center,
             IsHitTestVisible = false
-        };
+        }, ("Foreground", "MutedInkBrush"));
         localTextBox.TextChanged += (_, _) =>
         {
             watermark.Visibility = string.IsNullOrWhiteSpace(localTextBox.Text)
@@ -8813,48 +8783,42 @@ internal sealed partial class RecordingControlPanel : IDisposable
         textHost.Children.Add(watermark);
         Place(host, textHost, 1);
 
-        return new System.Windows.Controls.Border
+        return global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
         {
             Height = SearchBoxHeight,
             CornerRadius = new System.Windows.CornerRadius(20),
-            BorderBrush = BubbleBorder,
             BorderThickness = new System.Windows.Thickness(1),
-            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(246, 255, 255, 255)),
             Padding = new System.Windows.Thickness(16, 0, 16, 0),
             Child = host
-        };
+        }, ("BorderBrush", "LineBrush"), ("Background", "PanelBrush"));
     }
 
     private System.Windows.Controls.Border BuildMapLoadingOverlay()
     {
-        var progress = new System.Windows.Controls.ProgressBar
+        var progress = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.ProgressBar
         {
             Width = 320,
             Height = 10,
             IsIndeterminate = true,
-            Foreground = Accent,
-            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 231, 234, 240)),
             BorderThickness = new System.Windows.Thickness(0),
             Margin = new System.Windows.Thickness(0, 0, 0, 22)
-        };
-        _mapLoadingTitleBlock = new System.Windows.Controls.TextBlock
+        },("Background", "PanelBrush"),("Foreground", "AccentBrush"));
+        _mapLoadingTitleBlock = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = "Loading maps",
             FontSize = 42,
             FontWeight = System.Windows.FontWeight.FromOpenTypeWeight(620),
-            Foreground = Ink,
             TextAlignment = System.Windows.TextAlignment.Center,
             TextWrapping = System.Windows.TextWrapping.Wrap
-        };
-        _mapLoadingDetailBlock = new System.Windows.Controls.TextBlock
+        }, ("Foreground", "InkBrush"));
+        _mapLoadingDetailBlock = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = "Please wait while saved maps are loaded.",
             FontSize = 30,
-            Foreground = Muted,
             Margin = new System.Windows.Thickness(0, 12, 0, 0),
             TextAlignment = System.Windows.TextAlignment.Center,
             TextWrapping = System.Windows.TextWrapping.Wrap
-        };
+        }, ("Foreground", "MutedInkBrush"));
 
         var stack = new System.Windows.Controls.StackPanel
         {
@@ -8864,26 +8828,23 @@ internal sealed partial class RecordingControlPanel : IDisposable
         stack.Children.Add(_mapLoadingTitleBlock);
         stack.Children.Add(_mapLoadingDetailBlock);
 
-        return new System.Windows.Controls.Border
+        return global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
         {
-            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(188, 247, 248, 252)),
             CornerRadius = new System.Windows.CornerRadius(18),
             Visibility = System.Windows.Visibility.Collapsed,
-            Child = new System.Windows.Controls.Border
+            Child = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
             {
                 MinWidth = 480,
                 MaxWidth = 560,
                 MinHeight = 200,
-                Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(250, 255, 255, 255)),
-                BorderBrush = BubbleBorder,
                 BorderThickness = new System.Windows.Thickness(1),
                 CornerRadius = new System.Windows.CornerRadius(22),
                 Padding = new System.Windows.Thickness(34, 32, 34, 30),
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
                 VerticalAlignment = System.Windows.VerticalAlignment.Center,
                 Child = stack
-            }
-        };
+            }, ("Background", "PanelBrush"), ("BorderBrush", "LineBrush"))
+        }, ("Background", "SoftBrush"));
     }
 
     private void SetMapLoadingState(bool isLoading, string title = "Loading maps", string detail = "Please wait while saved maps are loaded.")
@@ -9073,7 +9034,7 @@ internal sealed partial class RecordingControlPanel : IDisposable
             _libraryTitleBlock.Text = "Export";
             _libraryDetailBlock.Text = "Create a human-readable JSON export of the current map.";
             _libraryHintBlock.Text = $"Current map: {Path.GetFileName(_mapPath)}";
-            _libraryHintBlock.Foreground = Ink;
+            global::UiAtlas.Presentation.Appearance.Bind(_libraryHintBlock, ("Foreground", "InkBrush"));
             SetButtonText(_libraryPrimaryButton, "Export Current Map");
             _libraryPrimaryButton.ToolTip = "Create a JSON export of the current map.";
             SetButtonText(_librarySecondaryLinkButton, "Import another map");
@@ -9086,7 +9047,7 @@ internal sealed partial class RecordingControlPanel : IDisposable
             _libraryTitleBlock.Text = "Import";
             _libraryDetailBlock.Text = "Bring an existing map into your saved maps library.";
             _libraryHintBlock.Text = "Import a map now, or finish a recording to unlock export here.";
-            _libraryHintBlock.Foreground = Muted;
+            global::UiAtlas.Presentation.Appearance.Bind(_libraryHintBlock, ("Foreground", "MutedInkBrush"));
             SetButtonText(_libraryPrimaryButton, "Import Map");
             _libraryPrimaryButton.ToolTip = "Import a map into the local library.";
             SetButtonText(_librarySecondaryLinkButton, "Open maps folder");
@@ -9505,16 +9466,14 @@ internal sealed partial class RecordingControlPanel : IDisposable
             ? window.OriginalFilename.ToUpperInvariant()
             : (window.ProcessName + ".exe").ToUpperInvariant();
         var selectionCornerRadius = new System.Windows.CornerRadius(ListSelectionCornerRadius);
-        var rowButton = new System.Windows.Controls.Button
+        var rowButton = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderBrush = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(0),
             Padding = new System.Windows.Thickness(0),
             HorizontalContentAlignment = System.Windows.HorizontalAlignment.Stretch,
             Cursor = System.Windows.Input.Cursors.Hand,
             Template = RoundedButtonTemplate(selectionCornerRadius)
-        };
+        }, ("Background", "TransparentBrush"), ("BorderBrush", "TransparentBrush"));
 
         var content = new System.Windows.Controls.Grid
         {
@@ -9533,43 +9492,39 @@ internal sealed partial class RecordingControlPanel : IDisposable
             Orientation = System.Windows.Controls.Orientation.Vertical,
             VerticalAlignment = System.Windows.VerticalAlignment.Center
         };
-        var titleBlock = new System.Windows.Controls.TextBlock
+        var titleBlock = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = string.IsNullOrWhiteSpace(window.Title) ? "(Untitled window)" : window.Title,
             FontSize = ListItemTitleFontSize,
             FontWeight = System.Windows.FontWeight.FromOpenTypeWeight(400),
-            Foreground = PanelInk,
             TextTrimming = System.Windows.TextTrimming.CharacterEllipsis
-        };
+        }, ("Foreground", "InkBrush"));
         textStack.Children.Add(titleBlock);
-        textStack.Children.Add(new System.Windows.Controls.TextBlock
+        textStack.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = processLabel,
             FontSize = ListItemSubtitleFontSize,
-            Foreground = PanelMuted,
             Margin = new System.Windows.Thickness(0, 2, 0, 0),
             TextTrimming = System.Windows.TextTrimming.CharacterEllipsis
-        });
+        }, ("Foreground", "MutedInkBrush")));
         Place(content, textStack, 1);
 
         rowButton.Content = content;
-        var rowBorder = new System.Windows.Controls.Border
+        var rowBorder = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
         {
             CornerRadius = selectionCornerRadius,
             SnapsToDevicePixels = true,
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderBrush = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(ListSelectionBorderThickness),
             Margin = new System.Windows.Thickness(0, 0, 0, PanelListRowSpacing),
             Child = rowButton
-        };
+        }, ("Background", "TransparentBrush"), ("BorderBrush", "TransparentBrush"));
 
         void ApplyWindowRowChrome(bool highlight)
         {
-            rowBorder.Background = highlight ? System.Windows.Media.Brushes.White : System.Windows.Media.Brushes.Transparent;
-            rowBorder.BorderBrush = highlight ? BottomNavSelectedBorder : System.Windows.Media.Brushes.Transparent;
-            titleBlock.Foreground = highlight ? BottomNavSelectedForeground : PanelInk;
-            rowButton.Background = System.Windows.Media.Brushes.Transparent;
+            global::UiAtlas.Presentation.Appearance.Bind(rowBorder, ("Background", "TransparentBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(rowBorder, ("BorderBrush", "TransparentBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(titleBlock, ("Foreground", (highlight ? "AccentBrush" : "InkBrush")));
+            global::UiAtlas.Presentation.Appearance.Bind(rowButton, ("Background", "TransparentBrush"));
         }
 
         ApplyWindowRowChrome(isSelected);
@@ -9607,17 +9562,15 @@ internal sealed partial class RecordingControlPanel : IDisposable
         rowGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new System.Windows.GridLength(1, System.Windows.GridUnitType.Star) });
         rowGrid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = System.Windows.GridLength.Auto });
 
-        var selectionButton = new System.Windows.Controls.Button
+        var selectionButton = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderBrush = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(0),
             Padding = new System.Windows.Thickness(0),
             Cursor = System.Windows.Input.Cursors.Hand,
             Focusable = false,
             Template = RoundedButtonTemplate(selectionCornerRadius),
             ToolTip = $"Select {FormatMapDisplayName(map.Id)} as the current map."
-        };
+        }, ("Background", "TransparentBrush"), ("BorderBrush", "TransparentBrush"));
         selectionButton.Click += (_, _) => SelectMapFromLibrary(map, mapPath);
         System.Windows.Controls.Grid.SetColumnSpan(selectionButton, 3);
         rowGrid.Children.Add(selectionButton);
@@ -9635,25 +9588,23 @@ internal sealed partial class RecordingControlPanel : IDisposable
             Margin = new System.Windows.Thickness(0, 0, CompactButtonOuterGap, 0)
         };
         titleStack.IsHitTestVisible = false;
-        var titleBlock = new System.Windows.Controls.TextBlock
+        var titleBlock = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = FormatMapDisplayName(map.Id),
             FontSize = ListItemTitleFontSize,
             FontWeight = System.Windows.FontWeight.FromOpenTypeWeight(400),
-            Foreground = PanelInk,
             TextTrimming = System.Windows.TextTrimming.CharacterEllipsis
-        };
+        }, ("Foreground", "InkBrush"));
         titleStack.Children.Add(titleBlock);
-        titleStack.Children.Add(new System.Windows.Controls.TextBlock
+        titleStack.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = map.Status == "incomplete"
                 ? $"Incomplete - 0 controls - Built {FormatRelativeTime(map.BuiltUtc)}"
                 : $"{map.MappedControlCount} controls - Built {FormatRelativeTime(map.BuiltUtc)}",
             FontSize = ListItemSubtitleFontSize,
-            Foreground = PanelMuted,
             Margin = new System.Windows.Thickness(0, 2, 0, 0),
             TextTrimming = System.Windows.TextTrimming.CharacterEllipsis
-        });
+        }, ("Foreground", "MutedInkBrush")));
         Place(rowGrid, titleStack, 1);
 
         var openButton = BuildCompactPrimaryButton("Open Map", () =>
@@ -9665,21 +9616,19 @@ internal sealed partial class RecordingControlPanel : IDisposable
         });
 
         var moreButton = BuildMenuButton();
-        var menu = new System.Windows.Controls.ContextMenu
+        var menu = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.ContextMenu
         {
             PlacementTarget = moreButton,
             Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
             HasDropShadow = false,
             OverridesDefaultStyle = true,
-            Background = MoreMenuBackground,
-            BorderBrush = BubbleBorder,
             BorderThickness = new System.Windows.Thickness(1),
             Width = MapContextMenuItemWidth + 10,
             Padding = new System.Windows.Thickness(4),
             HorizontalContentAlignment = System.Windows.HorizontalAlignment.Left,
             ItemContainerStyle = FlatContextMenuItemContainerStyle(),
             Template = FlatContextMenuTemplate(new System.Windows.CornerRadius(14))
-        };
+        }, ("Background", "PanelBrush"), ("BorderBrush", "LineBrush"));
         menu.Items.Add(BuildContextMenuItem("Open Folder", () =>
         {
             menu.IsOpen = false;
@@ -9714,22 +9663,20 @@ internal sealed partial class RecordingControlPanel : IDisposable
         actionGroup.Children.Add(moreButton);
         Place(rowGrid, actionGroup, 2);
 
-        var rowBorder = new System.Windows.Controls.Border
+        var rowBorder = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
         {
             CornerRadius = selectionCornerRadius,
             SnapsToDevicePixels = true,
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderBrush = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(ListSelectionBorderThickness),
             Margin = new System.Windows.Thickness(0, 0, 0, PanelListRowSpacing),
             Child = rowGrid
-        };
+        }, ("Background", "TransparentBrush"), ("BorderBrush", "TransparentBrush"));
 
         void ApplyMapRowChrome(bool highlight)
         {
-            rowBorder.Background = highlight ? System.Windows.Media.Brushes.White : System.Windows.Media.Brushes.Transparent;
-            rowBorder.BorderBrush = highlight ? BottomNavSelectedBorder : System.Windows.Media.Brushes.Transparent;
-            titleBlock.Foreground = highlight ? BottomNavSelectedForeground : PanelInk;
+            global::UiAtlas.Presentation.Appearance.Bind(rowBorder, ("Background", "TransparentBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(rowBorder, ("BorderBrush", "TransparentBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(titleBlock, ("Foreground", (highlight ? "AccentBrush" : "InkBrush")));
         }
 
         ApplyMapRowChrome(isCurrent);
@@ -9901,11 +9848,9 @@ internal sealed partial class RecordingControlPanel : IDisposable
             VerticalAlignment = System.Windows.VerticalAlignment.Center
         });
 
-        var button = new System.Windows.Controls.Button
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
             Content = content,
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderBrush = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(1),
             Width = MapContextMenuItemWidth,
             Height = MapContextMenuItemHeight,
@@ -9916,16 +9861,16 @@ internal sealed partial class RecordingControlPanel : IDisposable
             Focusable = false,
             Cursor = System.Windows.Input.Cursors.Hand,
             Template = RoundedButtonTemplate(new System.Windows.CornerRadius(10))
-        };
+        }, ("Background", "TransparentBrush"), ("BorderBrush", "TransparentBrush"));
         button.MouseEnter += (_, _) =>
         {
-            button.Background = System.Windows.Media.Brushes.Transparent;
-            button.BorderBrush = BottomNavSelectedBorder;
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "TransparentBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "AccentBrush"));
         };
         button.MouseLeave += (_, _) =>
         {
-            button.Background = System.Windows.Media.Brushes.Transparent;
-            button.BorderBrush = System.Windows.Media.Brushes.Transparent;
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "TransparentBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "TransparentBrush"));
         };
         button.Click += (_, _) => onClick();
         return button;
@@ -10033,16 +9978,15 @@ internal sealed partial class RecordingControlPanel : IDisposable
         };
         System.Windows.Media.RenderOptions.SetBitmapScalingMode(image, System.Windows.Media.BitmapScalingMode.HighQuality);
 
-        return new System.Windows.Controls.Border
+        return global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
         {
             Width = size,
             Height = size,
             CornerRadius = new System.Windows.CornerRadius(radius),
-            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(242, 248, 250, 253)),
             BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(18, 17, 24, 39)),
             BorderThickness = new System.Windows.Thickness(1),
             Child = image
-        };
+        }, ("Background", "PanelBrush"));
     }
 
     private static System.Windows.Controls.Border CreateAppBadge(string processKey, string textSeed, double size, double radius)
@@ -10512,60 +10456,54 @@ internal sealed partial class RecordingControlPanel : IDisposable
 
     private static System.Windows.Controls.Button BuildPrimaryPanelButton(string label, Action onClick)
     {
-        var button = new System.Windows.Controls.Button
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
-            Content = new System.Windows.Controls.TextBlock
+            Content = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
             {
                 Text = label,
                 FontSize = 18,
                 FontWeight = System.Windows.FontWeight.FromOpenTypeWeight(650),
-                Foreground = BubbleBackground,
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Center
-            },
+            }, ("Foreground", "PanelBrush")),
             Height = 60,
             MinWidth = 210,
-            Background = Accent,
-            BorderBrush = Accent,
             BorderThickness = new System.Windows.Thickness(1),
             Padding = new System.Windows.Thickness(18, 0, 18, 0),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
             Cursor = System.Windows.Input.Cursors.Hand,
             Template = RoundedButtonTemplate(new System.Windows.CornerRadius(18))
-        };
+        },("BorderBrush", "AccentBrush"),("Background", "AccentBrush"));
         button.Click += (_, _) => onClick();
         return button;
     }
 
     private static System.Windows.Controls.Button BuildCompactPrimaryButton(string label, Action onClick)
     {
-        var labelBlock = new System.Windows.Controls.TextBlock
+        var labelBlock = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = label,
             FontSize = CompactButtonFontSize,
             FontWeight = System.Windows.FontWeight.FromOpenTypeWeight(650),
-            Foreground = BubbleBackground,
             TextAlignment = System.Windows.TextAlignment.Center,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalAlignment = System.Windows.VerticalAlignment.Center
-        };
+        }, ("Foreground", "PanelBrush"));
         System.Windows.Media.TextOptions.SetTextFormattingMode(labelBlock, System.Windows.Media.TextFormattingMode.Display);
         System.Windows.Media.TextOptions.SetTextRenderingMode(labelBlock, System.Windows.Media.TextRenderingMode.ClearType);
         System.Windows.Media.TextOptions.SetTextHintingMode(labelBlock, System.Windows.Media.TextHintingMode.Fixed);
 
-        var button = new System.Windows.Controls.Button
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
             Content = labelBlock,
             Width = CompactButtonMinWidth,
             Height = CompactButtonHeight,
-            Background = Accent,
-            BorderBrush = Accent,
             BorderThickness = new System.Windows.Thickness(1),
             Padding = new System.Windows.Thickness(22, 0, 22, 0),
             HorizontalContentAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalContentAlignment = System.Windows.VerticalAlignment.Center,
             Cursor = System.Windows.Input.Cursors.Hand,
             Template = RoundedButtonTemplate(new System.Windows.CornerRadius(20))
-        };
+        },("BorderBrush", "AccentBrush"),("Background", "AccentBrush"));
         button.Click += (_, _) => onClick();
         return button;
     }
@@ -10577,16 +10515,15 @@ internal sealed partial class RecordingControlPanel : IDisposable
         System.Windows.Media.Brush hoverBackground,
         string toolTip)
     {
-        var labelBlock = new System.Windows.Controls.TextBlock
+        var labelBlock = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = label,
             FontSize = ActiveProgressActionButtonFontSize,
             FontWeight = System.Windows.FontWeight.FromOpenTypeWeight(650),
-            Foreground = System.Windows.Media.Brushes.White,
             TextAlignment = System.Windows.TextAlignment.Center,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalAlignment = System.Windows.VerticalAlignment.Center
-        };
+        }, ("Foreground", "AccentTextBrush"));
         labelBlock.SetValue(System.Windows.FrameworkElement.SnapsToDevicePixelsProperty, true);
         System.Windows.Media.TextOptions.SetTextFormattingMode(labelBlock, System.Windows.Media.TextFormattingMode.Display);
         System.Windows.Media.TextOptions.SetTextRenderingMode(labelBlock, System.Windows.Media.TextRenderingMode.ClearType);
@@ -10637,7 +10574,7 @@ internal sealed partial class RecordingControlPanel : IDisposable
 
     private static System.Windows.Controls.Button BuildMenuButton()
     {
-        var button = new System.Windows.Controls.Button
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
             Content = new System.Windows.Controls.Viewbox
             {
@@ -10648,33 +10585,28 @@ internal sealed partial class RecordingControlPanel : IDisposable
             },
             Width = CompactButtonHeight,
             Height = CompactButtonHeight,
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderBrush = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(1),
             Padding = new System.Windows.Thickness(0),
             Cursor = System.Windows.Input.Cursors.Hand,
             Template = RoundedButtonTemplate(new System.Windows.CornerRadius(20))
-        };
+        }, ("Background", "TransparentBrush"), ("BorderBrush", "TransparentBrush"));
         ApplyOutlineHover(button);
         return button;
     }
 
     private static System.Windows.Controls.Button BuildTextLinkButton(string label, Action onClick, bool outlined = false)
     {
-        var text = new System.Windows.Controls.TextBlock
+        var text = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = label,
             FontSize = 17,
             FontWeight = System.Windows.FontWeight.FromOpenTypeWeight(620),
-            Foreground = Accent,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center
-        };
-        var button = new System.Windows.Controls.Button
+        }, ("Foreground", "AccentBrush"));
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
             Content = text,
             MinHeight = 34,
-            Background = outlined ? System.Windows.Media.Brushes.White : System.Windows.Media.Brushes.Transparent,
-            BorderBrush = outlined ? Accent : System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(outlined ? 1.5 : 0),
             Padding = new System.Windows.Thickness(8, 5, 8, 5),
             Cursor = System.Windows.Input.Cursors.Hand,
@@ -10682,18 +10614,18 @@ internal sealed partial class RecordingControlPanel : IDisposable
             VerticalAlignment = System.Windows.VerticalAlignment.Center,
             VerticalContentAlignment = System.Windows.VerticalAlignment.Center,
             Template = RoundedButtonTemplate(new System.Windows.CornerRadius(12))
-        };
+        }, ("Background", "TransparentBrush"), ("BorderBrush", "TransparentBrush"));
         button.MouseEnter += (_, _) =>
         {
-            text.Foreground = Brush("#0077ED");
-            button.BorderBrush = Accent;
-            button.Background = Brush("#F1F7FF");
+            global::UiAtlas.Presentation.Appearance.Bind(text, ("Foreground", "AccentBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "AccentBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "PanelBrush"));
         };
         button.MouseLeave += (_, _) =>
         {
-            text.Foreground = Accent;
-            button.BorderBrush = outlined ? Accent : System.Windows.Media.Brushes.Transparent;
-            button.Background = outlined ? System.Windows.Media.Brushes.White : System.Windows.Media.Brushes.Transparent;
+            global::UiAtlas.Presentation.Appearance.Bind(text, ("Foreground", "AccentBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "TransparentBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "TransparentBrush"));
         };
         button.Click += (_, _) => onClick();
         return button;
@@ -10706,22 +10638,20 @@ internal sealed partial class RecordingControlPanel : IDisposable
             Orientation = System.Windows.Controls.Orientation.Vertical,
             Margin = new System.Windows.Thickness(0, 8, 0, 8)
         };
-        stack.Children.Add(new System.Windows.Controls.TextBlock
+        stack.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = title,
             FontSize = 20,
             FontWeight = System.Windows.FontWeight.FromOpenTypeWeight(620),
-            Foreground = Ink,
             TextWrapping = System.Windows.TextWrapping.Wrap
-        });
-        stack.Children.Add(new System.Windows.Controls.TextBlock
+        }, ("Foreground", "InkBrush")));
+        stack.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = detail,
             FontSize = 17,
-            Foreground = Muted,
             Margin = new System.Windows.Thickness(0, 6, 0, 0),
             TextWrapping = System.Windows.TextWrapping.Wrap
-        });
+        }, ("Foreground", "MutedInkBrush")));
         return stack;
     }
 
@@ -11128,7 +11058,7 @@ internal sealed partial class RecordingControlPanel : IDisposable
             return;
 
         ConfigureActiveStageBadge(activeStageKey);
-        _activeStageBadgeLabel.Foreground = System.Windows.Media.Brushes.White;
+        global::UiAtlas.Presentation.Appearance.Bind(_activeStageBadgeLabel, ("Foreground", "AccentTextBrush"));
         _activeStageBadge.Background = new System.Windows.Media.SolidColorBrush(
             error
                 ? System.Windows.Media.Color.FromArgb(236, 255, 59, 48)
@@ -11516,18 +11446,18 @@ internal sealed partial class RecordingControlPanel : IDisposable
         if (button is null) return;
         if (string.Equals(button.Tag as string, "ui-atlas-active-action", StringComparison.Ordinal))
         {
-            button.Background = selected ? Brush("#0077ED") : Accent;
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "AccentBrush"));
             button.BorderBrush = button.Background;
             if (button.Content is System.Windows.Controls.TextBlock activeText)
-                activeText.Foreground = System.Windows.Media.Brushes.White;
+                global::UiAtlas.Presentation.Appearance.Bind(activeText, ("Foreground", "AccentTextBrush"));
             return;
         }
         if (string.Equals(button.Tag as string, "ui-atlas-secondary-outline", StringComparison.Ordinal))
         {
-            button.Background = selected ? Brush("#EAF4FF") : System.Windows.Media.Brushes.White;
-            button.BorderBrush = Accent;
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "PanelBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "AccentBrush"));
             if (button.Content is System.Windows.Controls.TextBlock text)
-                text.Foreground = selected ? Brush("#0077ED") : Accent;
+                global::UiAtlas.Presentation.Appearance.Bind(text, ("Foreground", "AccentBrush"));
             return;
         }
         if (button.Content is System.Windows.FrameworkElement { Tag: CircleActionVisualState circleVisual })
@@ -11536,8 +11466,8 @@ internal sealed partial class RecordingControlPanel : IDisposable
             return;
         }
 
-        button.Background = selected ? SelectedTileBackground : System.Windows.Media.Brushes.Transparent;
-        button.BorderBrush = selected ? SelectedTileBorder : System.Windows.Media.Brushes.Transparent;
+        global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "TransparentBrush"));
+        global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "TransparentBrush"));
     }
 
     private static void SetPrimaryCircleState(System.Windows.Controls.Button? button, bool selected)
@@ -11968,31 +11898,27 @@ internal sealed partial class RecordingControlPanel : IDisposable
         double height,
         double cornerRadius)
     {
-        return new System.Windows.Controls.Border
+        return global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
         {
             Width = width,
             Height = height,
             MinHeight = height,
             MaxWidth = Math.Max(360, System.Windows.SystemParameters.WorkArea.Width - ToolbarViewportInset),
-            Background = ShellBackground,
-            BorderBrush = ShellBorder,
             BorderThickness = new System.Windows.Thickness(1),
             CornerRadius = new System.Windows.CornerRadius(cornerRadius),
             Padding = padding,
             Effect = Shadow(shadowOpacity, shadowBlur, 0),
             Child = child
-        };
+        },("BorderBrush", "LineBrush"),("Background", "SoftBrush"));
     }
 
     private static System.Windows.Controls.Border BuildDivider() =>
-        new()
-        {
+        global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border(){
             Width = 1,
             Height = DividerHeight,
-            Background = Divider,
             VerticalAlignment = System.Windows.VerticalAlignment.Center,
             Margin = new System.Windows.Thickness(0)
-        };
+        }, ("Background", "PanelBrush"));
 
     private static System.Windows.Controls.Border BuildToolSlot(System.Windows.UIElement content, bool showDivider)
     {
@@ -12003,14 +11929,13 @@ internal sealed partial class RecordingControlPanel : IDisposable
         };
         if (showDivider)
         {
-            grid.Children.Add(new System.Windows.Controls.Border
+            grid.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
             {
                 Width = 1,
                 Height = DividerHeight,
-                Background = Divider,
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
                 VerticalAlignment = System.Windows.VerticalAlignment.Center
-            });
+            }, ("Background", "PanelBrush")));
         }
 
         if (content is System.Windows.FrameworkElement element)
@@ -12033,13 +11958,11 @@ internal sealed partial class RecordingControlPanel : IDisposable
         Action onClick,
         string toolTip)
     {
-        var button = new System.Windows.Controls.Button
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
             Content = content,
             Width = ToolButtonWidth,
             Height = ToolSlotHeight,
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderBrush = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(0),
             Padding = new System.Windows.Thickness(0),
             ToolTip = toolTip,
@@ -12049,7 +11972,7 @@ internal sealed partial class RecordingControlPanel : IDisposable
             HorizontalContentAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalContentAlignment = System.Windows.VerticalAlignment.Center,
             Template = RoundedButtonTemplate(new System.Windows.CornerRadius(ToolCornerRadius))
-        };
+        }, ("Background", "TransparentBrush"), ("BorderBrush", "TransparentBrush"));
         button.SetValue(System.Windows.Controls.ToolTipService.ShowOnDisabledProperty, true);
         button.IsEnabledChanged += (_, _) => button.Opacity = button.IsEnabled ? 1.0 : 0.34;
         button.MouseEnter += (_, _) => ApplyTileChrome(button, IsTileSelected(button), isHovered: true);
@@ -12063,11 +11986,9 @@ internal sealed partial class RecordingControlPanel : IDisposable
         Action onClick,
         string toolTip)
     {
-        var button = new System.Windows.Controls.Button
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
             Content = content,
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderBrush = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(0),
             Padding = new System.Windows.Thickness(0),
             ToolTip = toolTip,
@@ -12077,7 +11998,7 @@ internal sealed partial class RecordingControlPanel : IDisposable
             HorizontalContentAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalContentAlignment = System.Windows.VerticalAlignment.Center,
             Template = RoundedButtonTemplate(new System.Windows.CornerRadius(22))
-        };
+        }, ("Background", "TransparentBrush"), ("BorderBrush", "TransparentBrush"));
         button.Uid = "source-switch";
         button.SetValue(System.Windows.Controls.ToolTipService.ShowOnDisabledProperty, true);
         button.IsEnabledChanged += (_, _) => button.Opacity = button.IsEnabled ? 1.0 : 0.34;
@@ -12092,11 +12013,9 @@ internal sealed partial class RecordingControlPanel : IDisposable
         Action onClick,
         string toolTip)
     {
-        var button = new System.Windows.Controls.Button
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
             Content = content,
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderBrush = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(0),
             Padding = new System.Windows.Thickness(0),
             ToolTip = toolTip,
@@ -12106,7 +12025,7 @@ internal sealed partial class RecordingControlPanel : IDisposable
             HorizontalContentAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalContentAlignment = System.Windows.VerticalAlignment.Center,
             Template = RoundedButtonTemplate(new System.Windows.CornerRadius(22))
-        };
+        }, ("Background", "TransparentBrush"), ("BorderBrush", "TransparentBrush"));
         button.Uid = "close-utility";
         button.SetValue(System.Windows.Controls.ToolTipService.ShowOnDisabledProperty, true);
         button.IsEnabledChanged += (_, _) => button.Opacity = button.IsEnabled ? 1.0 : 0.34;
@@ -12172,24 +12091,21 @@ internal sealed partial class RecordingControlPanel : IDisposable
             Child = iconFactory(idleIconBrush)
         };
 
-        var bubble = new System.Windows.Controls.Border
+        var bubble = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
         {
             Width = WindowUtilityButtonSize,
             Height = WindowUtilityButtonSize,
             CornerRadius = new System.Windows.CornerRadius(WindowUtilityButtonSize / 2),
-            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(232, 255, 255, 255)),
             BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(24, 17, 24, 39)),
             BorderThickness = new System.Windows.Thickness(1),
             Child = iconHost
-        };
+        }, ("Background", "PanelBrush"));
 
-        var button = new System.Windows.Controls.Button
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
             Content = bubble,
             Width = WindowUtilityButtonSize,
             Height = WindowUtilityButtonSize,
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderBrush = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(0),
             Padding = new System.Windows.Thickness(0),
             ToolTip = toolTip,
@@ -12198,17 +12114,17 @@ internal sealed partial class RecordingControlPanel : IDisposable
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalAlignment = System.Windows.VerticalAlignment.Center,
             Template = RoundedButtonTemplate(new System.Windows.CornerRadius(WindowUtilityButtonSize / 2))
-        };
+        }, ("Background", "TransparentBrush"), ("BorderBrush", "TransparentBrush"));
         button.MouseEnter += (_, _) =>
         {
-            bubble.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(246, 255, 255, 255));
-            bubble.BorderBrush = Accent;
+            global::UiAtlas.Presentation.Appearance.Bind(bubble, ("Background", "PanelBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(bubble, ("BorderBrush", "AccentBrush"));
             bubble.Effect = Shadow(0.08, 8, 0);
             iconHost.Child = iconFactory(hoverIconBrush);
         };
         button.MouseLeave += (_, _) =>
         {
-            bubble.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(232, 255, 255, 255));
+            global::UiAtlas.Presentation.Appearance.Bind(bubble, ("Background", "PanelBrush"));
             bubble.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(24, 17, 24, 39));
             bubble.Effect = null;
             iconHost.Child = iconFactory(idleIconBrush);
@@ -12244,29 +12160,26 @@ internal sealed partial class RecordingControlPanel : IDisposable
         {
             Stretch = System.Windows.Media.Stretch.Uniform,
             StretchDirection = System.Windows.Controls.StretchDirection.Both,
-            Child = new System.Windows.Controls.Border
+            Child = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
             {
                 Width = shellContentWidth,
                 Height = shellContentHeight,
-                Background = System.Windows.Media.Brushes.Transparent,
                 Child = contentRoot
-            }
+            }, ("Background", "TransparentBrush"))
         };
 
-        return new System.Windows.Controls.Border
+        return global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
         {
             Width = frameWidth,
             Height = frameHeight,
             MinHeight = frameHeight,
             MaxWidth = frameWidth,
-            Background = ShellBackground,
-            BorderBrush = ShellBorder,
             BorderThickness = new System.Windows.Thickness(1),
             CornerRadius = new System.Windows.CornerRadius(RecorderFrameCornerRadius),
             Padding = new System.Windows.Thickness(RecorderViewportInset),
             Effect = Shadow(0.18, Math.Max(14, 42 * RecorderFrameScale), 0),
             Child = contentHost
-        };
+        },("BorderBrush", "LineBrush"),("Background", "SoftBrush"));
     }
 
     private static System.Windows.Controls.Border BuildBottomNavigation(
@@ -12296,12 +12209,10 @@ internal sealed partial class RecordingControlPanel : IDisposable
         Place(grid, BuildTallDivider(BottomNavSeparatorHeight, BottomNavSeparatorWidth), 6);
         Place(grid, libraryButton, 8);
 
-        return new System.Windows.Controls.Border
+        return global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
         {
             Height = BottomNavHeight,
             CornerRadius = new System.Windows.CornerRadius(BottomNavCornerRadius),
-            Background = BottomNavBackground,
-            BorderBrush = BottomNavBorder,
             BorderThickness = new System.Windows.Thickness(0),
             Padding = new System.Windows.Thickness(0),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
@@ -12309,18 +12220,16 @@ internal sealed partial class RecordingControlPanel : IDisposable
             SnapsToDevicePixels = true,
             Effect = CreateRecorderSurfaceShadow(),
             Child = grid
-        };
+        },("BorderBrush", "LineBrush"),("Background", "PanelBrush"));
     }
 
     private static System.Windows.Controls.Border BuildTallDivider(double height, double width = 1) =>
-        new()
-        {
+        global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border(){
             Width = width,
             Height = height,
-            Background = Divider,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalAlignment = System.Windows.VerticalAlignment.Center
-        };
+        }, ("Background", "PanelBrush"));
 
     private static System.Windows.Controls.Button BottomNavButton(
         Func<System.Windows.Media.Brush, System.Windows.FrameworkElement> iconFactory,
@@ -12329,13 +12238,11 @@ internal sealed partial class RecordingControlPanel : IDisposable
         string toolTip)
     {
         var content = BottomNavContent(iconFactory, label);
-        var button = new System.Windows.Controls.Button
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
             Content = content,
             MinWidth = BottomNavButtonWidth,
             Height = BottomNavButtonHeight,
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderBrush = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(3),
             Padding = new System.Windows.Thickness(0),
             ToolTip = toolTip,
@@ -12348,7 +12255,7 @@ internal sealed partial class RecordingControlPanel : IDisposable
             Uid = "bottom-nav",
             SnapsToDevicePixels = true,
             UseLayoutRounding = true
-        };
+        }, ("Background", "TransparentBrush"), ("BorderBrush", "TransparentBrush"));
         button.SetValue(System.Windows.Controls.ToolTipService.ShowOnDisabledProperty, true);
         button.IsEnabledChanged += (_, _) =>
         {
@@ -12375,16 +12282,15 @@ internal sealed partial class RecordingControlPanel : IDisposable
             VerticalAlignment = System.Windows.VerticalAlignment.Center,
             Child = iconFactory(BottomNavMuted)
         };
-        var labelBlock = new System.Windows.Controls.TextBlock
+        var labelBlock = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = label,
             FontSize = BottomNavLabelSize,
             FontWeight = System.Windows.FontWeights.Medium,
-            Foreground = BottomNavMuted,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             TextAlignment = System.Windows.TextAlignment.Center,
             Margin = new System.Windows.Thickness(0, 8, 0, 0)
-        };
+        }, ("Foreground", "MutedInkBrush"));
         var stack = new System.Windows.Controls.StackPanel
         {
             Orientation = System.Windows.Controls.Orientation.Vertical,
@@ -12455,26 +12361,23 @@ internal sealed partial class RecordingControlPanel : IDisposable
             VerticalAlignment = System.Windows.VerticalAlignment.Center,
             Child = iconFactory(accentBrush)
         };
-        var circle = new System.Windows.Controls.Border
+        var circle = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
         {
             Width = size,
             Height = size,
             CornerRadius = new System.Windows.CornerRadius(size / 2),
-            Background = System.Windows.Media.Brushes.White,
             BorderBrush = accentBrush,
             BorderThickness = new System.Windows.Thickness(2),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalAlignment = System.Windows.VerticalAlignment.Center,
             Child = iconHost
-        };
+        }, ("Background", "PanelBrush"));
         circle.Tag = new PrimaryCircleVisualState(circle, accentBrush);
-        var button = new System.Windows.Controls.Button
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
             Content = circle,
             Width = size + 14,
             Height = size + 14,
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderBrush = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(0),
             Padding = new System.Windows.Thickness(0),
             ToolTip = toolTip,
@@ -12483,7 +12386,7 @@ internal sealed partial class RecordingControlPanel : IDisposable
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalAlignment = System.Windows.VerticalAlignment.Center,
             Template = RoundedButtonTemplate(new System.Windows.CornerRadius((size + 14) / 2))
-        };
+        }, ("Background", "TransparentBrush"), ("BorderBrush", "TransparentBrush"));
         button.SetValue(System.Windows.Controls.ToolTipService.ShowOnDisabledProperty, true);
         button.IsEnabledChanged += (_, _) =>
         {
@@ -12523,28 +12426,26 @@ internal sealed partial class RecordingControlPanel : IDisposable
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalAlignment = System.Windows.VerticalAlignment.Center
         };
-        var circle = new System.Windows.Controls.Border
+        var circle = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
         {
             Width = size,
             Height = size,
             CornerRadius = new System.Windows.CornerRadius(size / 2),
-            Background = System.Windows.Media.Brushes.White,
             BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(28, 17, 24, 39)),
             BorderThickness = new System.Windows.Thickness(1),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalAlignment = System.Windows.VerticalAlignment.Center,
             Child = iconHost
-        };
-        var labelBlock = new System.Windows.Controls.TextBlock
+        }, ("Background", "PanelBrush"));
+        var labelBlock = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = label,
             FontSize = TopActionLabelFontSize,
             FontWeight = System.Windows.FontWeights.Medium,
-            Foreground = TopActionMuted,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             TextAlignment = System.Windows.TextAlignment.Center,
             Margin = new System.Windows.Thickness(0, TopActionLabelGap, 0, 0)
-        };
+        }, ("Foreground", "MutedInkBrush"));
         var stack = new System.Windows.Controls.StackPanel
         {
             Orientation = System.Windows.Controls.Orientation.Vertical,
@@ -12555,11 +12456,9 @@ internal sealed partial class RecordingControlPanel : IDisposable
         stack.Children.Add(labelBlock);
         stack.Tag = new CircleActionVisualState(iconFactory, iconHost, circle, labelBlock);
 
-        var button = new System.Windows.Controls.Button
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
             Content = stack,
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderBrush = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(0),
             Padding = new System.Windows.Thickness(0),
             ToolTip = toolTip,
@@ -12569,7 +12468,7 @@ internal sealed partial class RecordingControlPanel : IDisposable
             VerticalAlignment = System.Windows.VerticalAlignment.Center,
             Template = RoundedButtonTemplate(new System.Windows.CornerRadius(30)),
             Uid = "circle-action"
-        };
+        }, ("Background", "TransparentBrush"), ("BorderBrush", "TransparentBrush"));
         button.SetValue(System.Windows.Controls.ToolTipService.ShowOnDisabledProperty, true);
         button.IsEnabledChanged += (_, _) =>
         {
@@ -12629,21 +12528,18 @@ internal sealed partial class RecordingControlPanel : IDisposable
         Action onClick,
         string toolTip)
     {
-        var text = new System.Windows.Controls.TextBlock
+        var text = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = label,
             FontSize = 24,
             FontWeight = System.Windows.FontWeights.SemiBold,
-            Foreground = Accent,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center
-        };
-        var button = new System.Windows.Controls.Button
+        }, ("Foreground", "AccentBrush"));
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
             Content = text,
             MinWidth = 190,
             MinHeight = 54,
-            Background = System.Windows.Media.Brushes.White,
-            BorderBrush = Accent,
             BorderThickness = new System.Windows.Thickness(1.5),
             Padding = new System.Windows.Thickness(22, 10, 22, 10),
             ToolTip = toolTip,
@@ -12653,16 +12549,16 @@ internal sealed partial class RecordingControlPanel : IDisposable
             VerticalAlignment = System.Windows.VerticalAlignment.Center,
             Tag = "ui-atlas-secondary-outline",
             Template = RoundedButtonTemplate(new System.Windows.CornerRadius(14))
-        };
+        },("BorderBrush", "AccentBrush"),("Background", "PanelBrush"));
         button.MouseEnter += (_, _) =>
         {
-            button.BorderBrush = Brush("#0077ED");
-            button.Background = Brush("#EAF4FF");
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "AccentBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "PanelBrush"));
         };
         button.MouseLeave += (_, _) =>
         {
-            button.BorderBrush = Accent;
-            button.Background = System.Windows.Media.Brushes.White;
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "AccentBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "PanelBrush"));
         };
         button.Click += (_, _) => onClick();
         return button;
@@ -12685,9 +12581,7 @@ internal sealed partial class RecordingControlPanel : IDisposable
             var brush = enabled ? Accent : TopActionMuted;
             iconHost.Child = iconFactory(brush);
             circle.BorderBrush = brush;
-            circle.Background = enabled
-                ? System.Windows.Media.Brushes.White
-                : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(236, 255, 255, 255));
+            global::UiAtlas.Presentation.Appearance.Bind(circle, ("Background", "PanelBrush"));
             labelBlock.Foreground = brush;
         }
     }
@@ -12701,9 +12595,7 @@ internal sealed partial class RecordingControlPanel : IDisposable
         public void Apply(bool enabled, bool selected, bool hovered)
         {
             Selected = selected;
-            circle.Background = enabled
-                ? System.Windows.Media.Brushes.White
-                : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(230, 255, 255, 255));
+            global::UiAtlas.Presentation.Appearance.Bind(circle, ("Background", "PanelBrush"));
             circle.Effect = enabled && (selected || hovered)
                 ? CreatePrimaryCircleShadow(
                     accentBrush,
@@ -12715,20 +12607,19 @@ internal sealed partial class RecordingControlPanel : IDisposable
 
     private static System.Windows.Controls.Grid BuildDecorativeWavePanel()
     {
-        var grid = new System.Windows.Controls.Grid
+        var grid = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Grid
         {
             Margin = new System.Windows.Thickness(
                 -ActiveProgressArtSideBleed,
                 ActiveProgressArtTopMargin,
                 -ActiveProgressArtSideBleed,
                 -ActiveProgressArtTopMargin),
-            Background = System.Windows.Media.Brushes.Transparent,
             ClipToBounds = true,
             VerticalAlignment = System.Windows.VerticalAlignment.Stretch,
             IsHitTestVisible = false,
             SnapsToDevicePixels = true,
             UseLayoutRounding = true
-        };
+        }, ("Background", "TransparentBrush"));
 
         if (RecorderPopupUnderlayArt.Value is { } source)
         {
@@ -12770,14 +12661,13 @@ internal sealed partial class RecordingControlPanel : IDisposable
 
     private static System.Windows.Controls.Grid BuildIdlePopupUnderlayPanel()
     {
-        var grid = new System.Windows.Controls.Grid
+        var grid = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Grid
         {
             Margin = new System.Windows.Thickness(-IdlePopupUnderlaySideBleed, 8, -IdlePopupUnderlaySideBleed, 0),
-            Background = System.Windows.Media.Brushes.Transparent,
             ClipToBounds = true,
             VerticalAlignment = System.Windows.VerticalAlignment.Stretch,
             IsHitTestVisible = false
-        };
+        }, ("Background", "TransparentBrush"));
 
         if (RecorderPopupUnderlayArt.Value is { } source)
         {
@@ -12810,12 +12700,11 @@ internal sealed partial class RecordingControlPanel : IDisposable
         System.Windows.Controls.Grid.SetRowSpan(artPanel, 5);
         layout.Children.Add(artPanel);
 
-        _activeDetailBlock = new System.Windows.Controls.TextBlock
+        _activeDetailBlock = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = "Saving the action and collecting the first snapshots.",
             FontSize = ActiveProgressTextFontSize,
             FontWeight = System.Windows.FontWeights.Medium,
-            Foreground = PanelInk,
             TextAlignment = System.Windows.TextAlignment.Center,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
             VerticalAlignment = System.Windows.VerticalAlignment.Top,
@@ -12823,7 +12712,7 @@ internal sealed partial class RecordingControlPanel : IDisposable
             LineHeight = ActiveProgressTextLineHeight,
             MaxWidth = ActiveProgressTextMaxWidth,
             Margin = new System.Windows.Thickness(0, 0, 0, ActiveProgressTextBottomMargin)
-        };
+        }, ("Foreground", "InkBrush"));
         System.Windows.Controls.Grid.SetRow(_activeDetailBlock, 0);
         layout.Children.Add(_activeDetailBlock);
 
@@ -12860,10 +12749,8 @@ internal sealed partial class RecordingControlPanel : IDisposable
         System.Windows.Controls.Grid.SetRow(actionButtons, 4);
         layout.Children.Add(actionButtons);
 
-        return new System.Windows.Controls.Border
+        return global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
         {
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderBrush = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(0),
             VerticalAlignment = System.Windows.VerticalAlignment.Stretch,
             Padding = new System.Windows.Thickness(
@@ -12872,34 +12759,31 @@ internal sealed partial class RecordingControlPanel : IDisposable
                 ActiveProgressPanelInset,
                 ActiveProgressPanelBottomInset),
             Child = layout
-        };
+        }, ("Background", "TransparentBrush"), ("BorderBrush", "TransparentBrush"));
     }
 
     private System.Windows.Controls.Border BuildActiveStageBadge(string text)
     {
-        var label = new System.Windows.Controls.TextBlock
+        var label = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = text,
             FontSize = 22,
             FontWeight = System.Windows.FontWeights.SemiBold,
-            Foreground = ActiveStageMutedForeground,
             TextAlignment = System.Windows.TextAlignment.Center,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalAlignment = System.Windows.VerticalAlignment.Center,
             TextWrapping = System.Windows.TextWrapping.NoWrap
-        };
-        var badge = new System.Windows.Controls.Border
+        }, ("Foreground", "MutedInkBrush"));
+        var badge = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
         {
             Height = 58,
             Padding = new System.Windows.Thickness(18, 10, 18, 10),
-            Background = ActiveStageMutedBackground,
-            BorderBrush = ActiveStageMutedBorder,
             BorderThickness = new System.Windows.Thickness(1.5),
             CornerRadius = new System.Windows.CornerRadius(16),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             MinWidth = 220,
             Child = label
-        };
+        }, ("Background", "PanelBrush"), ("BorderBrush", "LineBrush"));
         _activeStageBadge = badge;
         _activeStageBadgeLabel = label;
         return badge;
@@ -12928,43 +12812,39 @@ internal sealed partial class RecordingControlPanel : IDisposable
     {
         if (button.Uid == "bottom-nav")
         {
-            button.Background = selected
-                ? System.Windows.Media.Brushes.Transparent
-                : isHovered ? BottomNavHoverBackground : System.Windows.Media.Brushes.Transparent;
-            button.BorderBrush = selected ? BottomNavSelectedBorder : System.Windows.Media.Brushes.Transparent;
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "TransparentBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "TransparentBrush"));
             button.Effect = null;
             return;
         }
 
         if (button.Uid == "circle-action")
         {
-            button.Background = System.Windows.Media.Brushes.Transparent;
-            button.BorderBrush = System.Windows.Media.Brushes.Transparent;
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "TransparentBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "TransparentBrush"));
             button.Effect = null;
             return;
         }
 
         if (button.Uid == "source-switch")
         {
-            button.Background = selected
-                ? SourceSelectedBackground
-                : isHovered ? SourceHoverBackground : System.Windows.Media.Brushes.Transparent;
-            button.BorderBrush = System.Windows.Media.Brushes.Transparent;
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "TransparentBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "TransparentBrush"));
             button.Effect = selected ? Shadow(0.10, 8, 0) : null;
             return;
         }
 
         if (button.Uid == "close-utility")
         {
-            button.Background = isHovered ? SourceSelectedBackground : System.Windows.Media.Brushes.Transparent;
-            button.BorderBrush = System.Windows.Media.Brushes.Transparent;
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "TransparentBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "TransparentBrush"));
             button.Effect = isHovered ? Shadow(0.08, 7, 0) : null;
             return;
         }
 
         var showHighlight = selected || isHovered;
-        button.Background = showHighlight ? SelectedTileBackground : System.Windows.Media.Brushes.Transparent;
-        button.BorderBrush = showHighlight ? SelectedTileBorder : System.Windows.Media.Brushes.Transparent;
+        global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "TransparentBrush"));
+        global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "TransparentBrush"));
     }
 
     private static System.Windows.Controls.Button SessionModeButton(
@@ -12985,22 +12865,20 @@ internal sealed partial class RecordingControlPanel : IDisposable
             Stretch = System.Windows.Media.Stretch.Uniform,
             Child = iconFactory(Accent)
         };
-        var titleBlock = new System.Windows.Controls.TextBlock
+        var titleBlock = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = title,
             FontSize = SessionModeCardTitleFontSize,
             FontWeight = System.Windows.FontWeight.FromOpenTypeWeight(680),
-            Foreground = Ink,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             TextAlignment = System.Windows.TextAlignment.Center,
             Margin = new System.Windows.Thickness(0, SessionModeCardTitleTopMargin, 0, 0)
-        };
-        var subtitleBlock = new System.Windows.Controls.TextBlock
+        }, ("Foreground", "InkBrush"));
+        var subtitleBlock = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = subtitle,
             FontSize = SessionModeCardSubtitleFontSize,
             FontWeight = System.Windows.FontWeights.Regular,
-            Foreground = PanelMuted,
             TextWrapping = System.Windows.TextWrapping.Wrap,
             LineHeight = SessionModeCardSubtitleLineHeight,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
@@ -13008,7 +12886,7 @@ internal sealed partial class RecordingControlPanel : IDisposable
             MaxWidth = SessionModeCardSubtitleWidth,
             Margin = new System.Windows.Thickness(0, SessionModeCardSubtitleTopMargin, 0, 0),
             Visibility = hasSubtitle ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed
-        };
+        }, ("Foreground", "MutedInkBrush"));
 
         var stack = new System.Windows.Controls.StackPanel
         {
@@ -13018,13 +12896,11 @@ internal sealed partial class RecordingControlPanel : IDisposable
             Children = { iconHost, titleBlock, subtitleBlock }
         };
 
-        var button = new System.Windows.Controls.Button
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
             Content = stack,
             Margin = margin,
             MinHeight = hasSubtitle ? SessionModeCardMinHeight : SessionModeCardMinHeight,
-            Background = System.Windows.Media.Brushes.White,
-            BorderBrush = BubbleBorder,
             BorderThickness = new System.Windows.Thickness(SessionModeCardBorderThickness),
             Padding = new System.Windows.Thickness(SessionModeCardPadding),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
@@ -13037,20 +12913,20 @@ internal sealed partial class RecordingControlPanel : IDisposable
             SnapsToDevicePixels = true,
             UseLayoutRounding = true,
             Template = RoundedButtonTemplate(new System.Windows.CornerRadius(SessionModeCardCornerRadius))
-        };
+        },("BorderBrush", "LineBrush"),("Background", "PanelBrush"));
         System.Windows.Automation.AutomationProperties.SetAutomationId(button, "AtlasRecorderMode" + title.Replace(" ", "", StringComparison.Ordinal));
         System.Windows.Automation.AutomationProperties.SetName(button, title);
         button.MouseEnter += (_, _) =>
         {
-            button.BorderBrush = Accent;
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "AccentBrush"));
             button.Effect = Shadow(0.08, 7, 0);
-            titleBlock.Foreground = Accent;
+            global::UiAtlas.Presentation.Appearance.Bind(titleBlock, ("Foreground", "AccentBrush"));
         };
         button.MouseLeave += (_, _) =>
         {
-            button.BorderBrush = BubbleBorder;
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "LineBrush"));
             button.Effect = null;
-            titleBlock.Foreground = Ink;
+            global::UiAtlas.Presentation.Appearance.Bind(titleBlock, ("Foreground", "InkBrush"));
         };
         button.Click += (_, _) => onClick();
         return button;
@@ -13077,17 +12953,15 @@ internal sealed partial class RecordingControlPanel : IDisposable
             Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
             StaysOpen = false,
             VerticalOffset = 10,
-            Child = new System.Windows.Controls.Border
+            Child = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
             {
                 MinWidth = 170,
                 Padding = new System.Windows.Thickness(8),
-                Background = MoreMenuBackground,
-                BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(46, 255, 255, 255)),
                 BorderThickness = new System.Windows.Thickness(1),
                 CornerRadius = new System.Windows.CornerRadius(16),
                 Effect = Shadow(0.18, 48, 0),
                 Child = menuStack
-            }
+            }, ("Background", "PanelBrush"), ("BorderBrush", "PanelBrush"))
         };
     }
 
@@ -13111,18 +12985,16 @@ internal sealed partial class RecordingControlPanel : IDisposable
             Placement = System.Windows.Controls.Primitives.PlacementMode.Top,
             StaysOpen = true,
             VerticalOffset = -14,
-            Child = new System.Windows.Controls.Border
+            Child = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
             {
                 MinWidth = 420,
                 MaxWidth = 520,
                 Padding = new System.Windows.Thickness(8),
-                Background = MoreMenuBackground,
-                BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(46, 255, 255, 255)),
                 BorderThickness = new System.Windows.Thickness(1),
                 CornerRadius = new System.Windows.CornerRadius(16),
                 Effect = Shadow(0.18, 48, 0),
                 Child = scroll
-            }
+            }, ("Background", "PanelBrush"), ("BorderBrush", "PanelBrush"))
         };
 
         popup.Opened += (_, _) => ApplyMapsLibraryVisibility(true);
@@ -13150,18 +13022,16 @@ internal sealed partial class RecordingControlPanel : IDisposable
             Placement = System.Windows.Controls.Primitives.PlacementMode.Top,
             StaysOpen = true,
             VerticalOffset = -14,
-            Child = new System.Windows.Controls.Border
+            Child = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
             {
                 MinWidth = 320,
                 MaxWidth = 400,
                 Padding = new System.Windows.Thickness(8),
-                Background = MoreMenuBackground,
-                BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(46, 255, 255, 255)),
                 BorderThickness = new System.Windows.Thickness(1),
                 CornerRadius = new System.Windows.CornerRadius(16),
                 Effect = Shadow(0.18, 48, 0),
                 Child = scroll
-            }
+            }, ("Background", "PanelBrush"), ("BorderBrush", "PanelBrush"))
         };
         popup.Opened += (_, _) => ApplyTargetMenuVisibility(true);
         popup.Closed += (_, _) => ApplyTargetMenuVisibility(false);
@@ -13174,13 +13044,11 @@ internal sealed partial class RecordingControlPanel : IDisposable
         Action onClick,
         string toolTip)
     {
-        var bubble = new System.Windows.Controls.Border
+        var bubble = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
         {
             Width = CenterBubbleSize,
             Height = CenterBubbleSize,
             CornerRadius = new System.Windows.CornerRadius(CenterBubbleSize / 2),
-            Background = BubbleBackground,
-            BorderBrush = BubbleBorder,
             BorderThickness = new System.Windows.Thickness(1),
             Effect = Shadow(0.18, 18, 1),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
@@ -13189,7 +13057,7 @@ internal sealed partial class RecordingControlPanel : IDisposable
             {
                 Children = { icon }
             }
-        };
+        }, ("Background", "PanelBrush"), ("BorderBrush", "LineBrush"));
 
         var stack = new System.Windows.Controls.StackPanel
         {
@@ -13199,24 +13067,21 @@ internal sealed partial class RecordingControlPanel : IDisposable
             Margin = new System.Windows.Thickness(0, -2, 0, 0)
         };
         stack.Children.Add(bubble);
-        stack.Children.Add(new System.Windows.Controls.TextBlock
+        stack.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = label,
             FontSize = LabelFontSize,
             LineHeight = LabelLineHeight,
             FontWeight = System.Windows.FontWeights.SemiBold,
-            Foreground = Ink,
             Margin = new System.Windows.Thickness(0, 4, 0, 0),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center
-        });
+        }, ("Foreground", "InkBrush")));
 
-        var button = new System.Windows.Controls.Button
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
             Content = stack,
             Width = ToolButtonWidth,
             Height = ToolSlotHeight,
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderBrush = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(0),
             Padding = new System.Windows.Thickness(0),
             ToolTip = toolTip,
@@ -13226,7 +13091,7 @@ internal sealed partial class RecordingControlPanel : IDisposable
             HorizontalContentAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalContentAlignment = System.Windows.VerticalAlignment.Center,
             Template = RoundedButtonTemplate(new System.Windows.CornerRadius(ToolCornerRadius))
-        };
+        }, ("Background", "TransparentBrush"), ("BorderBrush", "TransparentBrush"));
         button.SetValue(System.Windows.Controls.ToolTipService.ShowOnDisabledProperty, true);
         button.Click += (_, _) => onClick();
         return button;
@@ -13234,27 +13099,24 @@ internal sealed partial class RecordingControlPanel : IDisposable
 
     private static System.Windows.Controls.Button PopupMenuButton(string label, Action onClick)
     {
-        var text = new System.Windows.Controls.TextBlock
+        var text = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = label,
             FontSize = 12,
-            Foreground = Ink,
             VerticalAlignment = System.Windows.VerticalAlignment.Center
-        };
+        }, ("Foreground", "InkBrush"));
 
-        var button = new System.Windows.Controls.Button
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
             Content = text,
             Height = 40,
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderBrush = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(1),
             Padding = new System.Windows.Thickness(12, 11, 12, 11),
             HorizontalContentAlignment = System.Windows.HorizontalAlignment.Left,
             Focusable = false,
             Cursor = System.Windows.Input.Cursors.Hand,
             Template = RoundedButtonTemplate(new System.Windows.CornerRadius(10))
-        };
+        }, ("Background", "TransparentBrush"), ("BorderBrush", "TransparentBrush"));
         ApplyOutlineHover(button);
         button.Click += (_, _) => onClick();
         return button;
@@ -13267,24 +13129,22 @@ internal sealed partial class RecordingControlPanel : IDisposable
             Orientation = System.Windows.Controls.Orientation.Vertical,
             Margin = new System.Windows.Thickness(12, 8, 12, subtitle is null ? 10 : 8)
         };
-        stack.Children.Add(new System.Windows.Controls.TextBlock
+        stack.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = title,
             FontSize = 12.5,
             FontWeight = System.Windows.FontWeights.SemiBold,
-            Foreground = Ink,
             TextWrapping = System.Windows.TextWrapping.Wrap
-        });
+        }, ("Foreground", "InkBrush")));
         if (!string.IsNullOrWhiteSpace(subtitle))
         {
-            stack.Children.Add(new System.Windows.Controls.TextBlock
+            stack.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
             {
                 Text = subtitle,
                 FontSize = 12,
-                Foreground = Muted,
                 Margin = new System.Windows.Thickness(0, 3, 0, 0),
                 TextWrapping = System.Windows.TextWrapping.Wrap
-            });
+            }, ("Foreground", "MutedInkBrush")));
         }
 
         return stack;
@@ -13296,35 +13156,31 @@ internal sealed partial class RecordingControlPanel : IDisposable
         {
             Orientation = System.Windows.Controls.Orientation.Vertical
         };
-        stack.Children.Add(new System.Windows.Controls.TextBlock
+        stack.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = title,
             FontSize = 12.5,
             FontWeight = System.Windows.FontWeights.SemiBold,
-            Foreground = Ink,
             TextTrimming = System.Windows.TextTrimming.CharacterEllipsis
-        });
-        stack.Children.Add(new System.Windows.Controls.TextBlock
+        }, ("Foreground", "InkBrush")));
+        stack.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = subtitle,
             FontSize = 12,
-            Foreground = Muted,
             Margin = new System.Windows.Thickness(0, 3, 0, 0),
             TextTrimming = System.Windows.TextTrimming.CharacterEllipsis
-        });
+        }, ("Foreground", "MutedInkBrush")));
 
-        var button = new System.Windows.Controls.Button
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
             Content = stack,
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderBrush = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(1),
             Padding = new System.Windows.Thickness(12, 10, 12, 10),
             HorizontalContentAlignment = System.Windows.HorizontalAlignment.Left,
             Focusable = false,
             Cursor = System.Windows.Input.Cursors.Hand,
             Template = RoundedButtonTemplate(new System.Windows.CornerRadius(10))
-        };
+        }, ("Background", "TransparentBrush"), ("BorderBrush", "TransparentBrush"));
         ApplyOutlineHover(button);
         button.Click += (_, _) => onClick();
         return button;
@@ -13334,13 +13190,13 @@ internal sealed partial class RecordingControlPanel : IDisposable
     {
         button.MouseEnter += (_, _) =>
         {
-            button.Background = System.Windows.Media.Brushes.Transparent;
-            button.BorderBrush = BottomNavSelectedBorder;
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "TransparentBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "AccentBrush"));
         };
         button.MouseLeave += (_, _) =>
         {
-            button.Background = System.Windows.Media.Brushes.Transparent;
-            button.BorderBrush = System.Windows.Media.Brushes.Transparent;
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "TransparentBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "TransparentBrush"));
         };
     }
 
@@ -13662,22 +13518,20 @@ internal sealed partial class RecordingControlPanel : IDisposable
         {
             Orientation = System.Windows.Controls.Orientation.Vertical
         };
-        titleStack.Children.Add(new System.Windows.Controls.TextBlock
+        titleStack.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = FormatMapDisplayName(map.Id),
             FontSize = 12.5,
             FontWeight = System.Windows.FontWeights.SemiBold,
-            Foreground = Ink,
             TextTrimming = System.Windows.TextTrimming.CharacterEllipsis
-        });
-        titleStack.Children.Add(new System.Windows.Controls.TextBlock
+        }, ("Foreground", "InkBrush")));
+        titleStack.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = map.Id,
             FontSize = 12,
-            Foreground = Muted,
             Margin = new System.Windows.Thickness(0, 3, 0, 0),
             TextTrimming = System.Windows.TextTrimming.CharacterEllipsis
-        });
+        }, ("Foreground", "MutedInkBrush")));
         Place(header, titleStack, 0);
 
         var badges = new System.Windows.Controls.StackPanel
@@ -13696,22 +13550,20 @@ internal sealed partial class RecordingControlPanel : IDisposable
         Place(header, badges, 1);
 
         card.Children.Add(header);
-        card.Children.Add(new System.Windows.Controls.TextBlock
+        card.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = $"Built {map.BuiltUtc.ToLocalTime():yyyy-MM-dd HH:mm} - {map.MappedControlCount} controls - " +
                    $"{map.NodeCount} evidence nodes - {map.EdgeCount} edges",
             FontSize = 12,
-            Foreground = Ink,
             TextWrapping = System.Windows.TextWrapping.Wrap
-        });
-        card.Children.Add(new System.Windows.Controls.TextBlock
+        }, ("Foreground", "InkBrush")));
+        card.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
         {
             Text = Path.GetFileName(mapPath),
             FontSize = 12,
-            Foreground = Muted,
             Margin = new System.Windows.Thickness(0, 4, 0, 0),
             TextTrimming = System.Windows.TextTrimming.CharacterEllipsis
-        });
+        }, ("Foreground", "MutedInkBrush")));
 
         var actions = new System.Windows.Controls.StackPanel
         {
@@ -13731,16 +13583,14 @@ internal sealed partial class RecordingControlPanel : IDisposable
         }));
         card.Children.Add(actions);
 
-        return new System.Windows.Controls.Border
+        return global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
         {
             Margin = new System.Windows.Thickness(0, 0, 0, 10),
             Padding = new System.Windows.Thickness(12, 12, 12, 12),
-            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(16, 255, 255, 255)),
-            BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(28, 255, 255, 255)),
             BorderThickness = new System.Windows.Thickness(1),
             CornerRadius = new System.Windows.CornerRadius(14),
             Child = card
-        };
+        }, ("Background", "PanelBrush"), ("BorderBrush", "PanelBrush"));
     }
 
     private static string FormatMapDisplayName(string mapId)
@@ -13770,25 +13620,21 @@ internal sealed partial class RecordingControlPanel : IDisposable
 
     private static System.Windows.Controls.Button MapLibraryActionButton(string label, Action onClick, bool primary = false)
     {
-        var button = new System.Windows.Controls.Button
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
-            Content = new System.Windows.Controls.TextBlock
+            Content = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.TextBlock
             {
                 Text = label,
                 FontSize = 12,
-                FontWeight = primary ? System.Windows.FontWeights.SemiBold : System.Windows.FontWeights.Medium,
-                Foreground = primary ? BubbleBackground : Ink
-            },
+                FontWeight = primary ? System.Windows.FontWeights.SemiBold : System.Windows.FontWeights.Medium            }, ("Foreground", (primary ? "PanelBrush" : "InkBrush"))),
             Height = 30,
             Margin = new System.Windows.Thickness(0, 0, 8, 0),
             Padding = new System.Windows.Thickness(12, 6, 12, 6),
-            Background = primary ? Accent : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(16, 255, 255, 255)),
-            BorderBrush = primary ? Accent : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(32, 255, 255, 255)),
             BorderThickness = new System.Windows.Thickness(1),
             Focusable = false,
             Cursor = System.Windows.Input.Cursors.Hand,
             Template = RoundedButtonTemplate(new System.Windows.CornerRadius(15))
-        };
+        }, ("Background", (primary ? "AccentBrush" : "PanelBrush")), ("BorderBrush", (primary ? "AccentBrush" : "PanelBrush")));
         button.Click += (_, _) => onClick();
         return button;
     }
@@ -13802,22 +13648,18 @@ internal sealed partial class RecordingControlPanel : IDisposable
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalAlignment = System.Windows.VerticalAlignment.Center
         };
-        var ring = new System.Windows.Controls.Border
+        var ring = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
         {
             Width = StopOuterSize,
             Height = StopOuterSize,
             CornerRadius = new System.Windows.CornerRadius(StopOuterSize / 2),
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderBrush = Danger,
             BorderThickness = new System.Windows.Thickness(1.5)
-        };
-        var bubble = new System.Windows.Controls.Border
+        },("Background", "TransparentBrush"),("BorderBrush", "ErrorBrush"));
+        var bubble = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
         {
             Width = StopInnerSize,
             Height = StopInnerSize,
             CornerRadius = new System.Windows.CornerRadius(StopInnerSize / 2),
-            Background = BubbleBackground,
-            BorderBrush = BubbleBorder,
             BorderThickness = new System.Windows.Thickness(1),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalAlignment = System.Windows.VerticalAlignment.Center,
@@ -13826,17 +13668,15 @@ internal sealed partial class RecordingControlPanel : IDisposable
             {
                 Children = { CreateStopIcon(Danger) }
             }
-        };
+        }, ("Background", "PanelBrush"), ("BorderBrush", "LineBrush"));
         wrap.Children.Add(ring);
         wrap.Children.Add(bubble);
 
-        var button = new System.Windows.Controls.Button
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
             Content = wrap,
             Width = ToolColumnWidth,
             Height = ToolSlotHeight,
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderBrush = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(0),
             Padding = new System.Windows.Thickness(0),
             ToolTip = "Finish recording and build the map. Shortcut: F.",
@@ -13845,7 +13685,7 @@ internal sealed partial class RecordingControlPanel : IDisposable
             HorizontalContentAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalContentAlignment = System.Windows.VerticalAlignment.Center,
             Template = RoundedButtonTemplate(new System.Windows.CornerRadius(ToolCornerRadius))
-        };
+        }, ("Background", "TransparentBrush"), ("BorderBrush", "TransparentBrush"));
         button.Click += (_, _) => QueueCommand("F", "Finishing recording and building the map...", StatusTone.Accent);
         return button;
     }
@@ -13875,13 +13715,11 @@ internal sealed partial class RecordingControlPanel : IDisposable
             VerticalAlignment = System.Windows.VerticalAlignment.Center
         });
 
-        var button = new System.Windows.Controls.Button
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Button
         {
             Content = row,
             MinWidth = minWidth,
             Height = InlineButtonHeight,
-            Background = System.Windows.Media.Brushes.Transparent,
-            BorderBrush = System.Windows.Media.Brushes.Transparent,
             BorderThickness = new System.Windows.Thickness(0),
             Padding = new System.Windows.Thickness(10, 8, 10, 8),
             ToolTip = toolTip,
@@ -13890,7 +13728,7 @@ internal sealed partial class RecordingControlPanel : IDisposable
             HorizontalContentAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalContentAlignment = System.Windows.VerticalAlignment.Center,
             Template = RoundedButtonTemplate(new System.Windows.CornerRadius(20))
-        };
+        }, ("Background", "TransparentBrush"), ("BorderBrush", "TransparentBrush"));
         button.Click += (_, _) => onClick();
         return button;
     }
@@ -13922,16 +13760,15 @@ internal sealed partial class RecordingControlPanel : IDisposable
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalAlignment = System.Windows.VerticalAlignment.Center
         };
-        stack.Children.Add(new System.Windows.Controls.Border
+        stack.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
         {
             Width = compactStyle ? 14 : IconSize,
             Height = compactStyle ? 14 : IconSize,
-            Background = System.Windows.Media.Brushes.Transparent,
             CornerRadius = new System.Windows.CornerRadius((compactStyle ? 14 : IconSize) / 2),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalAlignment = System.Windows.VerticalAlignment.Center,
             Child = iconHost
-        });
+        }, ("Background", "TransparentBrush")));
         stack.Children.Add(labelBlock);
         if (footer is not null) stack.Children.Add(footer);
         stack.Tag = new TileVisualState(iconFactory, iconHost, labelBlock, sourceSwitchStyle);
@@ -14510,14 +14347,13 @@ internal sealed partial class RecordingControlPanel : IDisposable
     }
 
     private static System.Windows.FrameworkElement CreateMissingAssetIcon(double width, double height) =>
-        new System.Windows.Controls.Border
+        global::UiAtlas.Presentation.Appearance.Bind(new System.Windows.Controls.Border
         {
             Width = width,
             Height = height,
-            Background = System.Windows.Media.Brushes.Transparent,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
             VerticalAlignment = System.Windows.VerticalAlignment.Center
-        };
+        }, ("Background", "TransparentBrush"));
 
     private static bool IsSameSolidColor(System.Windows.Media.Brush brush, System.Windows.Media.Brush reference) =>
         brush is System.Windows.Media.SolidColorBrush left &&

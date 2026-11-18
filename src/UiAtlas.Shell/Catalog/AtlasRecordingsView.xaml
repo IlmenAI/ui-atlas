@@ -9,8 +9,8 @@
   <Grid MaxWidth="1040" HorizontalAlignment="Stretch">
    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
    <StackPanel>
-    <TextBlock Text="Recordings" FontSize="38" FontWeight="Light" Foreground="{StaticResource InkBrush}"/>
-    <TextBlock Text="UI Map recordings, organized by application." Margin="0,9,0,0" FontSize="15.5" Foreground="{StaticResource MutedInkBrush}"/>
+    <TextBlock FontFamily="{DynamicResource HeadingFontFamily}" Text="Recordings" FontSize="38" FontWeight="Light" Foreground="{DynamicResource InkBrush}"/>
+    <TextBlock Text="UI Map recordings, organized by application." Margin="0,9,0,0" FontSize="15.5" Foreground="{DynamicResource MutedInkBrush}"/>
     <StackPanel Orientation="Horizontal" Margin="0,28,0,0">
      <RadioButton x:Name="ActiveTab" GroupName="RecordingArchiveScope" Content="Active" IsChecked="True" Style="{StaticResource LibraryTabStyle}" Click="Scope_Click"/>
      <RadioButton x:Name="ArchiveTab" GroupName="RecordingArchiveScope" Content="Archive" Style="{StaticResource LibraryTabStyle}" Click="Scope_Click"/>
@@ -18,7 +18,7 @@
    </StackPanel>
    <Grid Grid.Row="1" Margin="0,30,0,12">
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-    <TextBlock Text="Recordings" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
+    <TextBlock FontFamily="{DynamicResource HeadingFontFamily}" Text="Recordings" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
      <Button x:Name="CancelButton" Content="Cancel build" Visibility="Collapsed" Style="{StaticResource QuietButtonStyle}" Click="Cancel_Click" Margin="0,0,8,0"/>
      <Button Content="Import…" Style="{StaticResource QuietButtonStyle}" Click="Import_Click" Margin="0,0,8,0"/>
@@ -33,7 +33,7 @@
      <Grid>
       <TextBox x:Name="SearchBox" Height="42" Padding="39,10,12,8" TextChanged="Search_Changed" AutomationProperties.Name="Search recordings" ToolTip="Search by application, recording ID, or outcome"/>
       <TextBlock Text="&#xE721;" FontFamily="Segoe Fluent Icons" FontSize="15" Margin="13,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"/>
-      <TextBlock Text="Search recordings" Margin="39,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource MutedInkBrush}" IsHitTestVisible="False">
+      <TextBlock Text="Search recordings" Margin="39,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource MutedInkBrush}" IsHitTestVisible="False">
        <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
       </TextBlock>
      </Grid>
@@ -42,7 +42,7 @@
      <ComboBox x:Name="SortFilter" Grid.Column="6" Height="42" Padding="10,6" SelectedIndex="0" SelectionChanged="Filter_Changed" AutomationProperties.Name="Recording sort order"><ComboBoxItem Content="Recently recorded"/><ComboBoxItem Content="Oldest recorded"/><ComboBoxItem Content="Application A–Z"/></ComboBox>
     </Grid>
    </Grid>
-   <Border Grid.Row="2" Background="White" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="9">
+   <Border Grid.Row="2" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="9">
     <StackPanel>
      <ItemsControl x:Name="RecordingList">
       <ItemsControl.ItemTemplate><DataTemplate>
@@ -51,11 +51,11 @@
         <Button Style="{StaticResource ApplicationRowStyle}" Tag="{Binding}" Click="OpenRecording_Click" ToolTip="{Binding Details}" AutomationProperties.Name="{Binding Title}">
          <Grid MinHeight="90">
           <Grid.ColumnDefinitions><ColumnDefinition Width="64"/><ColumnDefinition Width="2.1*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="1.35*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="54"/></Grid.ColumnDefinitions>
-          <Border Width="46" Height="46" Background="{StaticResource AccentBrush}" CornerRadius="8" VerticalAlignment="Center" HorizontalAlignment="Left"><TextBlock Text="{Binding Initials}" Foreground="White" FontWeight="SemiBold" FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-          <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/><TextBlock Text="{Binding Metadata}" FontSize="11.5" Foreground="{StaticResource MutedInkBrush}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/></StackPanel>
+          <Border Width="46" Height="46" Background="{DynamicResource AccentBrush}" CornerRadius="8" VerticalAlignment="Center" HorizontalAlignment="Left"><TextBlock Text="{Binding Initials}" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold" FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+          <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/><TextBlock Text="{Binding Metadata}" FontSize="11.5" Foreground="{DynamicResource MutedInkBrush}" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/></StackPanel>
           <Border Grid.Column="2" Style="{StaticResource StatusPillStyle}" VerticalAlignment="Center" Margin="12,0,24,0"><TextBlock Text="{Binding Status}" Style="{StaticResource StatusTextStyle}" FontSize="11.5"/></Border>
-          <TextBlock Grid.Column="3" Text="{Binding Description}" VerticalAlignment="Center" Foreground="{StaticResource MutedInkBrush}" FontSize="11.5" Margin="0,0,20,0" TextTrimming="CharacterEllipsis"/>
-          <TextBlock Grid.Column="4" Text="{Binding RecordedAt}" Foreground="{StaticResource MutedInkBrush}" FontSize="11.5" VerticalAlignment="Center"/>
+          <TextBlock Grid.Column="3" Text="{Binding Description}" VerticalAlignment="Center" Foreground="{DynamicResource MutedInkBrush}" FontSize="11.5" Margin="0,0,20,0" TextTrimming="CharacterEllipsis"/>
+          <TextBlock Grid.Column="4" Text="{Binding RecordedAt}" Foreground="{DynamicResource MutedInkBrush}" FontSize="11.5" VerticalAlignment="Center"/>
           <TextBlock Grid.Column="5" Text="&#xE76C;" FontFamily="Segoe Fluent Icons" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Right"/>
          </Grid>
         </Button>
@@ -63,12 +63,12 @@
        </Grid>
       </DataTemplate></ItemsControl.ItemTemplate>
      </ItemsControl>
-     <TextBlock x:Name="EmptyMessage" Text="Loading recordings…" Margin="24,36" HorizontalAlignment="Center" Foreground="{StaticResource MutedInkBrush}" TextWrapping="Wrap"/>
+     <TextBlock x:Name="EmptyMessage" Text="Loading recordings…" Margin="24,36" HorizontalAlignment="Center" Foreground="{DynamicResource MutedInkBrush}" TextWrapping="Wrap"/>
     </StackPanel>
    </Border>
    <StackPanel Grid.Row="3" Margin="0,16,0,6">
-    <TextBlock x:Name="CountText" Foreground="{StaticResource MutedInkBrush}" FontSize="12"/>
-    <TextBlock x:Name="StatusText" Margin="0,5,18,0" Foreground="{StaticResource MutedInkBrush}" FontSize="11.5" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+    <TextBlock x:Name="CountText" Foreground="{DynamicResource MutedInkBrush}" FontSize="12"/>
+    <TextBlock x:Name="StatusText" Margin="0,5,18,0" Foreground="{DynamicResource MutedInkBrush}" FontSize="11.5" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
     <StackPanel x:Name="BuildResultActions" Visibility="Collapsed" Orientation="Horizontal" Margin="0,12,0,0">
      <Button Content="Open built map" Click="OpenBuilt_Click" Style="{StaticResource QuietButtonStyle}" Margin="0,0,12,0"/>
      <Button x:Name="PublishBuiltButton" Content="Publish after review" Click="PublishBuilt_Click" Style="{StaticResource QuietButtonStyle}"/>

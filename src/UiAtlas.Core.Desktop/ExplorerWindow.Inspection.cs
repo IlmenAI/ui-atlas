@@ -10,9 +10,8 @@ namespace UiAtlas.Core.Desktop;
 
 public sealed partial class ExplorerWindow
 {
-    private readonly ListBox _inspectionVariantSelector = new()
-    { MinWidth = 100, MaxWidth = 650, MaxHeight = 64, DisplayMemberPath = nameof(UiInspectionFrameGroup.Label),
-        BorderThickness = new(0), Background = Brushes.Transparent, Margin = new(3, 0, 8, 0) };
+    private readonly ListBox _inspectionVariantSelector = global::UiAtlas.Presentation.Appearance.Bind(new ListBox(){ MinWidth = 100, MaxWidth = 650, MaxHeight = 64, DisplayMemberPath = nameof(UiInspectionFrameGroup.Label),
+        BorderThickness = new(0), Margin = new(3, 0, 8, 0) }, ("Background", "TransparentBrush"));
     private bool _updatingInspectionVariants;
     private string? _inspectionUnavailableVariant;
 
@@ -41,8 +40,8 @@ public sealed partial class ExplorerWindow
         itemStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(9, 5, 9, 5)));
         itemStyle.Setters.Add(new Setter(FrameworkElement.MarginProperty, new Thickness(1, 2, 1, 2)));
         itemStyle.Setters.Add(new Setter(Control.FontSizeProperty, 12d));
-        itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, Brushes.Transparent));
-        itemStyle.Setters.Add(new Setter(Control.BorderBrushProperty, Brushes.Transparent));
+        itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, new System.Windows.DynamicResourceExtension("TransparentBrush")));
+        itemStyle.Setters.Add(new Setter(Control.BorderBrushProperty, new System.Windows.DynamicResourceExtension("TransparentBrush")));
         itemStyle.Setters.Add(new Setter(Control.BorderThicknessProperty, new Thickness(1)));
         itemStyle.Setters.Add(new Setter(Control.TemplateProperty, System.Windows.Markup.XamlReader.Parse("""
             <ControlTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -54,12 +53,12 @@ public sealed partial class ExplorerWindow
             </ControlTemplate>
             """)));
         var selected = new Trigger { Property = ListBoxItem.IsSelectedProperty, Value = true };
-        selected.Setters.Add(new Setter(Control.BackgroundProperty, Brush("#EFE8FF")));
-        selected.Setters.Add(new Setter(Control.BorderBrushProperty, Brush("#8B5CF6")));
-        selected.Setters.Add(new Setter(Control.ForegroundProperty, Brush("#6D28D9")));
+        selected.Setters.Add(new Setter(Control.BackgroundProperty, new System.Windows.DynamicResourceExtension("AccentSelectionBrush")));
+        selected.Setters.Add(new Setter(Control.BorderBrushProperty, new System.Windows.DynamicResourceExtension("AccentBrush")));
+        selected.Setters.Add(new Setter(Control.ForegroundProperty, new System.Windows.DynamicResourceExtension("AccentBrush")));
         itemStyle.Triggers.Add(selected);
         var hovered = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-        hovered.Setters.Add(new Setter(Control.BorderBrushProperty, Brush("#A78BFA")));
+        hovered.Setters.Add(new Setter(Control.BorderBrushProperty, new System.Windows.DynamicResourceExtension("AccentBrush")));
         itemStyle.Triggers.Add(hovered);
         _inspectionVariantSelector.ItemContainerStyle = itemStyle;
         _inspectionVariantSelector.SelectionChanged += (_, _) =>
@@ -120,9 +119,8 @@ public sealed partial class ExplorerWindow
         _variantCardsPanel.Children.Clear(); _variantCardButtons.Clear(); _variantCardSummaries.Clear();
         foreach (var frame in frames)
         {
-            var button = new Button { Content = frame.FrameSequence.ToString(), MinWidth = 31, Height = 29,
-                Margin = new(2), Padding = new(6, 2, 6, 2), Background = Brushes.White, BorderBrush = UiBorder,
-                Template = RoundedButtonTemplate(6), Tag = frame.Id };
+            var button = global::UiAtlas.Presentation.Appearance.Bind(new Button { Content = frame.FrameSequence.ToString(), MinWidth = 31, Height = 29,
+                Margin = new(2), Padding = new(6, 2, 6, 2),                 Template = RoundedButtonTemplate(6), Tag = frame.Id },("BorderBrush", "LineBrush"),("Background", "PanelBrush"));
             button.ToolTip = VariantCardToolTip(frame) + $"\nCapture status: {frame.CaptureStatus}\n{_rawExclusionReasons.GetValueOrDefault(frame.Id)}\n{_rawCaptureWarnings.GetValueOrDefault(frame.Id)}";
             AutomationProperties.SetName(button, VariantCardAccessibleName(frame));
             AutomationProperties.SetHelpText(button, "Recorded frame. Left/Right moves between frames; Home/End selects the first/last frame.");

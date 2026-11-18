@@ -14,16 +14,16 @@ public class DeleteConfirmationDialog : Window
     {
         Title = "Delete " + kind; Width = 500; SizeToContent = SizeToContent.Height;
         ResizeMode = ResizeMode.NoResize; ShowInTaskbar = false; WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        FontFamily = new FontFamily("Segoe UI"); FontSize = 14; Background = Brushes.White;
+        global::UiAtlas.Presentation.Appearance.Bind(this, ("FontFamily", "BodyFontFamily")); FontSize = 14; global::UiAtlas.Presentation.Appearance.Bind(this, ("Background", "PanelBrush"));
         var panel = new StackPanel { Margin = new Thickness(24) }; Content = panel;
         panel.Children.Add(new TextBlock { Text = kind == "UI Maps" ? "Delete these UI Maps?" : $"Delete this {kind}?", FontSize = 22, FontWeight = FontWeights.SemiBold });
         panel.Children.Add(new TextBlock { Text = name, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 16, 0, subtitle is null ? 12 : 4) });
-        if (subtitle is not null) panel.Children.Add(new TextBlock { Text = subtitle, Foreground = Brushes.SlateGray, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) });
+        if (subtitle is not null) panel.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new TextBlock { Text = subtitle, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 12) }, ("Foreground", "MutedInkBrush")));
         panel.Children.Add(new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap });
-        if (detail is not null) panel.Children.Add(new TextBlock { Text = detail, Foreground = Brushes.SlateGray, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 12, 0, 0) });
+        if (detail is not null) panel.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new TextBlock { Text = detail, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 12, 0, 0) }, ("Foreground", "MutedInkBrush")));
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 20, 0, 0) };
         var cancel = new Button { Name = "CancelButton", Content = "Cancel", IsCancel = true, IsDefault = true, Padding = new Thickness(18, 8, 18, 8), Margin = new Thickness(0, 0, 10, 0) };
-        var delete = new Button { Name = "DeleteButton", Content = "Delete " + kind, Padding = new Thickness(18, 8, 18, 8), Background = new SolidColorBrush(Color.FromRgb(180, 35, 24)), Foreground = Brushes.White };
+        var delete = global::UiAtlas.Presentation.Appearance.Bind(new Button { Name = "DeleteButton", Content = "Delete " + kind, Padding = new Thickness(18, 8, 18, 8)},("Foreground", "AccentTextBrush"),("Background", "ErrorBrush"));
         cancel.Click += (_, _) => DialogResult = false;
         delete.Click += (_, _) => DialogResult = true;
         buttons.Children.Add(cancel); buttons.Children.Add(delete); panel.Children.Add(buttons);

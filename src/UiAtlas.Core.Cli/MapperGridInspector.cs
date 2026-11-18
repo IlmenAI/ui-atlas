@@ -42,7 +42,7 @@ internal sealed class MapperGridInspector : Window
         Selection = selection; Title = "UiAtlas table explorer";
         Width = 360; SizeToContent = SizeToContent.Height;
         WindowStyle = WindowStyle.None; ResizeMode = ResizeMode.NoResize;
-        AllowsTransparency = true; Background = Brushes.Transparent;
+        AllowsTransparency = true; global::UiAtlas.Presentation.Appearance.Bind(this, ("Background", "TransparentBrush"));
         ShowInTaskbar = true; ShowActivated = false; Topmost = true;
         AtlasFluent.Apply(this);
         Render();
@@ -283,7 +283,7 @@ internal sealed class MapperGridInspector : Window
         bitmap.UriSource = new Uri(path); bitmap.EndInit(); bitmap.Freeze();
         var panel = new StackPanel { Margin = new Thickness(0, 12, 0, 10) };
         panel.Children.Add(Label("Captured image", 13, AtlasFluent.Ink));
-        var canvas = new Canvas { Width = bitmap.PixelWidth, Height = bitmap.PixelHeight, Background = Brush("#E9EDF3") };
+        var canvas = global::UiAtlas.Presentation.Appearance.Bind(new Canvas { Width = bitmap.PixelWidth, Height = bitmap.PixelHeight}, ("Background", "SoftBrush"));
         canvas.Children.Add(new Image { Source = bitmap, Width = bitmap.PixelWidth, Height = bitmap.PixelHeight });
         var tableOutline = new Rectangle { Width = bitmap.PixelWidth, Height = bitmap.PixelHeight,
             Stroke = Brush("#087D6D"), StrokeThickness = 3, IsHitTestVisible = false };
@@ -293,8 +293,8 @@ internal sealed class MapperGridInspector : Window
         canvas.Children.Add(tableOutline); canvas.Children.Add(headerOutline);
         var fit = Math.Min(1, Math.Min(448d / bitmap.PixelWidth, 215d / bitmap.PixelHeight));
         var scale = new ScaleTransform(fit, fit); canvas.LayoutTransform = scale;
-        panel.Children.Add(new ScrollViewer { Content = canvas, Height = 235, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto, BorderBrush = Brush("#E1E5EC"), BorderThickness = new Thickness(1) });
+        panel.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new ScrollViewer { Content = canvas, Height = 235, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto, BorderThickness = new Thickness(1) }, ("BorderBrush", "LineBrush")));
         var row = new DockPanel { Margin = new Thickness(0, 8, 0, 0) };
         var zoom = new ComboBox { Width = 76, ItemsSource = new[] { "Fit", "100%", "200%" }, SelectedIndex = 0 };
         zoom.SelectionChanged += (_, _) => scale.ScaleX = scale.ScaleY = zoom.SelectedIndex == 0 ? fit : zoom.SelectedIndex;
@@ -330,10 +330,10 @@ internal sealed class MapperGridInspector : Window
         MouseButtonEventHandler? drag = null, bool includeAction = true, bool exploring = false)
     {
         var stack = new StackPanel { Margin = new Thickness(20, 12, 20, 18) };
-        var grip = new Border { Width = 30, Height = 4, CornerRadius = new CornerRadius(2), Background = Brush("#CDD3DD"), IsHitTestVisible = false };
+        var grip = global::UiAtlas.Presentation.Appearance.Bind(new Border { Width = 30, Height = 4, CornerRadius = new CornerRadius(2), IsHitTestVisible = false }, ("Background", "SoftBrush"));
         // Include the surrounding top padding in the drag target without moving the grip or heading.
-        var dragArea = new Border { Background = Brushes.Transparent, Margin = new Thickness(-20, -12, -20, 0),
-            Padding = new Thickness(20, 12, 20, 10), Child = grip };
+        var dragArea = global::UiAtlas.Presentation.Appearance.Bind(new Border { Margin = new Thickness(-20, -12, -20, 0),
+            Padding = new Thickness(20, 12, 20, 10), Child = grip }, ("Background", "TransparentBrush"));
         if (drag is not null) { dragArea.MouseLeftButtonDown += drag; dragArea.Cursor = Cursors.SizeAll; }
         stack.Children.Add(dragArea);
         stack.Children.Add(AtlasFluent.Header("Table Explorer", exploring ? null : () => close?.Invoke(), drag));
@@ -352,8 +352,7 @@ internal sealed class MapperGridInspector : Window
         stack.Children.Add(AtlasFluent.Card(Label("Stops if you take control. Returns to the starting view when safe.", 12, AtlasFluent.Muted), "#E9F4FF"));
         var button = ActionButton("Explore table", explore, true); button.Margin = new Thickness(0, 10, 0, 0); stack.Children.Add(button);
     }
-    private static TextBlock Label(string text, double size, string color) => new()
-        { Text = text, FontSize = size, Foreground = Brush(color), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 3) };
+    private static TextBlock Label(string text, double size, string color) => AtlasFluent.Text(text, size, color);
     private static Button ActionButton(string text, Action action, bool primary)
     {
         return AtlasFluent.Button(text, action, primary);

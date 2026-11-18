@@ -12,9 +12,9 @@
             <Setter Property="MinWidth" Value="148" />
             <Setter Property="Margin" Value="0,0,8,0" />
             <Setter Property="Padding" Value="16,0" />
-            <Setter Property="Foreground" Value="#1B1F27" />
-            <Setter Property="Background" Value="#FFFFFF" />
-            <Setter Property="BorderBrush" Value="#D8DDE7" />
+            <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+            <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
@@ -30,23 +30,23 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Chrome" Property="Background" Value="#F5F7FA" />
-                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#C7CEDB" />
+                                <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource SoftBrush}" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource LineBrush}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Chrome" Property="Background" Value="#EDEFF3" />
+                                <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource SoftBrush}" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="#8B94A5" />
-                                <Setter TargetName="Chrome" Property="Background" Value="#F5F7FA" />
-                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#E0E4EB" />
+                                <Setter Property="Foreground" Value="{DynamicResource MutedInkBrush}" />
+                                <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource SoftBrush}" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource LineBrush}" />
                                 <Setter Property="Cursor" Value="Arrow" />
                             </Trigger>
                             <DataTrigger Binding="{Binding Id}" Value="hud.record-map">
                                 <Setter Property="MinWidth" Value="140" />
-                                <Setter Property="Foreground" Value="White" />
-                                <Setter TargetName="Chrome" Property="Background" Value="#4C3BDC" />
-                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#4C3BDC" />
+                                <Setter Property="Foreground" Value="{DynamicResource AccentTextBrush}" />
+                                <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Id}" Value="hud.record-work-session">
                                 <Setter Property="MinWidth" Value="164" />
@@ -56,16 +56,16 @@
                                     <Condition Binding="{Binding Id}" Value="hud.record-map" />
                                     <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True" />
                                 </MultiDataTrigger.Conditions>
-                                <Setter TargetName="Chrome" Property="Background" Value="#5B4BE2" />
-                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#5B4BE2" />
+                                <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                             </MultiDataTrigger>
                             <MultiDataTrigger>
                                 <MultiDataTrigger.Conditions>
                                     <Condition Binding="{Binding Id}" Value="hud.record-map" />
                                     <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsPressed}" Value="True" />
                                 </MultiDataTrigger.Conditions>
-                                <Setter TargetName="Chrome" Property="Background" Value="#3D2EC4" />
-                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#3D2EC4" />
+                                <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource AccentBrush}" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                             </MultiDataTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -76,9 +76,9 @@
             <Setter Property="Width" Value="44" />
             <Setter Property="Height" Value="44" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="Foreground" Value="#5F6B7A" />
-            <Setter Property="Background" Value="#FFFFFF" />
-            <Setter Property="BorderBrush" Value="#D8DDE7" />
+            <Setter Property="Foreground" Value="{DynamicResource MutedInkBrush}" />
+            <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
@@ -94,12 +94,14 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Foreground" Value="#1B1F27" />
-                                <Setter TargetName="Chrome" Property="Background" Value="#F5F7FA" />
-                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#C7CEDB" />
+                                <Setter Property="Foreground" Value="{DynamicResource WindowCloseInkBrush}" />
+                                <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource WindowCloseHoverBrush}" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource WindowCloseHoverBrush}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Chrome" Property="Background" Value="#EDEFF3" />
+                                <Setter Property="Foreground" Value="{DynamicResource WindowCloseInkBrush}" />
+                                <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource WindowClosePressedBrush}" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource WindowClosePressedBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -109,8 +111,8 @@
     </Window.Resources>
     <Grid Background="Transparent">
         <Border Margin="9"
-                Background="#FFFFFFFF"
-                BorderBrush="#C9D2DC"
+                Background="{DynamicResource PanelBrush}"
+                BorderBrush="{DynamicResource LineBrush}"
                 BorderThickness="1"
                 CornerRadius="16"
                 Padding="7">
@@ -118,7 +120,7 @@
                 <DropShadowEffect Color="#273044" BlurRadius="16" ShadowDepth="3" Opacity="0.18" />
             </Border.Effect>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <Border Height="44" Background="#171922" CornerRadius="10" Margin="0,0,8,0" Padding="9,4">
+                <Border Height="44" Background="{DynamicResource AccentBrush}" CornerRadius="10" Margin="0,0,8,0" Padding="9,4">
                     <views:BrandLogo Width="120" Height="34" />
                 </Border>
                 <ItemsControl x:Name="CommandsItemsControl">
@@ -136,7 +138,7 @@
                                     <TextBlock Text="{Binding Glyph}" FontFamily="Segoe Fluent Icons" FontSize="15" Margin="0,0,9,0" VerticalAlignment="Center" />
                                     <StackPanel VerticalAlignment="Center">
                                         <TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextWrapping="NoWrap" />
-                                        <!--<TextBlock Text="{Binding Status}" FontSize="11" Foreground="#8B94A5" TextWrapping="NoWrap" />-->
+                                        <!--<TextBlock Text="{Binding Status}" FontSize="11" Foreground="{DynamicResource MutedInkBrush}" TextWrapping="NoWrap" />-->
                                     </StackPanel>
                                 </StackPanel>
                             </Button>

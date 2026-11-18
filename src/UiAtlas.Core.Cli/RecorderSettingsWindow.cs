@@ -26,7 +26,7 @@ internal sealed class RecorderSettingsWindow : Window
         _store = store ?? new(); _testConnection = testConnection ?? TestConnectionAsync;
         Title = "UI Map Recorder settings"; Width = 560; MinWidth = 470; SizeToContent = SizeToContent.Height;
         WindowStartupLocation = WindowStartupLocation.CenterOwner; ShowInTaskbar = false; Topmost = true;
-        Background = MapperGridInspector.Brush("#F9F9FA"); FontFamily = new("Inter, Segoe UI"); FontSize = 13;
+        global::UiAtlas.Presentation.Appearance.Bind(this, ("Background", "SoftBrush")); global::UiAtlas.Presentation.Appearance.Bind(this, ("FontFamily", "BodyFontFamily")); FontSize = 13;
         var root = new StackPanel { Margin = new(24), Background = Background };
         root.Children.Add(Label("Table reading", 23));
         root.Children.Add(Label("Choose how Extract schema reads the selected column headers."));

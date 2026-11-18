@@ -10,11 +10,11 @@
             </Grid.RowDefinitions>
 
             <StackPanel>
-                <TextBlock Text="Diagnostics" FontSize="38" FontWeight="Light"
-                           Foreground="{StaticResource InkBrush}" />
+                <TextBlock FontFamily="{DynamicResource HeadingFontFamily}" Text="Diagnostics" FontSize="38" FontWeight="Light"
+                           Foreground="{DynamicResource InkBrush}" />
                 <TextBlock Margin="0,13,0,0"
                            Text="Inspect a running application without leaving it behind."
-                           FontSize="16" Foreground="{StaticResource MutedInkBrush}" />
+                           FontSize="16" Foreground="{DynamicResource MutedInkBrush}" />
             </StackPanel>
 
             <Border Grid.Row="1" Margin="0,30,0,0" Style="{StaticResource CardStyle}" HorizontalAlignment="Stretch">
@@ -28,18 +28,18 @@
                     <Grid>
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                         <StackPanel>
-                            <TextBlock Text="Explore a running app" FontSize="20" FontWeight="SemiBold" />
+                            <TextBlock FontFamily="{DynamicResource HeadingFontFamily}" Text="Explore a running app" FontSize="20" FontWeight="SemiBold" />
                             <TextBlock x:Name="ExploreDescription" Margin="0,6,0,0" Text="Choose one exact visible window. Diagnostics opens as a small pane beside it."
-                                       Foreground="{StaticResource MutedInkBrush}" TextWrapping="Wrap" />
+                                       Foreground="{DynamicResource MutedInkBrush}" TextWrapping="Wrap" />
                         </StackPanel>
                         <Button Grid.Column="1" Content="Refresh" Click="Refresh_Click" Padding="12,6"
-                                Background="Transparent" BorderThickness="0" Foreground="{StaticResource AccentBrush}"
+                                Background="Transparent" BorderThickness="0" Foreground="{DynamicResource AccentBrush}"
                                 AutomationProperties.Name="Refresh applications" />
                     </Grid>
 
                     <TextBlock x:Name="EmptyState" Grid.Row="1" Margin="0,20,0,0"
                                Text="No eligible application windows are visible."
-                               Foreground="{StaticResource MutedInkBrush}" Visibility="Collapsed" />
+                               Foreground="{DynamicResource MutedInkBrush}" Visibility="Collapsed" />
 
                     <ListBox x:Name="ApplicationsList" Grid.Row="2" Margin="0,16,0,0" MaxHeight="300"
                              SelectionChanged="ApplicationsList_SelectionChanged" BorderThickness="0" Background="Transparent"
@@ -50,7 +50,7 @@
                                 <GroupStyle.HeaderTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding Name}" Margin="2,10,0,8" FontSize="12"
-                                                   FontWeight="SemiBold" Foreground="{StaticResource MutedInkBrush}" />
+                                                   FontWeight="SemiBold" Foreground="{DynamicResource MutedInkBrush}" />
                                     </DataTemplate>
                                 </GroupStyle.HeaderTemplate>
                             </GroupStyle>
@@ -64,17 +64,17 @@
                         </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Background="White">
+                                <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Background="{DynamicResource PanelBrush}">
                                     <Grid>
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="42"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                        <Border Width="32" Height="32" CornerRadius="6" Background="{StaticResource AccentBrush}" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Initial}" Foreground="White" FontWeight="SemiBold"
+                                        <Border Width="32" Height="32" CornerRadius="6" Background="{DynamicResource AccentBrush}" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Initial}" Foreground="{DynamicResource AccentTextBrush}" FontWeight="SemiBold"
                                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                                         </Border>
                                         <StackPanel Grid.Column="1">
                                             <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Text="{Binding WindowTitle}" FontSize="11.5" Foreground="{StaticResource MutedInkBrush}" TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Text="{Binding ScopeSummary}" FontSize="11.5" Foreground="{StaticResource MutedInkBrush}" />
+                                            <TextBlock Text="{Binding WindowTitle}" FontSize="11.5" Foreground="{DynamicResource MutedInkBrush}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding ScopeSummary}" FontSize="11.5" Foreground="{DynamicResource MutedInkBrush}" />
                                         </StackPanel>
                                     </Grid>
                                 </Border>
@@ -85,7 +85,7 @@
                     <Grid Grid.Row="3" Margin="0,18,0,0">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                         <TextBlock x:Name="InspectionDescription" Text="Inspection is read-only until you explicitly approve bounded Data Grid scrolling."
-                                   Foreground="{StaticResource MutedInkBrush}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,18,0" />
+                                   Foreground="{DynamicResource MutedInkBrush}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,18,0" />
                         <Button x:Name="ExploreButton" Grid.Column="1" Content="Explore selected app" Click="Explore_Click"
                                 Style="{StaticResource PrimaryActionButtonStyle}" MinWidth="178"
                                 AutomationProperties.Name="Explore selected application" />
@@ -99,7 +99,7 @@
                     <StackPanel>
                         <TextBlock Text="Full Diagnostics workspace" FontSize="17" FontWeight="SemiBold" />
                         <TextBlock Margin="0,5,18,0" Text="Use the full workspace for display-wide capture, broad evidence review, and advanced tools."
-                                   Foreground="{StaticResource MutedInkBrush}" TextWrapping="Wrap" />
+                                   Foreground="{DynamicResource MutedInkBrush}" TextWrapping="Wrap" />
                     </StackPanel>
                     <Button Grid.Column="1" Content="Open full Diagnostics" Click="OpenFullDiagnostics_Click"
                             Style="{StaticResource SecondaryActionButtonStyle}" MinWidth="170"

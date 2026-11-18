@@ -40,7 +40,7 @@ public partial class ShellWindow
 
     private Button Crumb(string text, Action? navigate)
     {
-        var button = new Button { Content = text, Padding = new Thickness(4), Margin = new Thickness(0, 0, 4, 0), BorderThickness = new Thickness(0), Background = Brushes.Transparent, Foreground = (Brush)FindResource("AccentBrush"), MaxWidth = 360 };
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new Button { Content = text, Padding = new Thickness(4), Margin = new Thickness(0, 0, 4, 0), BorderThickness = new Thickness(0), MaxWidth = 360 },("Background", "TransparentBrush"),("Foreground", "AccentBrush"));
         System.Windows.Automation.AutomationProperties.SetName(button, text);
         if (navigate is not null) button.Click += (_, _) => navigate();
         BreadcrumbItems.Children.Add(button); return button;

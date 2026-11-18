@@ -134,7 +134,7 @@ public sealed partial class AtlasRecordingsView : UserControl
             && item.Recording.Outcome is "complete" or "partial");
         menu.Items.Add(new Separator());
         Add(item.Recording.Archived ? "Restore recording" : "Archive recording", () => SetArchivedAsync(item.Recording), _job is null);
-        var delete = new MenuItem { Header = "Delete recording…", Foreground = System.Windows.Media.Brushes.Firebrick, IsEnabled = _job is null && !_refreshing };
+        var delete = global::UiAtlas.Presentation.Appearance.Bind(new MenuItem { Header = "Delete recording…", IsEnabled = _job is null && !_refreshing }, ("Foreground", "ErrorBrush"));
         delete.Click += async (_, _) => await RunAsync(() => DeleteRecordingAsync(item.Recording)); menu.Items.Add(delete);
         Add("Recording details", () =>
         {

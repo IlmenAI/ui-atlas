@@ -46,14 +46,15 @@ public sealed class AtlasSettingsWindow : Window
     public AtlasSettingsWindow(RecordingProfileSettingsStore? profilesStore = null, MapBuildSettingsStore? buildStore = null,
         Action<Window>? openTableReading = null, bool embedded = false)
     {
+        global::UiAtlas.Presentation.Appearance.Apply(this);
         _profilesStore = profilesStore ?? new(); _buildStore = buildStore ?? new();
         _profiles = RecordingProfileSettingsStore.Profiles();
         Title = "UI Atlas settings"; Width = 860; Height = Math.Min(820, SystemParameters.WorkArea.Height - 32);
         MinWidth = 680; MinHeight = Math.Min(540, Height);
         WindowStartupLocation = WindowStartupLocation.CenterOwner; ShowInTaskbar = false;
-        Background = new SolidColorBrush(Color.FromRgb(247, 248, 252));
-        Foreground = new SolidColorBrush(Color.FromRgb(37, 41, 54)); FontFamily = new("Segoe UI"); FontSize = 13;
-        var root = new DockPanel { Margin = new(24), Background = Background };
+        global::UiAtlas.Presentation.Appearance.Bind(this, ("Background", "SoftBrush"));
+        global::UiAtlas.Presentation.Appearance.Bind(this, ("Foreground", "InkBrush")); global::UiAtlas.Presentation.Appearance.Bind(this, ("FontFamily", "BodyFontFamily")); FontSize = 13;
+        var root = global::UiAtlas.Presentation.Appearance.Bind(new DockPanel { Margin = new(24) }, ("Background", "SoftBrush"));
         var heading = Label("Settings", 26); heading.FontWeight = FontWeights.SemiBold;
         DockPanel.SetDock(heading, Dock.Top); root.Children.Add(heading);
         var footer = new DockPanel { Margin = new(0, 16, 0, 0), LastChildFill = false }; DockPanel.SetDock(footer, Dock.Bottom);
@@ -61,7 +62,7 @@ public sealed class AtlasSettingsWindow : Window
         if (embedded) close.Visibility = Visibility.Collapsed;
         if (openTableReading is not null) footer.Children.Add(Button("Table reading…", () => openTableReading(this)));
         root.Children.Add(footer);
-        var tabs = new TabControl { Margin = new(0, 12, 0, 0), Background = Brushes.White, Padding = new(16) };
+        var tabs = global::UiAtlas.Presentation.Appearance.Bind(new TabControl { Margin = new(0, 12, 0, 0), Padding = new(16) }, ("Background", "PanelBrush"));
         tabs.Items.Add(new TabItem { Header = "Recording profiles", Padding = new(16, 9, 16, 9), Content = BuildProfilesPage() });
         tabs.Items.Add(new TabItem { Header = "UI Map building", Padding = new(16, 9, 16, 9), Content = BuildMapPage() });
         root.Children.Add(tabs); Content = root;
@@ -73,14 +74,30 @@ public sealed class AtlasSettingsWindow : Window
         _nodes.TextChanged += (_, _) => { if (!_loading) _buildDirty = true; };
         _edges.TextChanged += (_, _) => { if (!_loading) _buildDirty = true; };
         Closing += (_, args) => {
-            if ((_profilesDirty || _buildDirty) && MessageBox.Show(this, "Discard your unsaved settings changes?", "Unsaved settings",
-                MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) args.Cancel = true;
+            if ((_profilesDirty || _buildDirty) && !ConfirmUnsaved(this, "Discard your unsaved settings changes?")) args.Cancel = true;
         };
     }
 
     public bool ConfirmDiscard(Window owner) => !(_profilesDirty || _buildDirty)
-        || MessageBox.Show(owner, "Leave Settings with unsaved changes? Your edits remain here until the app closes.", "Unsaved settings",
-            MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes;
+        || ConfirmUnsaved(owner, "Leave Settings with unsaved changes? Your edits remain here until the app closes.");
+
+    private static bool ConfirmUnsaved(Window owner, string message)
+    {
+        var dialog = new Window { Owner = owner, Title = "Unsaved settings", Width = 440,
+            SizeToContent = SizeToContent.Height, ResizeMode = ResizeMode.NoResize,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner, ShowInTaskbar = false };
+        global::UiAtlas.Presentation.Appearance.Apply(dialog);
+        var body = new StackPanel { Margin = new Thickness(24) };
+        body.Children.Add(Label(message, 15));
+        var actions = new StackPanel { Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 18, 0, 0) };
+        var yes = Button("Yes", () => dialog.DialogResult = true);
+        var no = Button("No", () => dialog.DialogResult = false);
+        no.IsCancel = true; no.IsDefault = true;
+        actions.Children.Add(yes); actions.Children.Add(no); body.Children.Add(actions);
+        dialog.Content = body; dialog.Loaded += (_, _) => no.Focus();
+        return dialog.ShowDialog() == true;
+    }
 
     private UIElement BuildProfilesPage()
     {

@@ -598,13 +598,12 @@ public partial class ShellWindow : Window
                 FontWeight = scope.IsCurrentDisplay ? FontWeights.Bold : FontWeights.Normal,
                 VerticalAlignment = VerticalAlignment.Center,
             });
-            var code = new TextBlock
+            var code = global::UiAtlas.Presentation.Appearance.Bind(new TextBlock
             {
                 Text = scope.DeviceCode,
                 Margin = new Thickness(16, 0, 0, 0),
-                Foreground = (System.Windows.Media.Brush)FindResource("MutedInkBrush"),
                 VerticalAlignment = VerticalAlignment.Center,
-            };
+            }, ("Foreground", "MutedInkBrush"));
             Grid.SetColumn(code, 1);
             header.Children.Add(code);
             var item = new MenuItem { Header = header, Tag = scope, Padding = new Thickness(8, 7, 8, 7) };

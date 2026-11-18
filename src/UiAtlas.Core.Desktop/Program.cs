@@ -8,10 +8,7 @@ internal static class Program
     public static void Main(string[] args)
     {
         var app = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
-        app.Resources.MergedDictionaries.Add(new ResourceDictionary
-        {
-            Source = new Uri("pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.Light.xaml")
-        });
+        UiAtlas.Presentation.Appearance.Initialize(app);
         var evidenceIndex = Array.IndexOf(args, "--evidence");
         var graphTokens = evidenceIndex >= 0 ? args[..evidenceIndex] : args;
         var evidenceTokens = evidenceIndex >= 0 && evidenceIndex + 1 < args.Length

@@ -5,6 +5,9 @@
       "uiatlas.catalog.contracts": {
         "type": "Project"
       },
+      "uiatlas.presentation": {
+        "type": "Project"
+      },
       "uimaps.protocol": {
         "type": "Project",
         "dependencies": {

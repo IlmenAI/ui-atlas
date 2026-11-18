@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="src/Launcher/Launcher.csproj" DefaultStartup="true" />
   <Project Path="src/UiAtlas.Shell/UiAtlas.Shell.csproj" />
+  <Project Path="src/UiAtlas.Presentation/UiAtlas.Presentation.csproj" />
   <Folder Name="/foundation/">
     <Project Path="vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/UIMaps.Recorder.Windows.csproj" />
     <Project Path="vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.ProviderProbe/UIMaps.Recorder.ProviderProbe.csproj" />
@@ -32,6 +33,7 @@
     <Project Path="samples/UiAtlas.Core.Consumer/UiAtlas.Core.Consumer.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/UiAtlas.Presentation.Tests/UiAtlas.Presentation.Tests.csproj" />
     <Project Path="tests/UiAtlas.Shell.Tests/UiAtlas.Shell.Tests.csproj" />
     <Project Path="tests/UiAtlas.Core.Mapping.Tests/UiAtlas.Core.Mapping.Tests.csproj" />
     <Project Path="tests/UiAtlas.Core.Tests/UiAtlas.Core.Tests.csproj" />

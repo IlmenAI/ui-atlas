@@ -85,7 +85,8 @@
           "UIMaps.Recorder.Windows": "[1.0.0, )",
           "UiAtlas.Core.Build": "[1.0.0, )",
           "UiAtlas.Core.Contracts": "[1.0.0, )",
-          "UiAtlas.Core.Recording": "[1.0.0, )"
+          "UiAtlas.Core.Recording": "[1.0.0, )",
+          "UiAtlas.Presentation": "[1.0.0, )"
         }
       },
       "uiatlas.core.storage": {
@@ -98,6 +99,9 @@
           "UiAtlas.Core.Contracts": "[1.0.0, )",
           "UiAtlas.Core.Recording": "[1.0.0, )"
         }
+      },
+      "uiatlas.presentation": {
+        "type": "Project"
       },
       "uimaps.map.core": {
         "type": "Project",

@@ -98,12 +98,12 @@ internal sealed partial class RecordingControlPanel
         header.Children.Add(_markFieldButton);
         _fieldsHeading = FieldText("⌄  Fields", 12, Ink);
         _fieldsHeading.FontWeight = FontWeights.SemiBold;
-        _fieldsExpandButton = new Button
+        _fieldsExpandButton = global::UiAtlas.Presentation.Appearance.Bind(new Button
         {
-            Content = _fieldsHeading, Background = Brushes.Transparent, BorderThickness = new Thickness(0),
+            Content = _fieldsHeading, BorderThickness = new Thickness(0),
             Padding = new Thickness(0), HorizontalContentAlignment = HorizontalAlignment.Left,
             Cursor = Cursors.Hand, ToolTip = "Show suggested fields and observed changes", Focusable = true
-        };
+        }, ("Background", "TransparentBrush"));
         AutomationProperties.SetAutomationId(_fieldsExpandButton, "AtlasRecorderFields");
         AutomationProperties.SetName(_fieldsExpandButton, "Show field observations");
         _fieldsExpandButton.Click += (_, _) => { _fieldsExpanded = !_fieldsExpanded; RefreshFieldPanel(); };
@@ -126,12 +126,10 @@ internal sealed partial class RecordingControlPanel
         details.Children.Add(_reviewFieldsButton);
         _fieldDetails = new Border { Child = details, Margin = new Thickness(0, FieldSize(4), 0, 0), Visibility = Visibility.Collapsed };
         stack.Children.Add(_fieldDetails);
-        var panel = new Border
+        var panel = global::UiAtlas.Presentation.Appearance.Bind(new Border
         {
-            Child = stack, BorderBrush = Divider, BorderThickness = new Thickness(0, FieldSize(1), 0, 0),
-            Padding = new Thickness(0, FieldSize(5), 0, 0), Margin = new Thickness(0, FieldSize(4), 0, 0),
-            Background = new SolidColorBrush(Color.FromArgb(225, 249, 249, 250))
-        };
+            Child = stack, BorderThickness = new Thickness(0, FieldSize(1), 0, 0),
+            Padding = new Thickness(0, FieldSize(5), 0, 0), Margin = new Thickness(0, FieldSize(4), 0, 0)        }, ("BorderBrush", "LineBrush"), ("Background", "SoftBrush"));
         RefreshFieldPanel();
         return panel;
     }
@@ -191,12 +189,11 @@ internal sealed partial class RecordingControlPanel
             Grid.SetColumn(value, 1); Grid.SetColumnSpan(value, 2); Grid.SetRow(value, 1);
             grid.Children.Add(value);
         }
-        return new Border
+        return global::UiAtlas.Presentation.Appearance.Bind(new Border
         {
             Child = grid, Padding = new Thickness(FieldSize(4)), CornerRadius = new CornerRadius(FieldSize(4)),
-            Background = field.State == FieldObservationState.ChangeObserved ? Brush("#EAF4FF") : Brushes.Transparent,
             ToolTip = $"{field.Label} · {FieldObservationPresentation.Kind(field.Kind)}\n{FieldObservationPresentation.ChangeText(field)}"
-        };
+        }, ("Background", "TransparentBrush"));
     }
 
     private Border BuildFieldReviewShell()
@@ -234,12 +231,11 @@ internal sealed partial class RecordingControlPanel
         };
         Grid.SetRow(scroll, 1); grid.Children.Add(scroll);
         var footer = new StackPanel { Margin = new Thickness(FieldSize(10), 0, FieldSize(10), FieldSize(12)) };
-        footer.Children.Add(new Border
+        footer.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new Border
         {
-            Padding = new Thickness(FieldSize(8)), Background = Brush("#EAF4FF"),
-            BorderBrush = Brush("#B9D9FF"), BorderThickness = new Thickness(FieldSize(1)), CornerRadius = new CornerRadius(FieldSize(6)),
+            Padding = new Thickness(FieldSize(8)),             BorderThickness = new Thickness(FieldSize(1)), CornerRadius = new CornerRadius(FieldSize(6)),
             Child = FieldText("Keep these observations with the map. Finding a field again still needs a separate check.", 10, Ink)
-        });
+        },("BorderBrush", "LineBrush"),("Background", "PanelBrush")));
         var actions = new Grid { Margin = new Thickness(0, FieldSize(8), 0, 0) };
         actions.ColumnDefinitions.Add(new ColumnDefinition()); actions.ColumnDefinitions.Add(new ColumnDefinition());
         _keepFieldsButton = FieldButton("Keep fields", KeepReviewedFields, true, "AtlasRecorderKeepFields");
@@ -289,11 +285,10 @@ internal sealed partial class RecordingControlPanel
     private FrameworkElement BuildFieldReviewRow(FieldObservation field)
     {
         var content = new StackPanel();
-        var title = new TextBlock
+        var title = global::UiAtlas.Presentation.Appearance.Bind(new TextBlock
         {
-            Text = field.Label, FontSize = FieldSize(12), FontWeight = FontWeights.SemiBold, Foreground = Ink,
-            TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap
-        };
+            Text = field.Label, FontSize = FieldSize(12), FontWeight = FontWeights.SemiBold,             TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap
+        }, ("Foreground", "InkBrush"));
         content.Children.Add(title);
         content.Children.Add(FieldText(FieldObservationPresentation.Kind(field.Kind) + " · " + FieldObservationPresentation.Status(field), 10,
             field.State == FieldObservationState.ChangeObserved ? Accent : Muted));
@@ -304,11 +299,10 @@ internal sealed partial class RecordingControlPanel
         if (field.UnchangedProperties.Count > 0)
             details.Children.Add(FieldText("Observed unchanged: " + string.Join(", ", field.UnchangedProperties.Select(FieldObservationPresentation.PropertyName)), 10, Muted));
         details.Children.Add(FieldText("This describes this recording. It does not prove the field will be found next time.", 10, Muted));
-        var expander = new Expander
+        var expander = global::UiAtlas.Presentation.Appearance.Bind(new Expander
         {
-            Header = "What changed?", Content = details, FontSize = FieldSize(10), Foreground = Muted,
-            Margin = new Thickness(0, FieldSize(3), 0, 0)
-        };
+            Header = "What changed?", Content = details, FontSize = FieldSize(10),             Margin = new Thickness(0, FieldSize(3), 0, 0)
+        }, ("Foreground", "MutedInkBrush"));
         content.Children.Add(expander);
         var selected = new CheckBox
         {
@@ -320,12 +314,12 @@ internal sealed partial class RecordingControlPanel
         AutomationProperties.SetAutomationId(selected, "AtlasFieldReview_" + field.Id);
         selected.Checked += (_, _) => _fieldReviewSelection[field.Id] = true;
         selected.Unchecked += (_, _) => _fieldReviewSelection[field.Id] = false;
-        return new Border
+        return global::UiAtlas.Presentation.Appearance.Bind(new Border
         {
             Child = selected, Margin = new Thickness(0, 0, FieldSize(5), FieldSize(5)), Padding = new Thickness(FieldSize(8)),
-            Background = Brush("#FCFCFD"), BorderBrush = Divider, BorderThickness = new Thickness(FieldSize(1)),
+BorderThickness = new Thickness(FieldSize(1)),
             CornerRadius = new CornerRadius(FieldSize(7))
-        };
+        },("BorderBrush", "LineBrush"),("Background", "PanelBrush"));
     }
 
     private void KeepReviewedFields()
@@ -348,14 +342,13 @@ internal sealed partial class RecordingControlPanel
 
     private static Button FieldButton(string text, Action click, bool primary, string automationId)
     {
-        var button = new Button
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new Button
         {
             Content = text, FontSize = FieldSize(12), FontWeight = FontWeights.SemiBold,
-            Foreground = primary ? Brushes.White : Accent, Background = primary ? Accent : Brushes.White,
-            BorderBrush = primary ? Accent : Brush("#C5D1E2"), BorderThickness = new Thickness(FieldSize(1)),
+BorderThickness = new Thickness(FieldSize(1)),
             MinHeight = FieldSize(30), Padding = new Thickness(FieldSize(10), FieldSize(5), FieldSize(10), FieldSize(5)),
             Template = RoundedButtonTemplate(new CornerRadius(FieldSize(6))), Cursor = Cursors.Hand
-        };
+        },("BorderBrush", (primary ? "AccentBrush" : "LineBrush")),("Background", (primary ? "AccentBrush" : "PanelBrush")),("Foreground", (primary ? "AccentTextBrush" : "AccentBrush")));
         AutomationProperties.SetAutomationId(button, automationId); AutomationProperties.SetName(button, text);
         button.Click += (_, _) => click();
         return button;
@@ -363,12 +356,11 @@ internal sealed partial class RecordingControlPanel
 
     private static Button FieldLink(string text, Action click, string automationId)
     {
-        var button = new Button
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new Button
         {
-            Content = text, FontSize = FieldSize(11), Foreground = Accent, Background = Brushes.Transparent,
-            BorderThickness = new Thickness(0), Padding = new Thickness(0, FieldSize(4), 0, FieldSize(4)),
+            Content = text, FontSize = FieldSize(11),             BorderThickness = new Thickness(0), Padding = new Thickness(0, FieldSize(4), 0, FieldSize(4)),
             HorizontalAlignment = HorizontalAlignment.Left, Cursor = Cursors.Hand
-        };
+        },("Background", "TransparentBrush"),("Foreground", "AccentBrush"));
         AutomationProperties.SetAutomationId(button, automationId); AutomationProperties.SetName(button, text);
         button.Click += (_, _) => click();
         return button;

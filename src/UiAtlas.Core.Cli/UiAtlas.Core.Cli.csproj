@@ -8,6 +8,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../UiAtlas.Presentation/UiAtlas.Presentation.csproj" />
     <Compile Include="../UiAtlas.Shell/AtlasFluent.cs" Link="Presentation/AtlasFluent.cs" />
     <Compile Include="../UiAtlas.Shell/AtlasSettingsNavigation.cs" Link="Presentation/AtlasSettingsNavigation.cs" />
     <ProjectReference Include="../UiAtlas.Catalog.Contracts/UiAtlas.Catalog.Contracts.csproj" />

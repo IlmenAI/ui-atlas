@@ -27,7 +27,7 @@ internal sealed class MapperLegendWindow : Window
         WindowStyle = WindowStyle.None;
         ResizeMode = ResizeMode.NoResize;
         AllowsTransparency = true;
-        Background = Brushes.Transparent;
+        global::UiAtlas.Presentation.Appearance.Bind(this, ("Background", "TransparentBrush"));
         ShowInTaskbar = false;
         ShowActivated = false;
         Topmost = true;
@@ -77,15 +77,13 @@ internal sealed class MapperLegendWindow : Window
     {
         Width = IsCollapsed ? 34 : 292;
         Height = IsCollapsed ? 34 : 312;
-        var shell = new Border { Background = MapperGridInspector.Brush("#F9F9FA"),
-            BorderBrush = MapperGridInspector.Brush("#DCE1E9"), BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(IsCollapsed ? 12 : 20) };
+        var shell = global::UiAtlas.Presentation.Appearance.Bind(new Border {             BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(IsCollapsed ? 12 : 20) },("BorderBrush", "LineBrush"),("Background", "SoftBrush"));
         if (IsCollapsed)
         {
-            var restore = new Button { Content = "▦", FontSize = 20, Padding = new Thickness(0),
-                Foreground = MapperGridInspector.Brush("#0A84FF"), Background = Brushes.Transparent,
+            var restore = global::UiAtlas.Presentation.Appearance.Bind(new Button { Content = "▦", FontSize = 20, Padding = new Thickness(0),
                 BorderThickness = new Thickness(0), Cursor = Cursors.Hand,
-                ToolTip = "Show legend · drag to move" };
+                ToolTip = "Show legend · drag to move" },("Background", "TransparentBrush"),("Foreground", "AccentBrush"));
             System.Windows.Automation.AutomationProperties.SetName(restore, "Show highlight legend");
             var start = new Point();
             var dragging = false;
@@ -107,10 +105,10 @@ internal sealed class MapperLegendWindow : Window
         else
         {
             var stack = new StackPanel { Margin = new Thickness(16, 10, 16, 14) };
-            var header = new DockPanel { Background = Brushes.Transparent, Cursor = Cursors.SizeAll };
-            var hide = new Button { Content = "−", Width = 28, Height = 28, MinHeight = 0, Padding = new(0), FontSize = 19,
-                Background = Brushes.Transparent, BorderThickness = new Thickness(0), Cursor = Cursors.Hand,
-                ToolTip = "Hide legend" };
+            var header = global::UiAtlas.Presentation.Appearance.Bind(new DockPanel { Cursor = Cursors.SizeAll }, ("Background", "TransparentBrush"));
+            var hide = global::UiAtlas.Presentation.Appearance.Bind(new Button { Content = "−", Width = 28, Height = 28, MinHeight = 0, Padding = new(0), FontSize = 19,
+BorderThickness = new Thickness(0), Cursor = Cursors.Hand,
+                ToolTip = "Hide legend" }, ("Background", "TransparentBrush"));
             System.Windows.Automation.AutomationProperties.SetName(hide, "Hide highlight legend");
             hide.Click += (_, _) => SetCollapsed(true);
             DockPanel.SetDock(hide, Dock.Right); header.Children.Add(hide);
@@ -127,7 +125,7 @@ internal sealed class MapperLegendWindow : Window
                 (MapperHighlightKind.Fields, "▤", "Fields", "#0A84FF")
             })
             {
-                var text = new TextBlock { Text = label, Foreground = AtlasFluent.Brush(AtlasFluent.Ink), FontSize = 13 };
+                var text = global::UiAtlas.Presentation.Appearance.Bind(new TextBlock { Text = label, FontSize = 13 }, ("Foreground", "InkBrush"));
                 var row = new DockPanel();
                 var swatch = new Grid { Width = 26, Height = 20, Margin = new(0, 0, 10, 0), IsHitTestVisible = false };
                 var outline = new System.Windows.Shapes.Rectangle { Stroke = AtlasFluent.Brush(color), StrokeThickness = 1.5,

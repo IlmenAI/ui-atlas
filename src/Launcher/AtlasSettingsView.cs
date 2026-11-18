@@ -13,6 +13,8 @@ public sealed class AtlasSettingsView : UserControl, IShellNavigationGuard
     {
         var root = new DockPanel();
         var startup = new StackPanel { Margin = new Thickness(24, 0, 24, 12) };
+        startup.Children.Add(new TextBlock { Text = "General", FontSize = 24, Margin = new Thickness(0, 0, 0, 16) });
+        startup.Children.Add(new UiAtlas.Presentation.AppearanceSettingsPanel());
         startup.Children.Add(new TextBlock { Text = "Workspace on startup", FontWeight = FontWeights.SemiBold });
         var choice = new ComboBox { ItemsSource = new[] { "UI Maps", "Diagnostics" }, SelectedIndex = preferences.Load() == ExperienceProfileId.Diagnostics ? 1 : 0, Width = 220, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 8, 0, 8) };
         choice.SelectionChanged += (_, _) =>

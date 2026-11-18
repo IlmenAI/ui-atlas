@@ -46,20 +46,18 @@ public sealed partial class ExplorerWindow : Window
     private static readonly Lazy<ImageSource?> ToolbarImportArt = new(() => LoadToolbarAssetImage("explorer-icon-import.png"));
     private static readonly Lazy<ImageSource?> ToolbarExportArt = new(() => LoadToolbarAssetImage("explorer-icon-export.png"));
 
-    private readonly TreeView _hierarchy = new()
-    {
+    private readonly TreeView _hierarchy = global::UiAtlas.Presentation.Appearance.Bind(new TreeView(){
         BorderThickness = new Thickness(0),
-        Background = Brushes.Transparent,
         Padding = new Thickness(8, 2, 8, 10),
         ItemContainerStyle = HierarchyTreeItemStyle,
         HorizontalContentAlignment = HorizontalAlignment.Stretch,
         FocusVisualStyle = null
-    };
-    private readonly Canvas _topologyCanvas = new() { Background = Brush("#F8F9FD"), MinWidth = 1180, MinHeight = 300 };
+    }, ("Background", "TransparentBrush"));
+    private readonly Canvas _topologyCanvas = global::UiAtlas.Presentation.Appearance.Bind(new Canvas(){ MinWidth = 1180, MinHeight = 300 }, ("Background", "PanelBrush"));
     private readonly ScaleTransform _topologyZoomTransform = new(1, 1);
-    private readonly Canvas _appMapOverlay = new() { Background = Brushes.Transparent };
+    private readonly Canvas _appMapOverlay = global::UiAtlas.Presentation.Appearance.Bind(new Canvas(){ }, ("Background", "TransparentBrush"));
     private readonly Image _appMapImage = new() { Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
-    private readonly Grid _appMapViewport = new() { Background = Brush("#F4F5F9"), ClipToBounds = true };
+    private readonly Grid _appMapViewport = global::UiAtlas.Presentation.Appearance.Bind(new Grid(){ ClipToBounds = true }, ("Background", "SoftBrush"));
     private readonly ContentControl _traceBannerHost = new() { Visibility = Visibility.Collapsed };
     private bool _updatingRawStreams;
     private bool _rawDetailsExpanded;
@@ -106,8 +104,8 @@ public sealed partial class ExplorerWindow : Window
     private readonly Border _loadingOverlay;
     private readonly TextBlock _loadingTitle;
     private readonly TextBlock _loadingDetail;
-    private readonly TextBox _search = new() { MinWidth = 220, Height = 34, Padding = new Thickness(10, 6, 10, 6), BorderBrush = UiBorder, Background = Brushes.White };
-    private readonly ComboBox _surfaceKindFilter = new() { MinWidth = 145, Height = 34, Margin = new Thickness(6, 0, 0, 0), Padding = new Thickness(7, 4, 7, 4), BorderBrush = UiBorder };
+    private readonly TextBox _search = global::UiAtlas.Presentation.Appearance.Bind(new TextBox(){ MinWidth = 220, Height = 34, Padding = new Thickness(10, 6, 10, 6)},("Background", "PanelBrush"),("BorderBrush", "LineBrush"));
+    private readonly ComboBox _surfaceKindFilter = global::UiAtlas.Presentation.Appearance.Bind(new ComboBox(){ MinWidth = 145, Height = 34, Margin = new Thickness(6, 0, 0, 0), Padding = new Thickness(7, 4, 7, 4)}, ("BorderBrush", "LineBrush"));
     private readonly Dictionary<UiUnderstandingLevel, Button> _levelButtons = new();
     private readonly Dictionary<UiUnderstandingLevel, TextBlock> _levelButtonLabels = new();
     private readonly Dictionary<string, Button> _viewModeButtons = new(StringComparer.Ordinal);
@@ -182,6 +180,7 @@ public sealed partial class ExplorerWindow : Window
 
     public ExplorerWindow(string? initialPath, string? initialEvidencePath = null)
     {
+        global::UiAtlas.Presentation.Appearance.Apply(this);
         var workArea = SystemParameters.WorkArea;
         Title = "UiAtlas Core — UI Knowledge Graph Editor";
         Width = Math.Max(760, Math.Min(1680, workArea.Width - 32));
@@ -192,8 +191,8 @@ public sealed partial class ExplorerWindow : Window
         _loadingTitle = Text("Please wait, map is loading...", 18, FontWeights.SemiBold, Ink);
         _loadingDetail = Text("Large maps can take a moment to open.", 12, FontWeights.Normal, Muted);
         _loadingOverlay = BuildLoadingOverlay();
-        Background = Page;
-        FontFamily = new FontFamily("Segoe UI");
+        global::UiAtlas.Presentation.Appearance.Bind(this, ("Background", "SoftBrush"));
+        global::UiAtlas.Presentation.Appearance.Bind(this, ("FontFamily", "BodyFontFamily"));
         _topologyCanvas.LayoutTransform = _topologyZoomTransform;
         _appMapViewport.LayoutTransform = _appMapZoomTransform;
         Resources[typeof(ComboBox)] = ModernComboBoxStyle;
@@ -234,7 +233,7 @@ public sealed partial class ExplorerWindow : Window
 
     private UIElement BuildLayout()
     {
-        var root = new Grid { Background = Page };
+        var root = global::UiAtlas.Presentation.Appearance.Bind(new Grid { }, ("Background", "SoftBrush"));
         root.RowDefinitions.Add(new() { Height = GridLength.Auto });
         root.RowDefinitions.Add(new() { Height = new GridLength(1, GridUnitType.Star) });
         root.RowDefinitions.Add(new() { Height = GridLength.Auto });
@@ -253,17 +252,16 @@ public sealed partial class ExplorerWindow : Window
         _centerPanel = center;
         _topologyCard = BuildTopologyCard();
         _appMapCard = BuildAppMapCard();
-        _centerSplitter = new GridSplitter
+        _centerSplitter = global::UiAtlas.Presentation.Appearance.Bind(new GridSplitter
         {
             Height = 8,
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Center,
-            Background = Brushes.Transparent,
             ResizeDirection = GridResizeDirection.Rows,
             ResizeBehavior = GridResizeBehavior.PreviousAndNext,
             ShowsPreview = true,
             Cursor = Cursors.SizeNS
-        };
+        }, ("Background", "TransparentBrush"));
         ApplyCenterLayout();
         Grid.SetColumn(center, 1);
         body.Children.Add(center);
@@ -316,9 +314,9 @@ public sealed partial class ExplorerWindow : Window
         _manualReviewButton.Height = 26;
         _manualReviewButton.Margin = new Thickness(6, 0, 0, 0);
         _manualReviewButton.Padding = new Thickness(10, 0, 10, 0);
-        _manualReviewButton.Background = Brush("#FFF7ED");
-        _manualReviewButton.BorderBrush = Orange;
-        _manualReviewButton.Foreground = Brush("#9A3412");
+        global::UiAtlas.Presentation.Appearance.Bind(_manualReviewButton, ("Background", "WarningSurfaceBrush"));
+        global::UiAtlas.Presentation.Appearance.Bind(_manualReviewButton, ("BorderBrush", "WarningBrush"));
+        global::UiAtlas.Presentation.Appearance.Bind(_manualReviewButton, ("Foreground", "ErrorBrush"));
         _manualReviewButton.Cursor = Cursors.Hand;
         _manualReviewButton.Template = RoundedButtonTemplate(7);
         _manualReviewButton.Click += (_, _) => ShowNextManualReview();
@@ -334,19 +332,17 @@ public sealed partial class ExplorerWindow : Window
         _status.VerticalAlignment = VerticalAlignment.Center;
         dock.Children.Add(_status);
 
-        return new Border
+        return global::UiAtlas.Presentation.Appearance.Bind(new Border
         {
-            Background = Brushes.White,
-            BorderBrush = UiBorder,
             BorderThickness = new Thickness(1, 1, 1, 0),
             Padding = new Thickness(14, 7, 14, 7),
             Child = dock
-        };
+        },("BorderBrush", "LineBrush"),("Background", "PanelBrush"));
     }
 
     private UIElement BuildHeader()
     {
-        var grid = new Grid { Background = Brushes.White, Height = 92 };
+        var grid = global::UiAtlas.Presentation.Appearance.Bind(new Grid { Height = 92 }, ("Background", "PanelBrush"));
         grid.ColumnDefinitions.Add(_headerHierarchyColumn);
         var levelColumn = new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) };
         grid.ColumnDefinitions.Add(levelColumn);
@@ -355,15 +351,14 @@ public sealed partial class ExplorerWindow : Window
         var brand = new Grid { Margin = new Thickness(14, 8, 10, 8) };
         brand.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
         brand.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
-        var brandIcon = new Border
+        var brandIcon = global::UiAtlas.Presentation.Appearance.Bind(new Border
         {
             Width = 30,
             Height = 30,
             CornerRadius = new CornerRadius(7),
-            Background = Blue,
             VerticalAlignment = VerticalAlignment.Top,
             Child = Text("M", 15, FontWeights.Bold, Brushes.White, HorizontalAlignment.Center, VerticalAlignment.Center)
-        };
+        }, ("Background", "AccentBrush"));
         brand.Children.Add(brandIcon);
 
         var brandContent = new StackPanel { Margin = new Thickness(10, 0, 0, 0) };
@@ -395,9 +390,9 @@ public sealed partial class ExplorerWindow : Window
         _predictionLayerToggle.Height = 30;
         _predictionLayerToggle.Margin = new Thickness(8, 0, 0, 0);
         _predictionLayerToggle.Padding = new Thickness(11, 0, 11, 0);
-        _predictionLayerToggle.Background = Brush("#F5F6FA");
-        _predictionLayerToggle.BorderBrush = Muted;
-        _predictionLayerToggle.Foreground = Muted;
+        global::UiAtlas.Presentation.Appearance.Bind(_predictionLayerToggle, ("Background", "SoftBrush"));
+        global::UiAtlas.Presentation.Appearance.Bind(_predictionLayerToggle, ("BorderBrush", "LineBrush"));
+        global::UiAtlas.Presentation.Appearance.Bind(_predictionLayerToggle, ("Foreground", "MutedInkBrush"));
         _predictionLayerToggle.HorizontalContentAlignment = HorizontalAlignment.Center;
         _predictionLayerToggle.VerticalContentAlignment = VerticalAlignment.Center;
         _predictionLayerToggle.Focusable = false;
@@ -425,7 +420,7 @@ public sealed partial class ExplorerWindow : Window
             VerticalAlignment = VerticalAlignment.Bottom,
             Margin = new Thickness(8, 0, 16, 8)
         };
-        var appFilter = new ComboBox { Width = 125, Height = 34, Padding = new Thickness(7, 4, 7, 4), BorderBrush = UiBorder, IsEnabled = false };
+        var appFilter = global::UiAtlas.Presentation.Appearance.Bind(new ComboBox { Width = 125, Height = 34, Padding = new Thickness(7, 4, 7, 4), IsEnabled = false }, ("BorderBrush", "LineBrush"));
         appFilter.Items.Add("Selected app");
         appFilter.SelectedIndex = 0;
         actions.Children.Add(RoundedField(appFilter));
@@ -445,9 +440,9 @@ public sealed partial class ExplorerWindow : Window
         actions.Children.Add(_layoutToggleButton);
 
         var resume = IconActionButton(CreateResumeIcon(), "Resume recording");
-        resume.Background = Blue;
-        resume.BorderBrush = Blue;
-        resume.Foreground = Brushes.White;
+        global::UiAtlas.Presentation.Appearance.Bind(resume, ("Background", "AccentBrush"));
+        global::UiAtlas.Presentation.Appearance.Bind(resume, ("BorderBrush", "AccentBrush"));
+        global::UiAtlas.Presentation.Appearance.Bind(resume, ("Foreground", "AccentTextBrush"));
         resume.ToolTip = "Resume recording on the currently opened map.";
         resume.Click += (_, _) => ResumeCurrentMapRecording();
         actions.Children.Add(resume);
@@ -471,7 +466,7 @@ public sealed partial class ExplorerWindow : Window
         Grid.SetColumn(actions, 2);
         grid.Children.Add(actions);
 
-        return new Border { BorderBrush = UiBorder, BorderThickness = new Thickness(0, 0, 0, 1), Child = grid };
+        return global::UiAtlas.Presentation.Appearance.Bind(new Border { BorderThickness = new Thickness(0, 0, 0, 1), Child = grid }, ("BorderBrush", "LineBrush"));
     }
 
     private void AddLevelButton(Panel owner, UiUnderstandingLevel level, string label, Brush color)
@@ -505,13 +500,13 @@ public sealed partial class ExplorerWindow : Window
         };
         content.Children.Add(labelText);
 
-        var button = new Button { Content = content, MinWidth = 135, Height = 32,
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new Button { Content = content, MinWidth = 135, Height = 32,
             Margin = new Thickness(_levelButtons.Count == 0 ? 0 : 4, 0, 0, 0),
             Padding = new Thickness(10, 0, 10, 0),
-            BorderBrush = color, BorderThickness = new Thickness(1), Background = Brushes.White, Foreground = color,
+            BorderBrush = color, BorderThickness = new Thickness(1), Foreground = color,
             HorizontalContentAlignment = HorizontalAlignment.Center, VerticalContentAlignment = VerticalAlignment.Center,
             Focusable = false, FocusVisualStyle = null,
-            Template = RoundedButtonTemplate(8) };
+            Template = RoundedButtonTemplate(8) }, ("Background", "PanelBrush"));
         button.ToolTip = label;
         System.Windows.Automation.AutomationProperties.SetName(button, label);
         button.Click += (_, _) => SetLevel(level);
@@ -591,9 +586,9 @@ public sealed partial class ExplorerWindow : Window
         _editMapButton.Content = "✎  Edit map";
         _editMapButton.Height = 32;
         _editMapButton.Padding = new Thickness(13, 0, 13, 0);
-        _editMapButton.Background = Blue;
-        _editMapButton.BorderBrush = Brush("#3867E8");
-        _editMapButton.Foreground = Brushes.White;
+        global::UiAtlas.Presentation.Appearance.Bind(_editMapButton, ("Background", "AccentBrush"));
+        global::UiAtlas.Presentation.Appearance.Bind(_editMapButton, ("BorderBrush", "AccentBrush"));
+        global::UiAtlas.Presentation.Appearance.Bind(_editMapButton, ("Foreground", "AccentTextBrush"));
         _editMapButton.Cursor = Cursors.Hand;
         _editMapButton.ToolTip = "Edit controls directly on this map";
         _editMapButton.Template = RoundedButtonTemplate(8);
@@ -622,9 +617,9 @@ public sealed partial class ExplorerWindow : Window
         _drawButtonToggle.Height = 28;
         _drawButtonToggle.Padding = new Thickness(10, 0, 10, 0);
         _drawButtonToggle.Margin = new Thickness(5, 0, 0, 0);
-        _drawButtonToggle.Background = Brushes.White;
-        _drawButtonToggle.BorderBrush = Brush("#93B4FF");
-        _drawButtonToggle.Foreground = Brush("#1D4ED8");
+        global::UiAtlas.Presentation.Appearance.Bind(_drawButtonToggle, ("Background", "PanelBrush"));
+        global::UiAtlas.Presentation.Appearance.Bind(_drawButtonToggle, ("BorderBrush", "AccentBrush"));
+        global::UiAtlas.Presentation.Appearance.Bind(_drawButtonToggle, ("Foreground", "AccentBrush"));
         _drawButtonToggle.Cursor = Cursors.Hand;
         _drawButtonToggle.ToolTip = "Draw a confirmed button on the current screen";
         _drawButtonToggle.Template = RoundedToggleButtonTemplate(
@@ -635,12 +630,12 @@ public sealed partial class ExplorerWindow : Window
         editingTools.Children.Add(_drawButtonToggle);
         ConfigureMapEditingButton(_doneMapEditingButton, "Done", "Finish editing the map");
         _doneMapEditingButton.Margin = new Thickness(8, 0, 0, 0);
-        _doneMapEditingButton.Background = Brush("#E8F0FF");
+        global::UiAtlas.Presentation.Appearance.Bind(_doneMapEditingButton, ("Background", "AccentSelectionBrush"));
         _doneMapEditingButton.Click += (_, _) => SetMapEditingMode(false);
         editingTools.Children.Add(_doneMapEditingButton);
         _mapEditingToolsHost.Padding = new Thickness(8, 4, 8, 4);
-        _mapEditingToolsHost.Background = Brush("#EFF6FF");
-        _mapEditingToolsHost.BorderBrush = Brush("#BFDBFE");
+        global::UiAtlas.Presentation.Appearance.Bind(_mapEditingToolsHost, ("Background", "PanelBrush"));
+        global::UiAtlas.Presentation.Appearance.Bind(_mapEditingToolsHost, ("BorderBrush", "LineBrush"));
         _mapEditingToolsHost.BorderThickness = new Thickness(1);
         _mapEditingToolsHost.CornerRadius = new CornerRadius(9);
         _mapEditingToolsHost.Child = editingTools;
@@ -657,10 +652,10 @@ public sealed partial class ExplorerWindow : Window
         };
         foreach (var mode in new[] { "Window", "Controls", "Overlay", "Structure", "Structure Overlay", "Trace", "Routes" })
         {
-            var button = new Button { Content = mode, Padding = new Thickness(8, 4, 8, 4), Margin = new Thickness(3, 0, 0, 0),
-                Background = mode == _viewMode ? Brush("#EEE7FF") : Brushes.White, BorderBrush = UiBorder, Tag = mode,
-                Foreground = mode == _viewMode ? Brush("#6D28D9") : Ink, ToolTip = mode,
-                Template = RoundedButtonTemplate(8) };
+            var button = global::UiAtlas.Presentation.Appearance.Bind(new Button { Content = mode, Padding = new Thickness(8, 4, 8, 4), Margin = new Thickness(3, 0, 0, 0),
+Tag = mode,
+ToolTip = mode,
+                Template = RoundedButtonTemplate(8) },("Foreground", (mode == _viewMode ? "AccentBrush" : "InkBrush")),("BorderBrush", "LineBrush"),("Background", (mode == _viewMode ? "AccentSelectionBrush" : "PanelBrush")));
             System.Windows.Automation.AutomationProperties.SetName(button, mode);
             button.Click += (_, _) =>
             {
@@ -774,9 +769,9 @@ public sealed partial class ExplorerWindow : Window
         button.Content = content;
         button.Height = 28;
         button.Padding = new Thickness(10, 0, 10, 0);
-        button.Background = Brushes.White;
-        button.BorderBrush = Brush("#93B4FF");
-        button.Foreground = Brush("#1D4ED8");
+        global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "PanelBrush"));
+        global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "AccentBrush"));
+        global::UiAtlas.Presentation.Appearance.Bind(button, ("Foreground", "AccentBrush"));
         button.Cursor = Cursors.Hand;
         button.ToolTip = toolTip;
         button.Template = RoundedButtonTemplate(7);
@@ -823,14 +818,12 @@ public sealed partial class ExplorerWindow : Window
         Grid.SetColumn(_variantPosition, 3);
         row.Children.Add(_variantPosition);
 
-        return new Border
+        return global::UiAtlas.Presentation.Appearance.Bind(new Border
         {
-            BorderBrush = UiBorder,
             BorderThickness = new Thickness(0, 1, 0, 1),
-            Background = Brush("#FAFAFD"),
             Padding = new Thickness(8, 4, 8, 4),
             Child = row
-        };
+        },("Background", "PanelBrush"),("BorderBrush", "LineBrush"));
     }
 
     private static FrameworkElement CreateChevronIcon(bool pointsRight)
@@ -838,13 +831,13 @@ public sealed partial class ExplorerWindow : Window
         var path = new System.Windows.Shapes.Path
         {
             Data = Geometry.Parse(pointsRight ? "M 2,1 L 7,6 L 2,11" : "M 7,1 L 2,6 L 7,11"),
-            Stroke = Ink,
             StrokeThickness = 1.6,
             StrokeStartLineCap = PenLineCap.Round,
             StrokeEndLineCap = PenLineCap.Round,
             StrokeLineJoin = PenLineJoin.Round,
             Fill = Brushes.Transparent
         };
+        path.SetResourceReference(Shape.StrokeProperty, "InkBrush");
         return new Viewbox
         {
             Width = 10,
@@ -856,33 +849,30 @@ public sealed partial class ExplorerWindow : Window
 
     private static ToggleButton PaneVisibilityToggleButton(bool leftPane, string toolTip)
     {
-        var button = new ToggleButton
+        var button = global::UiAtlas.Presentation.Appearance.Bind(new ToggleButton
         {
             Content = CreatePaneVisibilityIcon(leftPane),
             Width = 35,
             Height = 30,
             Margin = new Thickness(0, 0, 0, 3),
             Padding = new Thickness(0),
-            Background = Brushes.White,
-            BorderBrush = UiBorder,
             BorderThickness = new Thickness(1),
-            Foreground = Ink,
             Cursor = Cursors.Hand,
             ToolTip = toolTip,
             Focusable = false,
             Template = PaneToggleButtonTemplate()
-        };
+        },("Foreground", "InkBrush"),("BorderBrush", "LineBrush"),("Background", "PanelBrush"));
         button.Checked += (_, _) =>
         {
-            button.Background = Ink;
-            button.BorderBrush = Ink;
-            button.Foreground = Brushes.White;
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "AccentBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "LineBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Foreground", "AccentTextBrush"));
         };
         button.Unchecked += (_, _) =>
         {
-            button.Background = Brushes.White;
-            button.BorderBrush = UiBorder;
-            button.Foreground = Ink;
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "PanelBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "LineBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Foreground", "InkBrush"));
         };
         System.Windows.Automation.AutomationProperties.SetName(button, toolTip);
         return button;
@@ -934,9 +924,9 @@ public sealed partial class ExplorerWindow : Window
 
         var template = new ControlTemplate(typeof(ToggleButton)) { VisualTree = border };
         var checkedTrigger = new Trigger { Property = ToggleButton.IsCheckedProperty, Value = true };
-        checkedTrigger.Setters.Add(new Setter(Control.BackgroundProperty, Ink));
-        checkedTrigger.Setters.Add(new Setter(Control.BorderBrushProperty, Ink));
-        checkedTrigger.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.White));
+        checkedTrigger.Setters.Add(new Setter(Control.BackgroundProperty, new System.Windows.DynamicResourceExtension("AccentBrush")));
+        checkedTrigger.Setters.Add(new Setter(Control.BorderBrushProperty, new System.Windows.DynamicResourceExtension("LineBrush")));
+        checkedTrigger.Setters.Add(new Setter(Control.ForegroundProperty, new System.Windows.DynamicResourceExtension("AccentTextBrush")));
         template.Triggers.Add(checkedTrigger);
         var hoverTrigger = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
         hoverTrigger.Setters.Add(new Setter(UIElement.OpacityProperty, 0.84));
@@ -962,13 +952,13 @@ public sealed partial class ExplorerWindow : Window
         button.MouseEnter += (_, _) =>
         {
             if (!button.IsEnabled) return;
-            button.Background = Brush("#F2F5FB");
-            button.BorderBrush = Brush("#C8D3E8");
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "SoftBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "LineBrush"));
         };
         button.MouseLeave += (_, _) =>
         {
-            button.Background = Brushes.White;
-            button.BorderBrush = UiBorder;
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "PanelBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "LineBrush"));
         };
         button.IsEnabledChanged += (_, _) => button.Opacity = button.IsEnabled ? 1 : 0.45;
     }
@@ -1060,8 +1050,8 @@ public sealed partial class ExplorerWindow : Window
         if (_layoutToggleButton is not null)
         {
             _layoutToggleButton.Content = CreateSplitViewIcon();
-            _layoutToggleButton.Background = _sideBySideLayout ? Brush("#EEF4FF") : Brushes.White;
-            _layoutToggleButton.BorderBrush = _sideBySideLayout ? Blue : UiBorder;
+            global::UiAtlas.Presentation.Appearance.Bind(_layoutToggleButton, ("Background", "PanelBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(_layoutToggleButton, ("BorderBrush", (_sideBySideLayout ? "AccentBrush" : "LineBrush")));
         }
     }
 
@@ -1235,9 +1225,9 @@ public sealed partial class ExplorerWindow : Window
     private void UpdateMapEditingToolState()
     {
         var selecting = _drawButtonToggle.IsChecked != true;
-        _selectMapToolButton.Background = selecting ? Brush("#2563EB") : Brushes.White;
-        _selectMapToolButton.BorderBrush = selecting ? Brush("#1D4ED8") : Brush("#93B4FF");
-        _selectMapToolButton.Foreground = selecting ? Brushes.White : Brush("#1D4ED8");
+        global::UiAtlas.Presentation.Appearance.Bind(_selectMapToolButton, ("Background", (selecting ? "AccentBrush" : "PanelBrush")));
+        global::UiAtlas.Presentation.Appearance.Bind(_selectMapToolButton, ("BorderBrush", "AccentBrush"));
+        global::UiAtlas.Presentation.Appearance.Bind(_selectMapToolButton, ("Foreground", (selecting ? "AccentTextBrush" : "AccentBrush")));
     }
 
     private void SetManualButtonDrawingMode(bool enabled)
@@ -1278,15 +1268,12 @@ public sealed partial class ExplorerWindow : Window
             suggested = await ManualControlLabelRecognizer.SuggestAsync(_renderedEvidencePng, region);
         }
 
-        var name = new TextBox
+        var name = global::UiAtlas.Presentation.Appearance.Bind(new TextBox
         {
             Text = string.IsNullOrWhiteSpace(suggested) ? "Button" : suggested,
             MinWidth = 190,
             Height = 32,
-            Padding = new Thickness(8, 5, 8, 5),
-            BorderBrush = UiBorder,
-            Background = Brushes.White
-        };
+            Padding = new Thickness(8, 5, 8, 5)        },("Background", "PanelBrush"),("BorderBrush", "LineBrush"));
         var validation = Text(string.Empty, 10, FontWeights.SemiBold, Brush("#C93845"));
         validation.Margin = new Thickness(0, 5, 0, 0);
         validation.Visibility = Visibility.Collapsed;
@@ -1317,7 +1304,7 @@ public sealed partial class ExplorerWindow : Window
             {
                 validation.Text = "Enter a button name or press Cancel.";
                 validation.Visibility = Visibility.Visible;
-                name.BorderBrush = Brush("#E34D59");
+                global::UiAtlas.Presentation.Appearance.Bind(name, ("BorderBrush", "ErrorBrush"));
                 _status.Text = "A button name is required.";
                 name.Focus();
                 return;
@@ -1333,7 +1320,7 @@ public sealed partial class ExplorerWindow : Window
         {
             if (validation.Visibility != Visibility.Visible) return;
             validation.Visibility = Visibility.Collapsed;
-            name.BorderBrush = UiBorder;
+            global::UiAtlas.Presentation.Appearance.Bind(name, ("BorderBrush", "LineBrush"));
         };
         var confirm = CandidateActionButton("M2,6 L5,9 L11,2", Green, Brush("#1FAD78"),
             "Confirm button", "Confirm drawn button", () => ConfirmDraftAsync());
@@ -1352,16 +1339,14 @@ public sealed partial class ExplorerWindow : Window
         var editorContent = new StackPanel();
         editorContent.Children.Add(row);
         editorContent.Children.Add(validation);
-        var shell = new Border
+        var shell = global::UiAtlas.Presentation.Appearance.Bind(new Border
         {
-            Background = Brushes.White,
-            BorderBrush = Green,
             BorderThickness = new Thickness(2),
             CornerRadius = new CornerRadius(9),
             Padding = new Thickness(9),
             Effect = new DropShadowEffect { Color = Colors.Black, BlurRadius = 14, ShadowDepth = 2, Opacity = .24 },
             Child = editorContent
-        };
+        },("BorderBrush", "SuccessBrush"),("Background", "PanelBrush"));
         popup = new Popup
         {
             Child = shell,
@@ -1989,8 +1974,9 @@ public sealed partial class ExplorerWindow : Window
         foreach (var pair in _levelButtons)
         {
             var color = LevelBrush(pair.Key);
-            pair.Value.Background = pair.Key == level ? color : Brushes.White;
-            pair.Value.Foreground = pair.Key == level ? Brushes.White : color;
+            global::UiAtlas.Presentation.Appearance.Bind(pair.Value,
+                ("Background", pair.Key == level ? "AccentSelectionBrush" : "PanelBrush"),
+                ("Foreground", pair.Key == level ? "SelectionInkBrush" : "InkBrush"));
         }
         RefreshSurfaceKindFilter();
         RefreshAll();
@@ -2087,16 +2073,14 @@ public sealed partial class ExplorerWindow : Window
 
     private Border BuildLoadingOverlay()
     {
-        var progress = new ProgressBar
+        var progress = global::UiAtlas.Presentation.Appearance.Bind(new ProgressBar
         {
             Width = 260,
             Height = 8,
             IsIndeterminate = true,
-            Foreground = Blue,
-            Background = Brush("#E8ECF7"),
             BorderThickness = new Thickness(0),
             Margin = new Thickness(0, 0, 0, 16)
-        };
+        },("Background", "SoftBrush"),("Foreground", "AccentBrush"));
 
         var stack = new StackPanel
         {
@@ -2106,13 +2090,11 @@ public sealed partial class ExplorerWindow : Window
         };
         stack.Children.Add(progress);
         stack.Children.Add(_loadingTitle);
-        stack.Children.Add(new Border { Height = 8, Background = Brushes.Transparent });
+        stack.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new Border { Height = 8}, ("Background", "TransparentBrush")));
         stack.Children.Add(_loadingDetail);
 
-        return new Border
+        return global::UiAtlas.Presentation.Appearance.Bind(new Border
         {
-            Background = new SolidColorBrush(Color.FromArgb(166, 247, 248, 252)),
-            BorderBrush = Brush("#D8DEEE"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(18),
             Margin = new Thickness(24, 18, 24, 18),
@@ -2121,7 +2103,7 @@ public sealed partial class ExplorerWindow : Window
             VerticalAlignment = VerticalAlignment.Stretch,
             Visibility = Visibility.Collapsed,
             Child = stack
-        };
+        },("Background", "SoftBrush"),("BorderBrush", "LineBrush"));
     }
 
     private void AttachEvidence(string path)
@@ -2891,7 +2873,7 @@ public sealed partial class ExplorerWindow : Window
         if (_parameterReviewMode is not null) { RefreshParameterReview(); return; }
         var query = _search.Text.Trim();
         _topologyLevel.Text = _level.DisplayName();
-        _topologyLevel.Foreground = LevelBrush(_level);
+        _topologyLevel.SetResourceReference(TextBlock.ForegroundProperty, TextResource(LevelBrush(_level)));
         _predictionLayerToggle.Visibility = _level == UiUnderstandingLevel.RawDataStreams ? Visibility.Collapsed : Visibility.Visible;
         _captureSummary.Visibility = _level == UiUnderstandingLevel.RawDataStreams ? Visibility.Collapsed : Visibility.Visible;
         var layer = _model.LayerFor(_level);
@@ -3081,9 +3063,11 @@ public sealed partial class ExplorerWindow : Window
         foreach (var node in topology.Nodes)
         {
             if (!positions.TryGetValue(node.Id, out var point)) continue;
-            var border = new Border { Width = 175, Height = 55, CornerRadius = new CornerRadius(7), Background = NodeBackground(node.Kind),
+            var border = new Border { Width = 175, Height = 55, CornerRadius = new CornerRadius(7),
                 BorderBrush = NodeBrush(node.Kind), BorderThickness = new Thickness(1.2), Padding = new Thickness(9, 7, 9, 5), Cursor = Cursors.Hand,
                 Tag = node };
+            border.SetResourceReference(Border.BackgroundProperty, "SoftBrush");
+            border.SetResourceReference(Border.BorderBrushProperty, TextResource(NodeBrush(node.Kind)));
             var text = new StackPanel();
             text.Children.Add(Text(node.DisplayName, 11, FontWeights.SemiBold, NodeBrush(node.Kind), textTrimming: TextTrimming.CharacterEllipsis));
             text.Children.Add(Text(node.Subtitle, 9, FontWeights.Normal, Muted, textTrimming: TextTrimming.CharacterEllipsis));
@@ -3324,8 +3308,8 @@ public sealed partial class ExplorerWindow : Window
             var kind = pair.Value.Tag is UiPipelineNodeView pipelineNode
                 ? pipelineNode.Kind
                 : UiPipelineNodeKind.RawSurface;
-            pair.Value.Background = selected ? Brush("#E9D5FF") : NodeBackground(kind);
-            pair.Value.BorderBrush = selected ? Brush("#6D28D9") : NodeBrush(kind);
+            pair.Value.SetResourceReference(Border.BackgroundProperty, selected ? "AccentSelectionBrush" : "SoftBrush");
+            pair.Value.SetResourceReference(Border.BorderBrushProperty, selected ? "SelectionBorderBrush" : TextResource(NodeBrush(kind)));
             pair.Value.BorderThickness = new Thickness(selected ? 3 : 1.2);
             pair.Value.Effect = selected
                 ? new DropShadowEffect
@@ -3520,8 +3504,8 @@ public sealed partial class ExplorerWindow : Window
         {
             var selected = _selectedVariant?.Id == pair.Key;
             pair.Value.IsEnabled = !_graphLoading && _visibleVariants.Count > 0;
-            pair.Value.Background = selected ? Brush("#F4EEFF") : Brushes.White;
-            pair.Value.BorderBrush = selected ? Violet : UiBorder;
+            global::UiAtlas.Presentation.Appearance.Bind(pair.Value, ("Background", "PanelBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(pair.Value, ("BorderBrush", (selected ? "AccentBrush" : "LineBrush")));
             pair.Value.BorderThickness = new Thickness(selected ? 2 : 1);
             var variant = _visibleVariants.FirstOrDefault(candidate => candidate.Id == pair.Key);
             if (variant is not null)
@@ -3594,8 +3578,8 @@ public sealed partial class ExplorerWindow : Window
         foreach (var source in new[] { _showRawUia, _showRawMsaa })
         {
             var color = source == _showRawUia ? Blue : Green;
-            source.Background = source.IsChecked == true ? color : Brushes.White;
-            source.Foreground = source.IsChecked == true ? Brushes.White : Ink;
+            source.SetResourceReference(Control.BackgroundProperty, source.IsChecked == true ? "AccentBrush" : "PanelBrush");
+            global::UiAtlas.Presentation.Appearance.Bind(source, ("Foreground", (source.IsChecked == true ? "AccentTextBrush" : "InkBrush")));
             source.BorderBrush = color;
         }
         _frameStreamsButton.Visibility = isRaw ? Visibility.Visible : Visibility.Collapsed;
@@ -3749,9 +3733,7 @@ public sealed partial class ExplorerWindow : Window
         var suspectStreams = isRaw ? enabledStreams.Where(stream => !registeredStreams.Contains(stream.StreamId) &&
                 RawVariantPresentation.HasOutOfSurfaceGeometry(rawFrame, selectedHwnd, stream.Source))
             .Select(stream => stream.StreamId).ToHashSet(StringComparer.Ordinal) : [];
-        _appMapViewport.Background = projectionMode == UiMapProjectionMode.Routes
-            ? Brush("#F8F7F4")
-            : Brush("#F4F5F9");
+        global::UiAtlas.Presentation.Appearance.Bind(_appMapViewport, ("Background", "SoftBrush"));
         var width = projectionMode == UiMapProjectionMode.Routes
             ? 900
             : bitmap?.PixelWidth ?? (ControlGeometry.IsRenderable(_selectedSurface.Bounds) ? _selectedSurface.Bounds.Width : 800);
@@ -3889,6 +3871,8 @@ public sealed partial class ExplorerWindow : Window
                        control.CanonicalKind == "Group" && string.IsNullOrWhiteSpace(PropertyValue(control.Source, "name")))))
                 {
                     var label = Text(control.DisplayName, 9, FontWeights.Normal, Ink, textTrimming: TextTrimming.CharacterEllipsis);
+                    // An evidence annotation is drawn over retained pixels, independent of app appearance.
+                    label.Foreground = Ink;
                     label.MaxWidth = Math.Max(30, local.Width - 4);
                     label.IsHitTestVisible = false;
                     Canvas.SetLeft(label, local.X + 2); Canvas.SetTop(label, local.Y + 1); _appMapOverlay.Children.Add(label);
@@ -3968,9 +3952,8 @@ public sealed partial class ExplorerWindow : Window
                         "Original provider coordinates remain in Raw Data Streams.", 11, FontWeights.Normal, Muted, textWrapping: TextWrapping.Wrap));
             }
             if (isRaw && RawVariantPresentation.CaptureWarning(rawFrame) is { } warning)
-                banner.Children.Add(new Border { Background = Brush("#FFF4DE"), BorderBrush = Brush("#B45309"),
-                    BorderThickness = new Thickness(0, 0, 0, 2), Padding = new Thickness(10, 8, 10, 8),
-                    Child = Text(warning, 13, FontWeights.SemiBold, Brush("#92400E"), textWrapping: TextWrapping.Wrap) });
+                banner.Children.Add(global::UiAtlas.Presentation.Appearance.Bind(new Border {                     BorderThickness = new Thickness(0, 0, 0, 2), Padding = new Thickness(10, 8, 10, 8),
+                    Child = Text(warning, 13, FontWeights.SemiBold, Brush("#92400E"), textWrapping: TextWrapping.Wrap) },("BorderBrush", "WarningBrush"),("Background", "WarningSurfaceBrush")));
             var details = Text(summary, 11, FontWeights.Normal, Muted, textWrapping: TextWrapping.Wrap);
             if (isRaw)
             {
@@ -4119,18 +4102,16 @@ public sealed partial class ExplorerWindow : Window
         var sourceName = string.IsNullOrWhiteSpace(source?.Name) ? "Source control not recorded" : source.Name;
         var popupName = string.IsNullOrWhiteSpace(_selectedSurface.DisplayName) ? "Popup" : _selectedSurface.DisplayName;
         var chain = new StackPanel { Orientation = Orientation.Horizontal };
-        var previous = new Button
+        var previous = global::UiAtlas.Presentation.Appearance.Bind(new Button
         {
             Content = CreateChevronIcon(pointsRight: false),
             Width = 30,
             Height = 28,
             Padding = new Thickness(0),
             Margin = new Thickness(0, 0, 8, 0),
-            Background = Brushes.White,
-            BorderBrush = UiBorder,
             Template = RoundedButtonTemplate(8),
             ToolTip = "Previous interaction"
-        };
+        },("BorderBrush", "LineBrush"),("Background", "PanelBrush"));
         AttachModernIconButtonFeedback(previous);
         previous.Click += (_, _) => NavigateInteraction(-1);
         chain.Children.Add(previous);
@@ -4146,25 +4127,21 @@ public sealed partial class ExplorerWindow : Window
             textTrimming: TextTrimming.CharacterEllipsis));
         chain.Children.Add(Text($"   [{outcome}]", 11, FontWeights.SemiBold,
             outcome == nameof(InteractionOutcome.Succeeded) ? Green : Muted));
-        var next = new Button
+        var next = global::UiAtlas.Presentation.Appearance.Bind(new Button
         {
             Content = CreateChevronIcon(pointsRight: true),
             Width = 30,
             Height = 28,
             Padding = new Thickness(0),
             Margin = new Thickness(8, 0, 0, 0),
-            Background = Brushes.White,
-            BorderBrush = UiBorder,
             Template = RoundedButtonTemplate(8),
             ToolTip = "Next interaction"
-        };
+        },("BorderBrush", "LineBrush"),("Background", "PanelBrush"));
         AttachModernIconButtonFeedback(next);
         next.Click += (_, _) => NavigateInteraction(1);
         chain.Children.Add(next);
-        var banner = new Border
+        var banner = global::UiAtlas.Presentation.Appearance.Bind(new Border
         {
-            Background = Brush("#F8FAFF"),
-            BorderBrush = source is null ? UiBorder : Brush("#C9D8FF"),
             BorderThickness = new Thickness(0, 0, 0, 1),
             Padding = new Thickness(10, 7, 10, 7),
             Child = new ScrollViewer
@@ -4176,7 +4153,7 @@ public sealed partial class ExplorerWindow : Window
             ToolTip = source is null
                 ? "This older recording does not contain the button-to-popup relationship. Record it again with the current version."
                 : $"{sourceName} opens {popupName}"
-        };
+        },("BorderBrush", "LineBrush"),("Background", "PanelBrush"));
         _traceBannerHost.Content = banner;
         _traceBannerHost.Visibility = Visibility.Visible;
     }
@@ -4395,10 +4372,8 @@ public sealed partial class ExplorerWindow : Window
         var hint = Text("Select an action to inspect its Trace", 10, FontWeights.Normal, Muted);
         hint.Margin = new Thickness(12, 0, 0, 0);
         content.Children.Add(hint);
-        var legend = new Border
+        var legend = global::UiAtlas.Presentation.Appearance.Bind(new Border
         {
-            Background = new SolidColorBrush(Color.FromArgb(235, 255, 255, 255)),
-            BorderBrush = Brush("#E7E5E1"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(10),
             Padding = new Thickness(12, 8, 12, 8),
@@ -4410,7 +4385,7 @@ public sealed partial class ExplorerWindow : Window
                 ShadowDepth = 2,
                 Opacity = 0.09
             }
-        };
+        },("Background", "PanelBrush"),("BorderBrush", "LineBrush"));
         Canvas.SetLeft(legend, 24);
         Canvas.SetTop(legend, 16);
         Panel.SetZIndex(legend, 20);
@@ -4440,13 +4415,12 @@ public sealed partial class ExplorerWindow : Window
 
     private void AddRouteSectionHeading(string label, double y)
     {
-        var heading = new Border
+        var heading = global::UiAtlas.Presentation.Appearance.Bind(new Border
         {
-            Background = Brush("#EFEEEA"),
             CornerRadius = new CornerRadius(9),
             Padding = new Thickness(11, 6, 11, 6),
             Child = Text(label, 11, FontWeights.SemiBold, Muted)
-        };
+        }, ("Background", "SoftBrush"));
         Canvas.SetLeft(heading, 24);
         Canvas.SetTop(heading, y + 10);
         Panel.SetZIndex(heading, 10);
@@ -4479,12 +4453,10 @@ public sealed partial class ExplorerWindow : Window
         content.Children.Add(marker);
         content.Children.Add(copy);
 
-        var box = new Border
+        var box = global::UiAtlas.Presentation.Appearance.Bind(new Border
         {
             Width = width,
             Height = 52,
-            Background = kind == RouteCardKind.Unknown ? Brush("#FCFCFB") : Brushes.White,
-            BorderBrush = kind == RouteCardKind.Unknown ? Brush("#D9D9D5") : Brush("#E2E2DE"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(8),
             Padding = new Thickness(10, 8, 10, 7),
@@ -4497,7 +4469,7 @@ public sealed partial class ExplorerWindow : Window
                 ShadowDepth = 2,
                 Opacity = kind == RouteCardKind.Unknown ? 0.05 : 0.11
             }
-        };
+        },("BorderBrush", "LineBrush"),("Background", (kind == RouteCardKind.Unknown ? "SoftBrush" : "PanelBrush")));
         Panel.SetZIndex(box, 10);
         Canvas.SetLeft(box, x); Canvas.SetTop(box, y); _appMapOverlay.Children.Add(box);
         return box;
@@ -4634,9 +4606,9 @@ public sealed partial class ExplorerWindow : Window
         _viewMode = mode;
         foreach (var pair in _viewModeButtons)
         {
-            pair.Value.Background = pair.Key == mode ? Brush("#EEE7FF") : Brushes.White;
-            pair.Value.Foreground = pair.Key == mode ? Brush("#6D28D9") : Ink;
-            pair.Value.BorderBrush = pair.Key == mode ? Brush("#6D28D9") : UiBorder;
+            global::UiAtlas.Presentation.Appearance.Bind(pair.Value, ("Background", (pair.Key == mode ? "AccentSelectionBrush" : "PanelBrush")));
+            global::UiAtlas.Presentation.Appearance.Bind(pair.Value, ("Foreground", (pair.Key == mode ? "AccentBrush" : "InkBrush")));
+            global::UiAtlas.Presentation.Appearance.Bind(pair.Value, ("BorderBrush", (pair.Key == mode ? "AccentBrush" : "LineBrush")));
         }
     }
 
@@ -4906,37 +4878,28 @@ public sealed partial class ExplorerWindow : Window
     {
         var panel = new StackPanel { Margin = new Thickness(0, 10, 0, 8) };
         panel.Children.Add(Text("Manual button", 11, FontWeights.SemiBold, Green));
-        var name = new TextBox
+        var name = global::UiAtlas.Presentation.Appearance.Bind(new TextBox
         {
             Text = label,
             Height = 32,
             Margin = new Thickness(0, 6, 0, 6),
-            Padding = new Thickness(8, 5, 8, 5),
-            BorderBrush = UiBorder,
-            Background = Brushes.White
-        };
+            Padding = new Thickness(8, 5, 8, 5)        },("Background", "PanelBrush"),("BorderBrush", "LineBrush"));
         panel.Children.Add(name);
         var actions = new StackPanel { Orientation = Orientation.Horizontal };
-        var save = new Button
+        var save = global::UiAtlas.Presentation.Appearance.Bind(new Button
         {
             Content = "Save name",
             Padding = new Thickness(9, 4, 9, 4),
-            Background = Green,
-            Foreground = Brushes.White,
-            BorderBrush = Brush("#1FAD78"),
             Template = RoundedButtonTemplate(7)
-        };
+        },("BorderBrush", "SuccessBrush"),("Foreground", "AccentTextBrush"),("Background", "SuccessSurfaceBrush"));
         save.Click += async (_, _) => await RenameManualButtonAsync(annotationId, name.Text);
-        var delete = new Button
+        var delete = global::UiAtlas.Presentation.Appearance.Bind(new Button
         {
             Content = "Delete",
             Padding = new Thickness(9, 4, 9, 4),
             Margin = new Thickness(6, 0, 0, 0),
-            Background = Brush("#FFF1F2"),
-            Foreground = Brush("#C93845"),
-            BorderBrush = Brush("#FCA5A5"),
             Template = RoundedButtonTemplate(7)
-        };
+        },("BorderBrush", "LineBrush"),("Foreground", "ErrorBrush"),("Background", "PanelBrush"));
         delete.Click += async (_, _) => await DeleteManualButtonAsync(annotationId);
         actions.Children.Add(save);
         actions.Children.Add(delete);
@@ -4987,15 +4950,14 @@ public sealed partial class ExplorerWindow : Window
     private static TreeViewItem TreeItem(string header, SelectionRef? selection, bool expanded, Brush accent,
         FontWeight weight, Func<Task>? confirmAction = null, Func<Task>? removeAction = null)
     {
-        var item = new TreeViewItem {
+        var item = global::UiAtlas.Presentation.Appearance.Bind(new TreeViewItem {
         Header = HierarchyItemHeader(header, accent, weight, confirmAction, removeAction),
         Tag = selection,
         IsExpanded = expanded,
-        Foreground = Ink,
         FontWeight = weight,
         ToolTip = header,
         Style = HierarchyTreeItemStyle
-        };
+        }, ("Foreground", "InkBrush"));
         System.Windows.Automation.AutomationProperties.SetName(item, header);
         return item;
     }
@@ -5022,12 +4984,11 @@ public sealed partial class ExplorerWindow : Window
         text.VerticalAlignment = VerticalAlignment.Center;
         text.MinWidth = 110;
         text.MaxWidth = 290;
-        var row = new Grid
+        var row = global::UiAtlas.Presentation.Appearance.Bind(new Grid
         {
             ClipToBounds = true,
-            Background = Brushes.Transparent,
             HorizontalAlignment = HorizontalAlignment.Stretch
-        };
+        }, ("Background", "TransparentBrush"));
         row.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
         row.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
         row.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
@@ -5128,15 +5089,14 @@ public sealed partial class ExplorerWindow : Window
             button.ToolTip = automationName.StartsWith("Confirm", StringComparison.Ordinal)
                 ? "Confirming..."
                 : "Saving...";
-            button.Content = new TextBlock
+            button.Content = global::UiAtlas.Presentation.Appearance.Bind(new TextBlock
             {
                 Text = "…",
-                Foreground = Brushes.White,
                 FontWeight = FontWeights.Bold,
                 FontSize = 13,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
-            };
+            }, ("Foreground", "AccentTextBrush"));
             try
             {
                 await action();
@@ -5203,7 +5163,7 @@ public sealed partial class ExplorerWindow : Window
                                                               VerticalAlignment="Center"
                                                               Data="M 1 1 L 5 5 L 1 9"
                                                               Fill="Transparent"
-                                                              Stroke="#7B8497"
+                                                              Stroke="{DynamicResource MutedInkBrush}"
                                                               StrokeThickness="1.5"
                                                               StrokeStartLineCap="Round"
                                                               StrokeEndLineCap="Round"
@@ -5215,7 +5175,7 @@ public sealed partial class ExplorerWindow : Window
                                                     </Border>
                                                     <ControlTemplate.Triggers>
                                                         <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter Property="Background" Value="#E8ECF4" />
+                                                            <Setter Property="Background" Value="{DynamicResource SoftBrush}" />
                                                         </Trigger>
                                                         <Trigger Property="IsChecked" Value="True">
                                                             <Setter TargetName="Chevron" Property="RenderTransform">
@@ -5246,12 +5206,12 @@ public sealed partial class ExplorerWindow : Window
                                     <Setter TargetName="ItemsHost" Property="Visibility" Value="Collapsed" />
                                 </Trigger>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Row" Property="Background" Value="#F5F7FB" />
-                                    <Setter TargetName="Row" Property="BorderBrush" Value="#E8EBF3" />
+                                    <Setter TargetName="Row" Property="Background" Value="{DynamicResource SoftBrush}" />
+                                    <Setter TargetName="Row" Property="BorderBrush" Value="{DynamicResource LineBrush}" />
                                 </Trigger>
                                 <Trigger Property="IsSelected" Value="True">
-                                    <Setter TargetName="Row" Property="Background" Value="#EDF3FF" />
-                                    <Setter TargetName="Row" Property="BorderBrush" Value="#B9CCFF" />
+                                    <Setter TargetName="Row" Property="Background" Value="{DynamicResource PanelBrush}" />
+                                    <Setter TargetName="Row" Property="BorderBrush" Value="{DynamicResource LineBrush}" />
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
                                     <Setter Property="Opacity" Value="0.55" />
@@ -5273,10 +5233,10 @@ public sealed partial class ExplorerWindow : Window
                    TargetType="{x:Type ComboBox}">
                 <Setter Property="MinHeight" Value="34" />
                 <Setter Property="Padding" Value="10,5,34,5" />
-                <Setter Property="Background" Value="White" />
-                <Setter Property="BorderBrush" Value="#E2E5EF" />
+                <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}" />
                 <Setter Property="BorderThickness" Value="1" />
-                <Setter Property="Foreground" Value="#252936" />
+                <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
                 <Setter Property="VerticalContentAlignment" Value="Center" />
                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                 <Setter Property="ItemContainerStyle">
@@ -5284,7 +5244,7 @@ public sealed partial class ExplorerWindow : Window
                         <Style TargetType="{x:Type ComboBoxItem}">
                             <Setter Property="Padding" Value="10,7" />
                             <Setter Property="Margin" Value="0,1" />
-                            <Setter Property="Foreground" Value="#252936" />
+                            <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
                             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
                             <Setter Property="Template">
@@ -5299,11 +5259,11 @@ public sealed partial class ExplorerWindow : Window
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsHighlighted" Value="True">
-                                                <Setter TargetName="Row" Property="Background" Value="#F2F5FB" />
+                                                <Setter TargetName="Row" Property="Background" Value="{DynamicResource SoftBrush}" />
                                             </Trigger>
                                             <Trigger Property="IsSelected" Value="True">
-                                                <Setter TargetName="Row" Property="Background" Value="#EAF1FF" />
-                                                <Setter Property="Foreground" Value="#315FC9" />
+                                                <Setter TargetName="Row" Property="Background" Value="{DynamicResource PanelBrush}" />
+                                                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
                                             </Trigger>
                                             <Trigger Property="IsEnabled" Value="False">
                                                 <Setter Property="Opacity" Value="0.5" />
@@ -5360,7 +5320,7 @@ public sealed partial class ExplorerWindow : Window
                                                           VerticalAlignment="Center"
                                                           Data="M 1 1 L 5 5 L 9 1"
                                                           Fill="Transparent"
-                                                          Stroke="#6F7788"
+                                                          Stroke="{DynamicResource MutedInkBrush}"
                                                           StrokeThickness="1.5"
                                                           StrokeStartLineCap="Round"
                                                           StrokeEndLineCap="Round"
@@ -5373,7 +5333,7 @@ public sealed partial class ExplorerWindow : Window
                                             </Grid>
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="ArrowHover" Property="Background" Value="#F0F3F8" />
+                                                    <Setter TargetName="ArrowHover" Property="Background" Value="{DynamicResource SoftBrush}" />
                                                 </Trigger>
                                                 <Trigger Property="IsChecked" Value="True">
                                                     <Setter TargetName="Chevron" Property="RenderTransform">
@@ -5416,8 +5376,8 @@ public sealed partial class ExplorerWindow : Window
                                           MaxHeight="{TemplateBinding MaxDropDownHeight}">
                                         <Border Margin="0,5,0,8"
                                                 Padding="4"
-                                                Background="White"
-                                                BorderBrush="#DDE2EB"
+                                                Background="{DynamicResource PanelBrush}"
+                                                BorderBrush="{DynamicResource LineBrush}"
                                                 BorderThickness="1"
                                                 CornerRadius="9">
                                             <Border.Effect>
@@ -5440,7 +5400,7 @@ public sealed partial class ExplorerWindow : Window
                                     <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible" />
                                 </Trigger>
                                 <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                                    <Setter TargetName="Shell" Property="BorderBrush" Value="#7EA2FF" />
+                                    <Setter TargetName="Shell" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
                                     <Setter Property="Opacity" Value="0.55" />
@@ -5454,42 +5414,31 @@ public sealed partial class ExplorerWindow : Window
         return (Style)XamlReader.Parse(xaml);
     }
 
-    private static Border CardBorder(UIElement child) => new()
-    {
-        Background = Card,
-        BorderBrush = UiBorder,
+    private static Border CardBorder(UIElement child) => global::UiAtlas.Presentation.Appearance.Bind(new Border(){
         BorderThickness = new Thickness(1),
         CornerRadius = new CornerRadius(7),
         Child = child
-    };
+    },("BorderBrush", "LineBrush"),("Background", "PanelBrush"));
 
-    private static Button ActionButton(string label, bool primary = false) => new()
-    {
+    private static Button ActionButton(string label, bool primary = false) => global::UiAtlas.Presentation.Appearance.Bind(new Button(){
         Content = label,
         MinWidth = primary ? 88 : 76,
         Height = 34,
         Margin = new Thickness(6, 0, 0, 0),
         Padding = new Thickness(primary ? 14 : 12, 5, primary ? 14 : 12, 5),
-        Background = primary ? Blue : Brushes.White,
-        BorderBrush = primary ? Blue : UiBorder,
-        Foreground = primary ? Brushes.White : Ink,
         FontWeight = primary ? FontWeights.SemiBold : FontWeights.Normal,
         Template = RoundedButtonTemplate(8)
-    };
+    },("Foreground", (primary ? "AccentTextBrush" : "InkBrush")),("BorderBrush", (primary ? "AccentBrush" : "LineBrush")),("Background", (primary ? "AccentBrush" : "PanelBrush")));
 
-    private static Button IconActionButton(UIElement icon, string compactToolTip) => new()
-    {
+    private static Button IconActionButton(UIElement icon, string compactToolTip) => global::UiAtlas.Presentation.Appearance.Bind(new Button(){
         Content = icon,
         Width = 34,
         Height = 34,
         Margin = new Thickness(6, 0, 0, 0),
         Padding = new Thickness(0),
-        Background = Brushes.White,
-        BorderBrush = UiBorder,
-        Foreground = Ink,
         ToolTip = compactToolTip,
         Template = RoundedButtonTemplate(8)
-    };
+    },("Foreground", "InkBrush"),("BorderBrush", "LineBrush"),("Background", "PanelBrush"));
 
     private static Border RoundedField(Control control)
     {
@@ -5502,19 +5451,17 @@ public sealed partial class ExplorerWindow : Window
         control.Height = double.NaN;
         control.Margin = new Thickness(0);
         control.BorderThickness = new Thickness(0);
-        control.Background = Brushes.Transparent;
-        return new Border
+        global::UiAtlas.Presentation.Appearance.Bind(control, ("Background", "TransparentBrush"));
+        return global::UiAtlas.Presentation.Appearance.Bind(new Border
         {
             Width = width,
             MinWidth = minWidth,
             Height = height,
             Margin = margin,
-            Background = Brushes.White,
-            BorderBrush = UiBorder,
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(8),
             Child = control
-        };
+        },("BorderBrush", "LineBrush"),("Background", "PanelBrush"));
     }
 
     private static ControlTemplate RoundedButtonTemplate(double radius)
@@ -5601,9 +5548,9 @@ public sealed partial class ExplorerWindow : Window
 
         var template = new ControlTemplate(typeof(ToggleButton)) { VisualTree = border };
         var checkedTrigger = new Trigger { Property = ToggleButton.IsCheckedProperty, Value = true };
-        checkedTrigger.Setters.Add(new Setter(Control.BackgroundProperty, checkedBackground ?? Brush("#F0ECFF")));
-        checkedTrigger.Setters.Add(new Setter(Control.BorderBrushProperty, checkedBorder ?? Brush("#7C3AED")));
-        checkedTrigger.Setters.Add(new Setter(Control.ForegroundProperty, checkedForeground ?? Brush("#6D28D9")));
+        checkedTrigger.Setters.Add(new Setter(Control.BackgroundProperty, checkedBackground is null ? new DynamicResourceExtension("AccentSelectionBrush") : checkedBackground));
+        checkedTrigger.Setters.Add(new Setter(Control.BorderBrushProperty, checkedBorder is null ? new DynamicResourceExtension("SelectionBorderBrush") : checkedBorder));
+        checkedTrigger.Setters.Add(new Setter(Control.ForegroundProperty, checkedForeground is null ? new DynamicResourceExtension("SelectionInkBrush") : checkedForeground));
         template.Triggers.Add(checkedTrigger);
         var hoverTrigger = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
         hoverTrigger.Setters.Add(new Setter(UIElement.OpacityProperty, 0.86));
@@ -5620,13 +5567,12 @@ public sealed partial class ExplorerWindow : Window
     private static FrameworkElement CreateToolbarPngIcon(Lazy<ImageSource?> asset, double width, double height)
     {
         if (asset.Value is not ImageSource source)
-            return new Border { Width = width, Height = height, Background = Ink, CornerRadius = new CornerRadius(4) };
+            return global::UiAtlas.Presentation.Appearance.Bind(new Border { Width = width, Height = height, CornerRadius = new CornerRadius(4) }, ("Background", "AccentBrush"));
 
-        return new Border
+        return global::UiAtlas.Presentation.Appearance.Bind(new Border
         {
             Width = width,
             Height = height,
-            Background = Ink,
             OpacityMask = new ImageBrush(source)
             {
                 Stretch = Stretch.Uniform,
@@ -5635,7 +5581,7 @@ public sealed partial class ExplorerWindow : Window
             },
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center
-        };
+        }, ("Background", "AccentBrush"));
     }
 
     private static ImageSource? LoadToolbarAssetImage(string fileName)
@@ -5664,17 +5610,30 @@ public sealed partial class ExplorerWindow : Window
         HorizontalAlignment horizontalAlignment = HorizontalAlignment.Left,
         VerticalAlignment verticalAlignment = VerticalAlignment.Top,
         TextTrimming textTrimming = TextTrimming.None,
-        TextWrapping textWrapping = TextWrapping.NoWrap) => new()
+        TextWrapping textWrapping = TextWrapping.NoWrap) => global::UiAtlas.Presentation.Appearance.Bind(new TextBlock()
     {
         Text = value,
         FontSize = size,
         FontWeight = weight,
-        Foreground = foreground,
         HorizontalAlignment = horizontalAlignment,
         VerticalAlignment = verticalAlignment,
         TextTrimming = textTrimming,
         TextWrapping = textWrapping
-    };
+    }, ("Foreground", TextResource(foreground)));
+
+    // Presentation text follows the palette; retained screenshots and overlay pixels do not.
+    private static string TextResource(Brush foreground) => foreground is SolidColorBrush brush
+        ? brush.Color.ToString() switch
+        {
+            "#FF70778B" or "#FF687080" => "MutedInkBrush",
+            "#FFFFFFFF" => "AccentTextBrush",
+            "#FF4F7EF7" or "#FF4668D8" or "#FF2563EB" or "#FF1D4ED8" => "InfoBrush",
+            "#FF8B5CF6" => "AtlasEvidenceBrush",
+            "#FF2DCE91" => "SuccessBrush",
+            "#FFFF8B3D" => "WarningBrush",
+            "#FFC93845" or "#FFDC2626" => "ErrorBrush",
+            _ => "InkBrush"
+        } : "InkBrush";
 
     private static TextBlock Section(string value)
     {
@@ -5700,7 +5659,6 @@ public sealed partial class ExplorerWindow : Window
             Height = 12,
             RadiusX = 2,
             RadiusY = 2,
-            Stroke = Ink,
             StrokeThickness = 1.2,
             Fill = Brushes.Transparent
         };
@@ -5710,9 +5668,10 @@ public sealed partial class ExplorerWindow : Window
             Y1 = 2.5,
             X2 = 8,
             Y2 = 13.5,
-            Stroke = Ink,
             StrokeThickness = 1.2
         };
+        outer.SetResourceReference(Shape.StrokeProperty, "InkBrush");
+        divider.SetResourceReference(Shape.StrokeProperty, "InkBrush");
         Canvas.SetLeft(outer, 1);
         Canvas.SetTop(outer, 2);
         canvas.Children.Add(outer);

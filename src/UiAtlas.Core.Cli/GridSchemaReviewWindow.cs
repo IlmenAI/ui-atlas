@@ -62,7 +62,7 @@ internal sealed partial class GridSchemaReviewWindow : Window
         _extractor = extractor ?? ExtractConfiguredAsync;
         Title = "Extract table schema"; Width = 960; Height = 820; MinWidth = 680; MinHeight = 660;
         WindowStartupLocation = WindowStartupLocation.CenterOwner; ShowInTaskbar = false; Topmost = true;
-        Background = MapperGridInspector.Brush("#F7FAFD"); AtlasFluent.Apply(this);
+        global::UiAtlas.Presentation.Appearance.Bind(this, ("Background", "PanelBrush")); AtlasFluent.Apply(this);
         var bytes = File.ReadAllBytes(source.ImagePath ?? throw new InvalidOperationException("schema-image-unavailable"));
         _imageHash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
         using var stream = new MemoryStream(bytes);
@@ -90,8 +90,8 @@ internal sealed partial class GridSchemaReviewWindow : Window
         coverage.Padding = new(9, 3, 9, 3); heading.Children.Add(coverage);
         heading.Margin = new(0, 0, 0, 6); root.Children.Add(heading);
 
-        _canvas = new Canvas { Width = _imageWidth, Height = _imageHeight, Background = Brushes.White, Focusable = true,
-            ToolTip = "Drag to select the header. Arrow keys move it; Shift+Up/Down changes its height." };
+        _canvas = global::UiAtlas.Presentation.Appearance.Bind(new Canvas { Width = _imageWidth, Height = _imageHeight, Focusable = true,
+            ToolTip = "Drag to select the header. Arrow keys move it; Shift+Up/Down changes its height." }, ("Background", "PanelBrush"));
         _canvas.Children.Add(new Image { Source = bitmap, Width = _imageWidth, Height = _imageHeight, IsHitTestVisible = false });
         _headerHalo = new Rectangle { Stroke = Brushes.White, IsHitTestVisible = false };
         _headerOutline = new Rectangle { Stroke = MapperGridInspector.Brush("#C47B00"), StrokeThickness = 2,
@@ -109,8 +109,8 @@ internal sealed partial class GridSchemaReviewWindow : Window
         _canvas.LostMouseCapture += (_, _) => { _dragStart = null; _draggingDivider = false; };
         _canvas.KeyDown += MoveSelection;
         _canvas.LayoutTransform = _previewScale;
-        var preview = new ScrollViewer { Content = _canvas, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MinHeight = 160, Background = MapperGridInspector.Brush("#E9EDF3") };
+        var preview = global::UiAtlas.Presentation.Appearance.Bind(new ScrollViewer { Content = _canvas, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MinHeight = 160}, ("Background", "SoftBrush"));
         _preview = preview;
         var previewArea = new DockPanel();
         var navigation = BuildPreviewNavigation(); DockPanel.SetDock(navigation, Dock.Top); previewArea.Children.Add(navigation);
@@ -152,9 +152,9 @@ internal sealed partial class GridSchemaReviewWindow : Window
         readRow.Children.Add(_reviewHelp);
         controls.Children.Add(readRow);
 
-        _columns = new DataGrid { AutoGenerateColumns = false, CanUserAddRows = false, CanUserDeleteRows = false,
+        _columns = global::UiAtlas.Presentation.Appearance.Bind(new DataGrid { AutoGenerateColumns = false, CanUserAddRows = false, CanUserDeleteRows = false,
             CanUserSortColumns = false, CanUserReorderColumns = false, HeadersVisibility = DataGridHeadersVisibility.Column,
-            RowHeaderWidth = 0, GridLinesVisibility = DataGridGridLinesVisibility.Horizontal, Background = Brushes.White };
+            RowHeaderWidth = 0, GridLinesVisibility = DataGridGridLinesVisibility.Horizontal}, ("Background", "PanelBrush"));
         _columns.Columns.Add(new DataGridTextColumn { Header = "Column", Binding = new Binding("Number"), IsReadOnly = true, Width = 65 });
         _columns.Columns.Add(new DataGridTextColumn { Header = "Header name", EditingElementStyle = (Style)FindResource(typeof(TextBox)),
             Binding = new Binding("Label") { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged },
@@ -489,8 +489,7 @@ internal sealed partial class GridSchemaReviewWindow : Window
         _ when ex is IOException or UnauthorizedAccessException => "The image or schema file could not be accessed. Check its location and try again.",
         _ => "The headers could not be read. Adjust the selection or column dividers and try again."
     };
-    private static TextBlock Text(string value, double size, string color = "#333943") => new()
-        { Text = value, FontSize = size, Foreground = MapperGridInspector.Brush(color), TextWrapping = TextWrapping.Wrap, Margin = new(0, 3, 0, 5) };
+    private static TextBlock Text(string value, double size, string color = "#333943") => AtlasFluent.Text(value, size, color);
     private static Button Button(string value, Action action, bool primary)
     {
         return AtlasFluent.Button(value, action, primary);

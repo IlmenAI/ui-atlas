@@ -87,6 +87,8 @@ public sealed class ObservationNormalizer
                             Property("childCountIncluded", node.ChildCountIncluded.ToString(System.Globalization.CultureInfo.InvariantCulture)),
                             Property("hostedContentOpaque", node.SupportedPatterns.Contains("NativeWindow.HostedContentOpaque").ToString(System.Globalization.CultureInfo.InvariantCulture)),
                             Property("valueEvidence", node.IsPassword ? string.Empty : node.ValueEvidence),
+                            ..(node.ControlType == "Edit" && node.HasIsPassword && !node.IsPassword && node.HasValueEvidence && node.ValueEvidence.Length == 0
+                                ? new[] { Property("observedEmptyValue", "True") } : Array.Empty<StringProperty>()),
                         ], freshness, recorded)));
                     break;
             }

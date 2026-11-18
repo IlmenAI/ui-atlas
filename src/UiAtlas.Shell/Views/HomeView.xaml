@@ -11,10 +11,10 @@
             </Grid.RowDefinitions>
 
             <StackPanel>
-                <TextBlock x:Name="HeadingText" Text="Maps" FontSize="38" FontWeight="Light"
-                           Foreground="{StaticResource InkBrush}" />
+                <TextBlock FontFamily="{DynamicResource HeadingFontFamily}" x:Name="HeadingText" Text="Maps" FontSize="38" FontWeight="Light"
+                           Foreground="{DynamicResource InkBrush}" />
                 <TextBlock Margin="0,13,0,0" Text="Teach MapLock how an application is organized."
-                           FontSize="16" Foreground="{StaticResource MutedInkBrush}" />
+                           FontSize="16" Foreground="{DynamicResource MutedInkBrush}" />
             </StackPanel>
 
             <Button Grid.Row="1" Margin="0,31,0,0" HorizontalAlignment="Left"
@@ -37,58 +37,58 @@
                     <TextBlock Text="Available now" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,24" />
                     <Grid Margin="0,0,0,18">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <TextBlock Text="&#xE890;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="&#xE890;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource AccentBrush}" />
                         <TextBlock Grid.Column="1" Text="Observe applications and surfaces" FontSize="14.5" />
                     </Grid>
                     <Grid Margin="0,0,0,18">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <TextBlock Text="&#xE7C8;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="&#xE7C8;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource AccentBrush}" />
                         <TextBlock Grid.Column="1" Text="Record and review UI Maps" FontSize="14.5" />
                     </Grid>
                     <Grid Margin="0,0,0,18">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <TextBlock Text="&#xE80A;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="&#xE80A;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource AccentBrush}" />
                         <TextBlock Grid.Column="1" Text="Inspect and interpret Data Grids" FontSize="14.5" />
                     </Grid>
                     <Grid>
                         <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <TextBlock Text="&#xE74E;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="&#xE74E;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource AccentBrush}" />
                         <TextBlock Grid.Column="1" Text="Publish immutable map revisions" FontSize="14.5" />
                     </Grid>
                     <Grid x:Name="AvailableWorkSessions" Margin="0,18,0,0" Visibility="Collapsed">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <TextBlock Text="&#xE7C3;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="&#xE7C3;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource AccentBrush}" />
                         <TextBlock Grid.Column="1" Text="Record a task, then review its Atlas projection and proposed replay steps" FontSize="14.5" TextWrapping="Wrap" />
                     </Grid>
                 </StackPanel>
 
-                <Border Grid.Column="1" Width="1" Background="{StaticResource LineBrush}" HorizontalAlignment="Center" />
+                <Border Grid.Column="1" Width="1" Background="{DynamicResource LineBrush}" HorizontalAlignment="Center" />
 
                 <StackPanel Grid.Column="2">
                     <TextBlock Text="Coming next" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,24" />
                     <Grid x:Name="FutureWorkSessions" Margin="0,0,0,22">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <TextBlock Text="&#xE7C3;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="&#xE7C3;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource AccentBrush}" />
                         <StackPanel Grid.Column="1">
                             <TextBlock Text="Tasks" FontSize="14.5" />
                             <TextBlock Text="Record tasks and review how they map to Atlas." Margin="0,4,0,0" TextWrapping="Wrap"
-                                       FontSize="12.5" Foreground="{StaticResource MutedInkBrush}" />
+                                       FontSize="12.5" Foreground="{DynamicResource MutedInkBrush}" />
                         </StackPanel>
                     </Grid>
                     <Grid>
                         <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <TextBlock Text="&#xE71B;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="&#xE71B;" FontFamily="Segoe Fluent Icons" FontSize="17" Foreground="{DynamicResource AccentBrush}" />
                         <StackPanel Grid.Column="1">
                             <TextBlock Text="Integrations" FontSize="14.5" />
                             <TextBlock Text="Turn reviewed tasks into stable APIs." Margin="0,4,0,0"
-                                       FontSize="12.5" Foreground="{StaticResource MutedInkBrush}" />
+                                       FontSize="12.5" Foreground="{DynamicResource MutedInkBrush}" />
                         </StackPanel>
                     </Grid>
                 </StackPanel>
             </Grid>
 
             <TextBlock x:Name="StatusText" Grid.Row="3" Margin="0,44,0,0"
-                       Foreground="{StaticResource MutedInkBrush}" TextWrapping="Wrap" />
+                       Foreground="{DynamicResource MutedInkBrush}" TextWrapping="Wrap" />
         </Grid>
     </ScrollViewer>
 </UserControl>

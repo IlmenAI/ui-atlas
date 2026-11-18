@@ -101,9 +101,9 @@ public partial class MapViewerWindow : Window
         foreach (var button in new[] { ObservedWorldButton, StructuredWorldButton, InterpretedWorldButton, AtlasWorldButton })
         {
             var active = string.Equals(button.Tag as string, tag, StringComparison.Ordinal);
-            button.Background = active ? Brush("#E3EFFB") : MediaBrushes.Transparent;
-            button.Foreground = active ? Brush("#0F6CBD") : Brush("#5F6B7A");
-            button.BorderBrush = active ? Brush("#0F6CBD") : MediaBrushes.Transparent;
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "TransparentBrush"));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("Foreground", (active ? "AccentBrush" : "MutedInkBrush")));
+            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "TransparentBrush"));
         }
     }
 
@@ -116,10 +116,10 @@ public partial class MapViewerWindow : Window
         var analysis = perspective == MapViewerPerspective.SurfaceAnalysis;
         SurfaceAnalysisPanel.Visibility = analysis ? Visibility.Visible : Visibility.Collapsed;
         InteractionGraphPanel.Visibility = analysis ? Visibility.Collapsed : Visibility.Visible;
-        SurfaceAnalysisRail.Background = analysis ? Brush("#D9EAFB") : MediaBrushes.Transparent;
-        SurfaceAnalysisRail.Foreground = analysis ? Brush("#0F6CBD") : Brush("#1B1F27");
-        InteractionGraphRail.Background = analysis ? MediaBrushes.Transparent : Brush("#D9EAFB");
-        InteractionGraphRail.Foreground = analysis ? Brush("#1B1F27") : Brush("#0F6CBD");
+        global::UiAtlas.Presentation.Appearance.Bind(SurfaceAnalysisRail, ("Background", "TransparentBrush"));
+        global::UiAtlas.Presentation.Appearance.Bind(SurfaceAnalysisRail, ("Foreground", (analysis ? "AccentBrush" : "InkBrush")));
+        global::UiAtlas.Presentation.Appearance.Bind(InteractionGraphRail, ("Background", (analysis ? "TransparentBrush" : "AccentSelectionBrush")));
+        global::UiAtlas.Presentation.Appearance.Bind(InteractionGraphRail, ("Foreground", (analysis ? "InkBrush" : "AccentBrush")));
         PerspectiveTitle.Text = analysis ? "Surface Analysis" : "Interaction Graph";
     }
 

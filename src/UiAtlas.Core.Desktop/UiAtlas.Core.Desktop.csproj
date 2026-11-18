@@ -6,6 +6,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../UiAtlas.Presentation/UiAtlas.Presentation.csproj" />
     <FrameworkReference Include="Microsoft.WindowsDesktop.App.WPF" />
     <ProjectReference Include="../UiAtlas.Core.Contracts/UiAtlas.Core.Contracts.csproj" />
     <ProjectReference Include="../UiAtlas.Core.Mapping.Atlas/UiAtlas.Core.Mapping.Atlas.csproj" />

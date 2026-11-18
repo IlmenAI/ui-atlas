@@ -16,6 +16,7 @@ internal static class RecorderUiDispatcher
         var thread = new Thread(() =>
         {
             var dispatcher = Dispatcher.CurrentDispatcher;
+            UiAtlas.Presentation.Appearance.Initialize();
             // Publish after the message loop starts, so callers can immediately dispatch initialization.
             dispatcher.BeginInvoke(() => ready.SetResult(dispatcher));
             Dispatcher.Run();

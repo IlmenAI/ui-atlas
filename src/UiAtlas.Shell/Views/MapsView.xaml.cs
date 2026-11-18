@@ -248,7 +248,7 @@ public partial class MapsView : UserControl, UiAtlas.Shell.IShellBackNavigation
             };
             menu.Items.Add(record);
         }
-        var delete = new MenuItem { Header = "Delete UI Map…", Foreground = System.Windows.Media.Brushes.Firebrick };
+        var delete = global::UiAtlas.Presentation.Appearance.Bind(new MenuItem { Header = "Delete UI Map…"}, ("Foreground", "ErrorBrush"));
         delete.Click += async (_, _) =>
         {
             if (!UiAtlas.Shell.DeleteConfirmationDialog.Confirm(Window.GetWindow(this), "UI Map", map.Record.Entry.ApplicationDisplayName + " · " + map.Updated,

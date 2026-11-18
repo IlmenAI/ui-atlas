@@ -4,8 +4,11 @@
     <UseWPF>true</UseWPF><UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>UiAtlas.Shell</AssemblyName>
   </PropertyGroup>
-  <ItemGroup><Using Remove="System.Windows.Forms" /></ItemGroup>
   <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../UiAtlas.Presentation/UiAtlas.Presentation.csproj" />
     <ProjectReference Include="../UiAtlas.Catalog.Contracts/UiAtlas.Catalog.Contracts.csproj" />
     <ProjectReference Include="../../vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/UIMaps.Recorder.Windows.csproj" />
   </ItemGroup>

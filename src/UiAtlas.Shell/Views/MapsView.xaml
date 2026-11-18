@@ -10,10 +10,10 @@
             <MenuItem Header="Record new map" Tag="RecordNewMap" Click="ContextRecordNewMap_Click"
                       ToolTipService.ShowOnDisabled="True" />
             <Separator />
-            <MenuItem Header="Archive application" Tag="ArchiveApplication" Foreground="#9A5A00" Click="ContextArchiveApplication_Click" />
-            <MenuItem Header="Restore application" Tag="RestoreApplication" Foreground="{StaticResource AccentBrush}" Click="ContextRestoreApplication_Click" />
+            <MenuItem Header="Archive application" Tag="ArchiveApplication" Foreground="{DynamicResource WarningBrush}" Click="ContextArchiveApplication_Click" />
+            <MenuItem Header="Restore application" Tag="RestoreApplication" Foreground="{DynamicResource AccentBrush}" Click="ContextRestoreApplication_Click" />
             <Separator/>
-            <MenuItem Header="Delete UI Maps…" Tag="DeleteApplication" Foreground="#B42318" Click="ContextDeleteApplication_Click"/>
+            <MenuItem Header="Delete UI Maps…" Tag="DeleteApplication" Foreground="{DynamicResource ErrorBrush}" Click="ContextDeleteApplication_Click"/>
         </ContextMenu>
         </ResourceDictionary>
     </UserControl.Resources>
@@ -35,8 +35,8 @@
                         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                         <StackPanel>
-                            <TextBlock Text="Shared UI Maps" FontSize="38" FontWeight="Light" Foreground="{StaticResource InkBrush}" />
-                            <TextBlock Margin="0,9,0,0" Text="Applications and their Ready and Draft UI Maps." TextWrapping="Wrap" FontSize="15.5" Foreground="{StaticResource MutedInkBrush}" />
+                            <TextBlock FontFamily="{DynamicResource HeadingFontFamily}" Text="Shared UI Maps" FontSize="38" FontWeight="Light" Foreground="{DynamicResource InkBrush}" />
+                            <TextBlock Margin="0,9,0,0" Text="Applications and their Ready and Draft UI Maps." TextWrapping="Wrap" FontSize="15.5" Foreground="{DynamicResource MutedInkBrush}" />
                         </StackPanel>
                         <Button Grid.Column="1" VerticalAlignment="Bottom" MinWidth="165" Style="{StaticResource PrimaryActionButtonStyle}"
                                 Click="NewMap_Click" AutomationProperties.Name="Record UI Map">
@@ -54,7 +54,7 @@
 
                 <Grid Grid.Row="1" Margin="0,30,0,12">
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                    <TextBlock Text="Applications" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock FontFamily="{DynamicResource HeadingFontFamily}" Text="Applications" FontSize="18" FontWeight="SemiBold" />
                     <Grid Grid.Row="1" Margin="0,14,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="2*" />
@@ -75,7 +75,7 @@
                     </Grid>
                 </Grid>
 
-                <Border Grid.Row="2" Background="White" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="9">
+                <Border Grid.Row="2" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="9">
                     <ItemsControl ItemsSource="{Binding Groups}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -86,12 +86,12 @@
                                         ContextMenuOpening="ApplicationContextMenu_Opening">
                                     <Grid MinHeight="100">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="60"/><ColumnDefinition Width="2*"/><ColumnDefinition Width="1.05*"/><ColumnDefinition Width="1*"/><ColumnDefinition Width="1.35*"/><ColumnDefinition Width="1.35*"/><ColumnDefinition Width="54"/></Grid.ColumnDefinitions>
-                                        <Border Width="46" Height="46" Background="{Binding IconColor}" CornerRadius="8" VerticalAlignment="Center" HorizontalAlignment="Left"><TextBlock Text="{Binding IconText}" Foreground="White" FontWeight="SemiBold" FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0"><TextBlock Text="{Binding DisplayName}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="{Binding ExecutableName}" Foreground="{StaticResource MutedInkBrush}" FontSize="11.5" Margin="0,5,0,0"/><TextBlock Text="{Binding ProductVersion, StringFormat=App version: {0}}" FontSize="11" Foreground="{StaticResource MutedInkBrush}"/></StackPanel>
-                                        <StackPanel Grid.Column="2" VerticalAlignment="Center"><TextBlock Text="Sources" FontSize="10.5" Foreground="{StaticResource MutedInkBrush}"/><TextBlock Text="{Binding LatestRecordingSummary}" FontSize="11.5" TextWrapping="Wrap" Margin="0,5,8,0"/></StackPanel>
+                                        <Border Width="46" Height="46" Background="{Binding IconColor}" CornerRadius="8" VerticalAlignment="Center" HorizontalAlignment="Left"><TextBlock Text="{Binding IconText}" Foreground="{DynamicResource InkBrush}" FontWeight="SemiBold" FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0"><TextBlock Text="{Binding DisplayName}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="{Binding ExecutableName}" Foreground="{DynamicResource MutedInkBrush}" FontSize="11.5" Margin="0,5,0,0"/><TextBlock Text="{Binding ProductVersion, StringFormat=App version: {0}}" FontSize="11" Foreground="{DynamicResource MutedInkBrush}"/></StackPanel>
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center"><TextBlock Text="Sources" FontSize="10.5" Foreground="{DynamicResource MutedInkBrush}"/><TextBlock Text="{Binding LatestRecordingSummary}" FontSize="11.5" TextWrapping="Wrap" Margin="0,5,8,0"/></StackPanel>
                                         <Border Grid.Column="3" Style="{StaticResource StatusPillStyle}" VerticalAlignment="Center" HorizontalAlignment="Left"><TextBlock Text="{Binding LibraryStatus}" FontSize="11.5"/></Border>
-                                        <StackPanel Grid.Column="4" VerticalAlignment="Center" Margin="12,0,8,0"><TextBlock Text="Last recorded" Foreground="{StaticResource MutedInkBrush}" FontSize="10.5"/><TextBlock Text="{Binding LastRecorded}" FontSize="11.5" TextWrapping="Wrap" Margin="0,5,0,0"/></StackPanel>
-                                        <StackPanel Grid.Column="5" VerticalAlignment="Center"><TextBlock Text="Map updated" Foreground="{StaticResource MutedInkBrush}" FontSize="10.5"/><TextBlock Text="{Binding MapUpdated}" FontSize="11.5" TextWrapping="Wrap" Margin="0,5,0,0"/></StackPanel>
+                                        <StackPanel Grid.Column="4" VerticalAlignment="Center" Margin="12,0,8,0"><TextBlock Text="Last recorded" Foreground="{DynamicResource MutedInkBrush}" FontSize="10.5"/><TextBlock Text="{Binding LastRecorded}" FontSize="11.5" TextWrapping="Wrap" Margin="0,5,0,0"/></StackPanel>
+                                        <StackPanel Grid.Column="5" VerticalAlignment="Center"><TextBlock Text="Map updated" Foreground="{DynamicResource MutedInkBrush}" FontSize="10.5"/><TextBlock Text="{Binding MapUpdated}" FontSize="11.5" TextWrapping="Wrap" Margin="0,5,0,0"/></StackPanel>
                                         <TextBlock Grid.Column="6" Text="&#xE76C;" FontFamily="Segoe Fluent Icons" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Right"/>
                                     </Grid>
                                 </Button>
@@ -111,10 +111,10 @@
                 <Grid Grid.Row="3" Margin="0,16,0,6">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Foreground="{StaticResource MutedInkBrush}" FontSize="12">
+                        <TextBlock Foreground="{DynamicResource MutedInkBrush}" FontSize="12">
                             <Run Text="{Binding ApplicationCount, Mode=OneWay}"/><Run Text=" applications  ·  "/><Run Text="{Binding MapCount, Mode=OneWay}"/><Run Text=" UI Maps"/>
                         </TextBlock>
-                        <TextBlock Text="{Binding Status}" Margin="0,5,18,0" Foreground="{StaticResource MutedInkBrush}" FontSize="11.5" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding Status}" Margin="0,5,18,0" Foreground="{DynamicResource MutedInkBrush}" FontSize="11.5" TextWrapping="Wrap" />
                     </StackPanel>
                     <Button Grid.Column="1" Style="{StaticResource QuietButtonStyle}" Click="Refresh_Click">
                         <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE72C;" FontFamily="Segoe Fluent Icons" Margin="0,0,7,0"/><TextBlock Text="Refresh"/></StackPanel>
@@ -129,15 +129,15 @@
                 <Grid SizeChanged="ResponsiveHeader_SizeChanged">
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="78"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <Border Width="58" Height="58" Background="{StaticResource AccentBrush}" CornerRadius="9" HorizontalAlignment="Left">
-                        <TextBlock Text="{Binding IconText}" Foreground="White" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <Border Width="58" Height="58" Background="{DynamicResource AccentBrush}" CornerRadius="9" HorizontalAlignment="Left">
+                        <TextBlock FontFamily="{DynamicResource HeadingFontFamily}" Text="{Binding IconText}" Foreground="{DynamicResource AccentTextBrush}" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding DisplayName}" FontSize="32" FontWeight="Light" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock FontFamily="{DynamicResource HeadingFontFamily}" Text="{Binding DisplayName}" FontSize="32" FontWeight="Light" TextTrimming="CharacterEllipsis"/>
                         <WrapPanel Margin="0,7,0,0">
-                            <TextBlock Text="{Binding ExecutableName}" Foreground="{StaticResource MutedInkBrush}"/>
-                            <TextBlock Text="  ·  " Foreground="{StaticResource MutedInkBrush}"/><TextBlock Text="{Binding VersionSummary}" Foreground="{StaticResource MutedInkBrush}"/>
-                            <TextBlock Text="  ·  " Foreground="{StaticResource MutedInkBrush}"/><TextBlock Text="{Binding RecordingSummary}" Foreground="{StaticResource MutedInkBrush}"/>
+                            <TextBlock Text="{Binding ExecutableName}" Foreground="{DynamicResource MutedInkBrush}"/>
+                            <TextBlock Text="  ·  " Foreground="{DynamicResource MutedInkBrush}"/><TextBlock Text="{Binding VersionSummary}" Foreground="{DynamicResource MutedInkBrush}"/>
+                            <TextBlock Text="  ·  " Foreground="{DynamicResource MutedInkBrush}"/><TextBlock Text="{Binding RecordingSummary}" Foreground="{DynamicResource MutedInkBrush}"/>
                         </WrapPanel>
                     </StackPanel>
                     <StackPanel x:Name="ActiveDetailsActions" Grid.Column="2" Orientation="Horizontal">
@@ -161,10 +161,10 @@
                     </Button>
                 </Grid>
 
-                <Border Grid.Row="1" Margin="0,28,0,0" Padding="16,13" CornerRadius="8" Background="#EDF6FF" BorderBrush="#BBD9F5" BorderThickness="1">
+                <Border Grid.Row="1" Margin="0,28,0,0" Padding="16,13" CornerRadius="8" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1">
                     <DockPanel>
-                        <TextBlock Text="&#xE946;" FontFamily="Segoe Fluent Icons" FontSize="18" Foreground="#2477C9" Margin="0,0,12,0" VerticalAlignment="Center"/>
-                        <TextBlock TextWrapping="Wrap" Text="Ready maps are available for task recording. Draft maps remain available for review." Foreground="{StaticResource MutedInkBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="&#xE946;" FontFamily="Segoe Fluent Icons" FontSize="18" Foreground="{DynamicResource AccentBrush}" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                        <TextBlock TextWrapping="Wrap" Text="Ready maps are available for task recording. Draft maps remain available for review." Foreground="{DynamicResource MutedInkBrush}" VerticalAlignment="Center"/>
                     </DockPanel>
                 </Border>
 
@@ -176,14 +176,14 @@
                 <ItemsControl x:Name="VersionsItemsControl" Grid.Row="3" Margin="0,18,0,10" ItemsSource="{Binding Versions}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Margin="0,0,0,18" Background="White" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="9">
+                            <Border Margin="0,0,0,18" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" CornerRadius="9">
                                 <Expander IsExpanded="{Binding IsExpanded, Mode=TwoWay}" HorizontalContentAlignment="Stretch">
                                     <Expander.Header>
                                         <Grid MinHeight="60" Margin="16,0,9,0">
                                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding Heading}" FontSize="15.5" FontWeight="SemiBold"/>
-                                                <TextBlock Text="{Binding RecordingSummary}" Margin="14,0,0,0" Foreground="{StaticResource MutedInkBrush}" FontSize="11.5"/>
+                                                <TextBlock Text="{Binding RecordingSummary}" Margin="14,0,0,0" Foreground="{DynamicResource MutedInkBrush}" FontSize="11.5"/>
                                             </StackPanel>
                                             <TextBlock Grid.Column="1" Text="{Binding Status}" Style="{StaticResource StatusTextStyle}" Margin="20,0,12,0" VerticalAlignment="Center"/>
                                         </Grid>
@@ -191,7 +191,7 @@
                                     <ItemsControl ItemsSource="{Binding Maps}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1,0,0" Padding="18,14" ContextMenuOpening="Map_ContextMenuOpening">
+                                                <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Padding="18,14" ContextMenuOpening="Map_ContextMenuOpening">
                                                     <Border.ContextMenu><ContextMenu/></Border.ContextMenu>
                                                     <Grid MinHeight="48">
                                                         <Grid.ColumnDefinitions>
@@ -200,12 +200,12 @@
                                                         </Grid.ColumnDefinitions>
                                                         <StackPanel VerticalAlignment="Center">
                                                             <TextBlock Text="{Binding Updated}"/>
-                                                            <TextBlock Text="{Binding Reference}" Margin="0,4,12,0" Foreground="{StaticResource MutedInkBrush}" FontSize="10.5" TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Text="{Binding Reference}" Margin="0,4,12,0" Foreground="{DynamicResource MutedInkBrush}" FontSize="10.5" TextTrimming="CharacterEllipsis"/>
                                                         </StackPanel>
                                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0">
-                                                            <TextBlock Text="{Binding Counts}" Foreground="{StaticResource MutedInkBrush}" FontSize="11.5" TextWrapping="Wrap"/>
-                                                            <TextBlock Text="{Binding Detail}" Foreground="{StaticResource MutedInkBrush}" FontSize="10.5" Margin="0,4,0,0"/>
-                                                            <TextBlock Text="New observations in draft" Foreground="{StaticResource AccentBrush}" FontSize="11.5" Margin="0,4,0,0"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasAddedObservations}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+                                                            <TextBlock Text="{Binding Counts}" Foreground="{DynamicResource MutedInkBrush}" FontSize="11.5" TextWrapping="Wrap"/>
+                                                            <TextBlock Text="{Binding Detail}" Foreground="{DynamicResource MutedInkBrush}" FontSize="10.5" Margin="0,4,0,0"/>
+                                                            <TextBlock Text="New observations in draft" Foreground="{DynamicResource AccentBrush}" FontSize="11.5" Margin="0,4,0,0"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasAddedObservations}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
                                                         </StackPanel>
                                                         <Border Grid.Column="2" Style="{StaticResource StatusPillStyle}" VerticalAlignment="Center" Margin="8,0,18,0">
                                                             <TextBlock Text="{Binding Status}" Style="{StaticResource StatusTextStyle}" FontSize="11.5"/>
@@ -214,7 +214,7 @@
                                                         <Button Grid.Column="4" Content="Mark ready" MinWidth="104" Margin="10,0,0,0" Tag="{Binding}" Click="MarkReady_Click">
                                                             <Button.Style>
                                                                 <Style TargetType="Button" BasedOn="{StaticResource QuietButtonStyle}">
-                                                                    <Setter Property="Visibility" Value="Visible"/><Setter Property="Foreground" Value="{StaticResource AccentBrush}"/><Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                                                                    <Setter Property="Visibility" Value="Visible"/><Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                                                                     <Style.Triggers><DataTrigger Binding="{Binding CanMarkReady}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding IsArchived}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
                                                                 </Style>
                                                             </Button.Style>
@@ -231,7 +231,7 @@
                                                             <Button.Style><Style TargetType="Button" BasedOn="{StaticResource ArchiveActionButtonStyle}"><Style.Triggers><DataTrigger Binding="{Binding IsArchived}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Button.Style>
                                                         </Button>
                                                         <Button Grid.Column="5" Content="Restore" MinWidth="82" Margin="8,0,0,0" Tag="{Binding}" Click="Restore_Click">
-                                                            <Button.Style><Style TargetType="Button" BasedOn="{StaticResource QuietButtonStyle}"><Setter Property="Visibility" Value="Collapsed"/><Setter Property="Foreground" Value="{StaticResource AccentBrush}"/><Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/><Style.Triggers><DataTrigger Binding="{Binding IsArchived}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Button.Style>
+                                                            <Button.Style><Style TargetType="Button" BasedOn="{StaticResource QuietButtonStyle}"><Setter Property="Visibility" Value="Collapsed"/><Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/><Style.Triggers><DataTrigger Binding="{Binding IsArchived}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Button.Style>
                                                         </Button>
                                                         <Button Grid.Column="6" Tag="{Binding}" Click="MapMenu_Click" Width="32" Height="32" Margin="8,0,0,0" Background="Transparent" BorderThickness="0" ToolTip="More UI Map actions" AutomationProperties.Name="More UI Map actions"><TextBlock Text="&#xE712;" FontFamily="Segoe Fluent Icons"/></Button>
                                                     </Grid>
@@ -245,35 +245,35 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 <TextBlock x:Name="DetailsEmptyState" Grid.Row="3" Margin="0,34,0,0" Visibility="Collapsed"
-                           Text="No UI Maps in this section." Foreground="{StaticResource MutedInkBrush}" FontSize="14"/>
+                           Text="No UI Maps in this section." Foreground="{DynamicResource MutedInkBrush}" FontSize="14"/>
             </Grid>
         </ScrollViewer>
 
-        <Border x:Name="RecordingCompletePanel" Visibility="Collapsed" Background="#F4FFFFFF" Panel.ZIndex="20" Padding="36">
+        <Border x:Name="RecordingCompletePanel" Visibility="Collapsed" Background="{DynamicResource PanelBrush}" Panel.ZIndex="20" Padding="36">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <Grid MaxWidth="820" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <Grid>
                         <Grid.ColumnDefinitions><ColumnDefinition Width="88"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                        <Border Width="62" Height="62" CornerRadius="31" BorderBrush="#159447" BorderThickness="2" HorizontalAlignment="Left"><TextBlock Text="✓" FontSize="34" Foreground="#159447" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="UI Map recording complete" FontSize="32" FontWeight="Light"/><TextBlock Margin="0,6,0,0" Foreground="{StaticResource MutedInkBrush}"><Run Text="{Binding DisplayName}"/><Run Text=" was recorded successfully. Review it, then choose Ready or Draft."/></TextBlock></StackPanel>
+                        <Border Width="62" Height="62" CornerRadius="31" BorderBrush="{DynamicResource SuccessBrush}" BorderThickness="2" HorizontalAlignment="Left"><TextBlock FontFamily="{DynamicResource HeadingFontFamily}" Text="✓" FontSize="34" Foreground="{DynamicResource SuccessBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock FontFamily="{DynamicResource HeadingFontFamily}" Text="UI Map recording complete" FontSize="32" FontWeight="Light"/><TextBlock Margin="0,6,0,0" Foreground="{DynamicResource MutedInkBrush}"><Run Text="{Binding DisplayName}"/><Run Text=" was recorded successfully. Review it, then choose Ready or Draft."/></TextBlock></StackPanel>
                     </Grid>
                     <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,28,0,0">
                         <StackPanel><TextBlock Text="What MapLock found" FontSize="16" FontWeight="SemiBold"/><UniformGrid Columns="4" Margin="0,20,0,0">
-                            <StackPanel><TextBlock Text="{Binding SurfaceCount}" FontSize="27" HorizontalAlignment="Center"/><TextBlock Text="surfaces" Foreground="{StaticResource MutedInkBrush}" HorizontalAlignment="Center"/></StackPanel>
-                            <StackPanel><TextBlock Text="{Binding ControlCount}" FontSize="27" HorizontalAlignment="Center"/><TextBlock Text="controls" Foreground="{StaticResource MutedInkBrush}" HorizontalAlignment="Center"/></StackPanel>
-                            <StackPanel><TextBlock Text="{Binding DataGridCount}" FontSize="27" HorizontalAlignment="Center"/><TextBlock Text="Data Grids" Foreground="{StaticResource MutedInkBrush}" HorizontalAlignment="Center"/></StackPanel>
-                            <StackPanel><TextBlock Text="{Binding ObservationCount}" FontSize="27" HorizontalAlignment="Center"/><TextBlock Text="observations" Foreground="{StaticResource MutedInkBrush}" HorizontalAlignment="Center"/></StackPanel>
+                            <StackPanel><TextBlock FontFamily="{DynamicResource HeadingFontFamily}" Text="{Binding SurfaceCount}" FontSize="27" HorizontalAlignment="Center"/><TextBlock Text="surfaces" Foreground="{DynamicResource MutedInkBrush}" HorizontalAlignment="Center"/></StackPanel>
+                            <StackPanel><TextBlock FontFamily="{DynamicResource HeadingFontFamily}" Text="{Binding ControlCount}" FontSize="27" HorizontalAlignment="Center"/><TextBlock Text="controls" Foreground="{DynamicResource MutedInkBrush}" HorizontalAlignment="Center"/></StackPanel>
+                            <StackPanel><TextBlock FontFamily="{DynamicResource HeadingFontFamily}" Text="{Binding DataGridCount}" FontSize="27" HorizontalAlignment="Center"/><TextBlock Text="Data Grids" Foreground="{DynamicResource MutedInkBrush}" HorizontalAlignment="Center"/></StackPanel>
+                            <StackPanel><TextBlock FontFamily="{DynamicResource HeadingFontFamily}" Text="{Binding ObservationCount}" FontSize="27" HorizontalAlignment="Center"/><TextBlock Text="observations" Foreground="{DynamicResource MutedInkBrush}" HorizontalAlignment="Center"/></StackPanel>
                         </UniformGrid></StackPanel>
                     </Border>
                     <Border Grid.Row="2" Style="{StaticResource CardStyle}" Margin="0,16,0,0">
                         <StackPanel><TextBlock Text="Mapped surfaces" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,8"/><ItemsControl ItemsSource="{Binding Surfaces}"><ItemsControl.ItemTemplate><DataTemplate>
-                            <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1,0,0" Padding="8,12"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="{Binding Name}"/><TextBlock Grid.Column="1" Text="{Binding Detail}" Foreground="{StaticResource MutedInkBrush}"/><TextBlock Grid.Column="2" Text="{Binding Status}" Foreground="#159447"/></Grid></Border>
+                            <Border BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" Padding="8,12"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="{Binding Name}"/><TextBlock Grid.Column="1" Text="{Binding Detail}" Foreground="{DynamicResource MutedInkBrush}"/><TextBlock Grid.Column="2" Text="{Binding Status}" Foreground="{DynamicResource SuccessBrush}"/></Grid></Border>
                         </DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel>
                     </Border>
                     <Grid Grid.Row="3" Margin="0,22,0,0">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                        <TextBlock x:Name="RecordingCompletionDetail" Text="Ready replaces the current Ready map for this version. Draft leaves it unchanged." Foreground="{StaticResource MutedInkBrush}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                        <TextBlock x:Name="RecordingCompletionDetail" Text="Ready replaces the current Ready map for this version. Draft leaves it unchanged." Foreground="{DynamicResource MutedInkBrush}" VerticalAlignment="Center" TextWrapping="Wrap"/>
                         <Button Grid.Column="1" Content="Archive" Click="RecordingArchive_Click" MinWidth="110" Height="42" Margin="10,0,0,0" Style="{StaticResource ArchiveActionButtonStyle}"/>
                         <Button Grid.Column="2" Content="Review" Click="RecordingReview_Click" MinWidth="110" Height="42" Margin="10,0,0,0" Style="{StaticResource RecorderSecondaryButtonStyle}"/>
                         <Button x:Name="RecordingKeepDraftButton" Grid.Column="3" Content="Draft" Click="RecordingDraft_Click" MinWidth="110" Height="42" Margin="10,0,0,0" Style="{StaticResource RecorderSecondaryButtonStyle}"/>

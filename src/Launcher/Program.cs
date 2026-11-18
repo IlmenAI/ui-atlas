@@ -15,6 +15,7 @@ internal static class Program
             var app = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
             app.Resources.MergedDictionaries.Add(new ResourceDictionary
             { Source = new Uri("pack://application:,,,/UiAtlas.Shell;component/ShellTheme.xaml") });
+            UiAtlas.Presentation.Appearance.Initialize(app);
             var window = new ShellWindow(new AtlasShellHost(workspace));
             window.Loaded += CenterOnDisplay;
             app.Run(window);

@@ -24,6 +24,9 @@
           "UiAtlas.Core.Contracts": "[1.0.0, )"
         }
       },
+      "uiatlas.presentation": {
+        "type": "Project"
+      },
       "uimaps.perception.core": {
         "type": "Project",
         "dependencies": {

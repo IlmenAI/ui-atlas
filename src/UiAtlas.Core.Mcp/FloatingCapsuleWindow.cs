@@ -11,6 +11,7 @@ using System.Windows.Media.Effects;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using UiAtlas.Core.Contracts;
+using UiAtlas.Presentation;
 
 namespace UiAtlas.Core.Mcp;
 
@@ -53,9 +54,9 @@ internal sealed class FloatingCapsuleWindow : Window
         ResizeMode = ResizeMode.NoResize;
         AllowsTransparency = true;
         Background = Brushes.Transparent;
+        Appearance.Apply(this);
         ShowInTaskbar = false;
         Topmost = true;
-        FontFamily = new("Segoe UI");
         UseLayoutRounding = true;
         SizeToContent = SizeToContent.Height;
         _stop = ActionButton("Stop", "#E32F46", "#FFFFFF", () =>
@@ -87,8 +88,8 @@ internal sealed class FloatingCapsuleWindow : Window
         pill.Children.Add(Divider());
         pill.Children.Add(Text("Waiting for your approval", 13, "#E5E9F0"));
         stack.Children.Add(Surface(pill, "#252A32", 28, new(18, 14, 18, 14)));
-        var stem = new Polygon { Points = new([new(0, 0), new(16, 0), new(8, 8)]), Fill = Brush("#252A32"),
-            HorizontalAlignment = HorizontalAlignment.Center, Width = 16, Height = 8 };
+        var stem = Appearance.Bind(new Polygon { Points = new([new(0, 0), new(16, 0), new(8, 8)]),
+            HorizontalAlignment = HorizontalAlignment.Center, Width = 16, Height = 8 }, ("Fill", "SidebarBrush"));
         stack.Children.Add(stem);
 
         var card = new StackPanel();
@@ -100,9 +101,10 @@ internal sealed class FloatingCapsuleWindow : Window
         selected.ColumnDefinitions.Add(new() { Width = new(72) });
         selected.ColumnDefinitions.Add(new());
         // A table glyph, never a fabricated preview or an unapproved screen capture.
-        var icon = new Border { Width = 56, Height = 56, CornerRadius = new(10), Background = Brush("#EFF5FF"),
+        var icon = Appearance.Bind(new Border { Width = 56, Height = 56, CornerRadius = new(10),
             Child = new TextBlock { Text = "\uE80A", FontFamily = new("Segoe MDL2 Assets"), FontSize = 27,
-                Foreground = Brush("#1764E8"), VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center } };
+                VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center } }, ("Background", "InfoSurfaceBrush"));
+        Appearance.Bind((TextBlock)icon.Child, ("Foreground", "InfoBrush"));
         selected.Children.Add(icon);
         var summary = new StackPanel();
         var name = Text(_choices is { Count: > 1 } ? "Select a saved table below" : _table, 16, "#101828", true);
@@ -125,8 +127,8 @@ internal sealed class FloatingCapsuleWindow : Window
         limits.Children.Add(Limit("\uE823", _readTable ? "120 sec max" : "60 sec max"));
         limits.Children.Add(Limit("\uE8AB", _readTable ? "192 moves max" : "32 moves max"));
         limits.Children.Add(Limit("\uE722", _readTable ? "96 captures max" : "24 captures max"));
-        card.Children.Add(new Border { BorderBrush = Brush("#EAECF0"), BorderThickness = new(0, 1, 0, 1),
-            Margin = new(0, 20, 0, 14), Child = limits });
+        card.Children.Add(Appearance.Bind(new Border { BorderThickness = new(0, 1, 0, 1),
+            Margin = new(0, 20, 0, 14), Child = limits }, ("BorderBrush", "LineBrush")));
         var note = Text(_readTable ? "Scroll, capture and send table crops to saved Azure.\nNo records changed. Restore the view when safe.\nAzure reading may take up to 3 minutes after capture." : "Scroll and capture only. No records changed.\nWe will try to restore your starting position.", 12, "#667085");
         note.TextAlignment = TextAlignment.Center; card.Children.Add(note);
         var buttons = new Grid { Margin = new(0, 20, 0, 0) };
@@ -161,7 +163,7 @@ internal sealed class FloatingCapsuleWindow : Window
         var once = Text("Approve once for this table · Expires in 2 minutes", 11, "#667085");
         once.TextAlignment = TextAlignment.Center; once.Margin = new(0, 12, 0, 0); card.Children.Add(once);
         var panel = Surface(card, "#FFFFFF", 18, new(24));
-        panel.BorderBrush = Brush("#DDE2EA"); panel.BorderThickness = new(1);
+        panel.SetResourceReference(Border.BorderBrushProperty, "LineBrush"); panel.BorderThickness = new(1);
         stack.Children.Add(panel); Content = stack;
         PrepareHandle();
         PositionAtTop(false);
@@ -304,31 +306,31 @@ internal sealed class FloatingCapsuleWindow : Window
         a.Y < (long)b.Y + b.Height && b.Y < (long)a.Y + a.Height;
     internal static string FormatElapsed(TimeSpan elapsed) => $"{(int)elapsed.TotalMinutes:00}:{elapsed.Seconds:00}";
 
-    private static Border Surface(UIElement child, string color, double radius, Thickness padding) => new()
+    private static Border Surface(UIElement child, string color, double radius, Thickness padding) => Appearance.Bind(new Border()
     {
-        Child = child, Background = Brush(color), CornerRadius = new(radius), Padding = padding,
-        Effect = new DropShadowEffect { BlurRadius = 12, ShadowDepth = 3, Opacity = .16, Color = Colors.Black }
-    };
-    private static TextBlock Text(string text, double size, string color, bool bold = false) => new()
+        Child = child, CornerRadius = new(radius), Padding = padding
+    }, ("Background", color == "#FFFFFF" ? "PanelBrush" : "SidebarBrush"), ("Effect", "WindowShadow"));
+    private static TextBlock Text(string text, double size, string color, bool bold = false) => Appearance.Bind(new TextBlock()
     {
-        Text = text, FontSize = size, Foreground = Brush(color), FontWeight = bold ? FontWeights.SemiBold : FontWeights.Normal,
+        Text = text, FontSize = size, FontWeight = bold ? FontWeights.SemiBold : FontWeights.Normal,
         TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center
-    };
-    private static SolidColorBrush Brush(string color) => new((Color)ColorConverter.ConvertFromString(color));
-    private static Ellipse Dot(string color) => new() { Width = 10, Height = 10, Fill = Brush(color), Margin = new(0, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center };
-    private static Border Divider() => new() { Width = 1, Height = 22, Background = Brush("#56606F"), Margin = new(18, 0, 18, 0) };
+    }, ("Foreground", color is "#D6DCE6" or "#E5E9F0" or "#B6BFCD" or "#475467" or "#667085" ? "MutedInkBrush" : "InkBrush"));
+    private static Ellipse Dot(string color) => Appearance.Bind(new Ellipse { Width = 10, Height = 10, Margin = new(0, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center }, ("Fill", color == "#398BFF" ? "AccentBrush" : "MutedInkBrush"));
+    private static Border Divider() => Appearance.Bind(new Border { Width = 1, Height = 22, Margin = new(18, 0, 18, 0) }, ("Background", "LineBrush"));
     private static UIElement Limit(string glyph, string caption)
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
-        row.Children.Add(new TextBlock { Text = glyph, FontFamily = new("Segoe MDL2 Assets"), FontSize = 17, Foreground = Brush("#344054"), Margin = new(0, 0, 7, 0), VerticalAlignment = VerticalAlignment.Center });
+        row.Children.Add(Appearance.Bind(new TextBlock { Text = glyph, FontFamily = new("Segoe MDL2 Assets"), FontSize = 17, Margin = new(0, 0, 7, 0), VerticalAlignment = VerticalAlignment.Center }, ("Foreground", "InkBrush")));
         row.Children.Add(Text(caption, 12, "#1D2939", true));
         return row;
     }
     private static Button ActionButton(string label, string background, string foreground, Action action)
     {
-        var button = new Button { Content = label, Background = Brush(background), Foreground = Brush(foreground),
+        var button = new Button { Content = label,
             FontSize = 14, FontWeight = FontWeights.SemiBold, Padding = new(14, 10, 14, 10), MinHeight = 44,
             BorderThickness = new(0), Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Center };
+        Appearance.Bind(button, ("Background", background == "#E32F46" ? "ErrorSurfaceBrush" : background == "#1469EF" ? "AccentBrush" : "ButtonBrush"),
+            ("Foreground", background == "#E32F46" ? "ErrorBrush" : background == "#1469EF" ? "AccentTextBrush" : "InkBrush"));
         var border = new FrameworkElementFactory(typeof(Border));
         border.SetValue(Border.CornerRadiusProperty, new CornerRadius(9));
         border.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(BackgroundProperty));

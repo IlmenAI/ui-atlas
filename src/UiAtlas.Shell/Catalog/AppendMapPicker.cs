@@ -54,7 +54,7 @@ internal sealed class AppendMapPicker : Window
         _executable = executable;
         Title = "Add observations to an existing map"; Width = 680; Height = 520;
         MinWidth = 500; MinHeight = 360; WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        Background = System.Windows.Media.Brushes.White;
+        global::UiAtlas.Presentation.Appearance.Bind(this, ("Background", "PanelBrush"));
         var layout = new DockPanel { Margin = new Thickness(24) }; Content = layout;
         var heading = new TextBlock { Text = "Choose the destination map", FontSize = 24, Margin = new Thickness(0, 0, 0, 12) };
         DockPanel.SetDock(heading, Dock.Top); layout.Children.Add(heading);

@@ -252,11 +252,10 @@ public sealed partial class ExplorerWindow
         _ => Violet
     };
     private static TextBlock ReviewText(string text) =>
-        new() { Text = text, TextWrapping = TextWrapping.Wrap, Foreground = Ink, FontSize = 12, Margin = new Thickness(0, 3, 0, 7) };
+        global::UiAtlas.Presentation.Appearance.Bind(new TextBlock(){ Text = text, TextWrapping = TextWrapping.Wrap, FontSize = 12, Margin = new Thickness(0, 3, 0, 7) }, ("Foreground", "InkBrush"));
     private static Button ReviewButton(string title) =>
-        new() { Content = title, Padding = new Thickness(10, 6, 10, 6), Margin = new Thickness(6, 3, 0, 3),
-            Background = Brushes.White, BorderBrush = UiBorder, BorderThickness = new Thickness(1), Foreground = Ink,
-            Template = RoundedButtonTemplate(6) };
+        global::UiAtlas.Presentation.Appearance.Bind(new Button(){ Content = title, Padding = new Thickness(10, 6, 10, 6), Margin = new Thickness(6, 3, 0, 3),
+BorderThickness = new Thickness(1),             Template = RoundedButtonTemplate(6) },("Foreground", "InkBrush"),("BorderBrush", "LineBrush"),("Background", "PanelBrush"));
 
     private void DrawParameterGraph()
     {
@@ -289,8 +288,8 @@ public sealed partial class ExplorerWindow
             var content = new StackPanel();
             content.Children.Add(Text(title, 11, FontWeights.Bold, accent));
             content.Children.Add(ReviewText(value));
-            var card = new Border { Child = content, Width = cardWidth, MinHeight = 130, Padding = new Thickness(12),
-                Background = Brushes.White, BorderBrush = accent, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(7) };
+            var card = global::UiAtlas.Presentation.Appearance.Bind(new Border { Child = content, Width = cardWidth, MinHeight = 130, Padding = new Thickness(12),
+BorderBrush = accent, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(7) }, ("Background", "PanelBrush"));
             card.MouseLeftButtonUp += (_, _) => SelectParameterProposal(p);
             Canvas.SetLeft(card, x); Canvas.SetTop(card, y); _topologyCanvas.Children.Add(card);
         }

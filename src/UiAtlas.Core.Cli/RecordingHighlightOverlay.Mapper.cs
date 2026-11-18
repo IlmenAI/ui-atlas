@@ -274,10 +274,9 @@ internal sealed partial class RecordingHighlightOverlay
         {
             if (!_gridHitWindows.TryGetValue(grid.Id, out var hit))
             {
-                hit = new Window { Title = "UiAtlas inspect grid", WindowStyle = WindowStyle.None,
+                hit = global::UiAtlas.Presentation.Appearance.Bind(new Window { Title = "UiAtlas inspect grid", WindowStyle = WindowStyle.None,
                     ResizeMode = ResizeMode.NoResize, AllowsTransparency = true,
-                    Background = new SolidColorBrush(Color.FromArgb(1, 255, 255, 255)),
-                    ShowInTaskbar = false, ShowActivated = false, Topmost = true, Cursor = Cursors.Hand };
+                    ShowInTaskbar = false, ShowActivated = false, Topmost = true, Cursor = Cursors.Hand }, ("Background", "PanelBrush"));
                 var id = grid.Id;
                 hit.PreviewMouseDown += (_, e) =>
                 {
@@ -682,8 +681,8 @@ internal sealed partial class RecordingHighlightOverlay
             {
                 var label = new Border { Background = brush, CornerRadius = new CornerRadius(4),
                     Padding = new Thickness(7, 3, 7, 3), MaxWidth = Math.Max(60, rect.Width),
-                    Child = new TextBlock { Text = "▦  " + item.Label + " · " + item.Name,
-                        Foreground = Brushes.White, FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis } };
+                    Child = global::UiAtlas.Presentation.Appearance.Bind(new TextBlock { Text = "▦  " + item.Label + " · " + item.Name,
+FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis }, ("Foreground", "AccentTextBrush")) };
                 Canvas.SetLeft(label, rect.Left + 3); Canvas.SetTop(label, rect.Top + 3);
                 _canvas.Children.Add(label);
             }
