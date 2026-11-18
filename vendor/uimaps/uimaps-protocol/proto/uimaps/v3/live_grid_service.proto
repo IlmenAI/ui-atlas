@@ -76,7 +76,7 @@ message RetrieveDataGridRequest {
   string expected_map_data_grid_ref = 7;
   string expected_process_instance = 8;
   string expected_window_handle = 9;
-  int32 maximum_scroll_mutations = 5; // 0 = legacy default 50; accepted range 1..500.
+  int32 maximum_scroll_mutations = 5; // 0 = use the service default; explicit grants range from 1 to 10000.
 }
 
 message GetDataGridAcquisitionRequest { string acquisition_ref = 1; }
