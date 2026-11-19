@@ -18,7 +18,13 @@ public partial class ShellWindow
         if (_host is not IShellBusinessUnitHost unit) { BreadcrumbBar.Visibility = Visibility.Collapsed; return; }
         BreadcrumbBar.Visibility = Visibility.Visible;
         NavigationList.Tag = new { Unit = unit.BusinessUnitName, Organization = unit.BusinessOrganizationName };
-        Crumb("Home", () => Navigate("platform-organizations"));
+        Crumb("Home", () => Navigate("platform-overview"));
+        if (_activeRoute == "platform-overview") return;
+        if (_activeRoute == "settings")
+        {
+            AddSeparator(); Crumb("Settings", () => Navigate("settings")); return;
+        }
+        AddSeparator(); Crumb("Organizations", () => Navigate("platform-organizations"));
         if (_activeRoute == "platform-organizations") return;
         if (unit.BusinessOrganizationName is { } organizationName)
         {

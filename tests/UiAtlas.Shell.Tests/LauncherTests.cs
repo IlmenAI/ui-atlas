@@ -117,10 +117,10 @@ public sealed class LauncherTests
                 var settingsScroll = Assert.IsType<ScrollViewer>(settingsView.Content);
                 var readiness = Assert.IsType<DockPanel>(settingsScroll.Content).Children.OfType<MapReadinessSettingsPanel>().Single();
                 var toggle = Assert.IsType<StackPanel>(readiness.Content).Children.OfType<CheckBox>().Single();
-                Assert.True(toggle.IsChecked);
-                toggle.IsChecked = false;
+                Assert.False(toggle.IsChecked);
+                toggle.IsChecked = true;
                 toggle.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
-                Assert.False(new MapReadinessSettingsStore(root).Load().RequireReview);
+                Assert.True(new MapReadinessSettingsStore(root).Load().RequireReview);
                 window.UpdateLayout();
                 if (Environment.GetEnvironmentVariable("UIATLAS_SETTINGS_QA_DIR") is { Length: > 0 } qa)
                 {
@@ -134,10 +134,10 @@ public sealed class LauncherTests
                     encoder.Save(image);
                 }
                 var reopened = new MapReadinessSettingsPanel(root);
-                Assert.False(Assert.IsType<StackPanel>(reopened.Content).Children.OfType<CheckBox>().Single().IsChecked);
-                toggle.IsChecked = true;
+                Assert.True(Assert.IsType<StackPanel>(reopened.Content).Children.OfType<CheckBox>().Single().IsChecked);
+                toggle.IsChecked = false;
                 toggle.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
-                Assert.True(new MapReadinessSettingsStore(root).Load().RequireReview);
+                Assert.False(new MapReadinessSettingsStore(root).Load().RequireReview);
                 window.Navigate("maps");
                 Assert.Throws<ArgumentException>(() => window.Navigate("integrations"));
                 Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name is "UIMaps.Application" or "UIMaps.LocalServices");

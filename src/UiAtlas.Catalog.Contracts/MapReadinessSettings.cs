@@ -12,7 +12,7 @@ public sealed class MapReadinessSettingsStore(string? root = null)
     public MapReadinessSettings Load() => File.Exists(_path)
         ? JsonSerializer.Deserialize<MapReadinessSettings>(File.ReadAllText(_path))
             ?? throw new InvalidDataException("Map readiness settings are empty.")
-        : new();
+        : new(false);
 
     public void Save(MapReadinessSettings settings)
     {

@@ -54,6 +54,12 @@ public partial class ShellWindow : Window
         _profiles = host.Profiles;
         _activeRoute = host.StartupRoute;
         InitializeComponent();
+        if (host is IShellWorkspaceNavigationHost workspace)
+        {
+            WorkspaceSidebar.Content = workspace.CreateWorkspaceSidebar(this);
+            WorkspaceSidebar.Visibility = Visibility.Visible;
+            NavigationList.Visibility = ProfileSelector.Visibility = Visibility.Collapsed;
+        }
         _recorderSettingsNavigation = new(() => Dispatcher.Invoke(() =>
         {
             RestoreMainWindow(); Navigate("settings");
@@ -73,7 +79,7 @@ public partial class ShellWindow : Window
             RefreshOrganizations();
             organizations.OrganizationChanged += (_, _) => Dispatcher.Invoke(() =>
             {
-                _routeBack.Clear(); RefreshOrganizations(); if (_activeRoute != "settings") _activeRoute = organizations.OrganizationId is null ? (_host is IShellBusinessUnitHost ? (_activeRoute == "platform-organizations" ? "platform-organizations" : "platform-home") : "organizations") : (_host is IShellBusinessUnitHost ? "platform-unit" : "skills");
+                _routeBack.Clear(); RefreshOrganizations(); if (_activeRoute != "settings") _activeRoute = organizations.OrganizationId is null ? (_host is IShellBusinessUnitHost ? (_activeRoute is "platform-organizations" or "platform-overview" ? _activeRoute : "platform-home") : "organizations") : (_host is IShellBusinessUnitHost ? "platform-unit" : "skills");
                 ApplyProfile(ActiveProfileId);
             });
         }
@@ -126,6 +132,15 @@ public partial class ShellWindow : Window
 
     public ExperienceProfileId ActiveProfileId => _activeProfile.Option.Id;
     public string ActiveRoute => _activeRoute;
+    public event EventHandler? PageChanged;
+    public void OpenWorkspaceDiagnostics()
+    {
+        if (ActiveProfileId == ExperienceProfileId.Diagnostics)
+            ActivateNavigation(new("diagnostics", "Diagnostics", "\uE9D2"));
+    }
+    public bool CanChangeWorkspace() => CanLeaveCurrentPage();
+    public void SelectWorkspaceProfile(ExperienceProfileId id)
+        => ProfileSelector.SelectedItem = _profiles.Profiles.First(option => option.Id == id && option.IsAvailable);
     internal MicroHudWindow? ActiveMicroHud => _microHud;
     internal RecordingDisplayScope? ActiveRecordingDisplayScope => _activeRecordingDisplayScope;
 
@@ -195,7 +210,7 @@ public partial class ShellWindow : Window
 
     public static IReadOnlyList<ExperienceNavigationItem> BusinessUnitNavigation(bool selected, ExperienceProfileId profile, bool organizationSelected = true)
     {
-        List<ExperienceNavigationItem> items = [new("platform-organizations", "Home", "\uE80F")];
+        List<ExperienceNavigationItem> items = [new("platform-overview", "Home", "\uE80F"), new("platform-organizations", "Organizations", "\uE821")];
         if (organizationSelected || selected) items.Add(new("platform-home", "Business units", "\uE81E", StartsNewSection: true));
         if (selected)
         {
@@ -308,7 +323,7 @@ public partial class ShellWindow : Window
             _restoringNavigation = false;
             return;
         }
-        if (item.Route is "platform-home" or "platform-organizations" && _host is IShellBusinessUnitHost { BusinessUnitLabel: not null } unit)
+        if (item.Route is "platform-home" or "platform-organizations" or "platform-overview" && _host is IShellBusinessUnitHost { BusinessUnitLabel: not null } unit)
         {
             _activeRoute = item.Route; unit.LeaveBusinessUnit(); return;
         }
@@ -391,7 +406,8 @@ public partial class ShellWindow : Window
         {
             if (CanLeaveCurrentPage()) _pageBackNavigation.GoBack();
         }
-        else if (_activeRoute == "platform-home") Navigate("platform-organizations");
+        else if (_activeRoute == "platform-home" && _host is IShellBusinessUnitHost) Navigate("platform-organizations");
+        else if (_activeRoute == "platform-organizations" && _host is IShellBusinessUnitHost) Navigate("platform-overview");
         else if (_activeRoute == "platform-unit" && _host is IShellBusinessUnitHost { BusinessUnitLabel: not null })
             Navigate("platform-home");
         else if (_routeBack.Count != 0)
@@ -408,7 +424,7 @@ public partial class ShellWindow : Window
     private void UpdateBackButton()
     {
         if (BackButton is not null)
-            BackButton.Visibility = _pageBackNavigation?.CanGoBack == true || _activeRoute == "platform-home" || _routeBack.Count != 0 || _host is IShellBusinessUnitHost { BusinessUnitLabel: not null }
+            BackButton.Visibility = _pageBackNavigation?.CanGoBack == true || (_host is IShellBusinessUnitHost && _activeRoute is ("platform-home" or "platform-organizations")) || _routeBack.Count != 0 || _host is IShellBusinessUnitHost { BusinessUnitLabel: not null }
                 ? Visibility.Visible
                 : Visibility.Collapsed;
     }
@@ -662,6 +678,7 @@ public partial class ShellWindow : Window
     {
         if (_pageBackNavigation is not null) _pageBackNavigation.CanGoBackChanged -= PageBackChanged;
         PageHost.Content = page;
+        PageChanged?.Invoke(this, EventArgs.Empty);
         UpdateBreadcrumbs();
         _pageBackNavigation = page as IShellBackNavigation;
         if (_pageBackNavigation is not null) _pageBackNavigation.CanGoBackChanged += PageBackChanged;

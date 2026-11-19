@@ -11,12 +11,12 @@ namespace UiAtlas.Core.Tests;
 public sealed class MapReadinessTests
 {
     [Fact]
-    public void SettingsDefaultToReviewAndPersistForBothLaunchers()
+    public void FreshSettingsSkipReviewAndPersistForBothLaunchers()
     {
         using var temp = new TempDirectory();
         var atlas = new MapReadinessSettingsStore(temp.Path);
         var mapLock = new MapReadinessSettingsStore(temp.Path);
-        Assert.True(atlas.Load().RequireReview);
+        Assert.False(atlas.Load().RequireReview);
         atlas.Save(new(false)); Assert.False(mapLock.Load().RequireReview);
         mapLock.Save(new(true)); Assert.True(atlas.Load().RequireReview);
         var path = Path.Combine(temp.Path, "map-readiness-settings.json");
@@ -34,6 +34,7 @@ public sealed class MapReadinessTests
         Assert.Contains(before.ReviewItems, item => item.Blocking && item.ReviewState == ReviewState.ReviewUnreviewed);
         var ready = new CatalogRequest("ready", temp.Path, MapId: map.Id, DraftRef: before.MapDraftRef,
             Entry: map.Entry, Generation: map.Generation);
+        new MapReadinessSettingsStore(temp.Path).Save(new(true));
         var error = await Assert.ThrowsAsync<InvalidDataException>(() => AtlasCatalogCommand.ExecuteAsync(ready));
         Assert.Contains("Require review before marking UI maps Ready", error.Message);
         Assert.Equal(before.Etag, Assert.Single(workspace.Drafts).Etag);
@@ -56,7 +57,7 @@ public sealed class MapReadinessTests
         var exact = (await AtlasCatalogCommand.ExecuteAsync(new("revision-read", temp.Path,
             MapId: map.Id, RevisionRef: revision.MapRevisionRef, RequireReady: true))).ExactRevision;
         Assert.True(exact!.Ready);
-        // Restoring the default does not revoke an existing Ready revision.
+        // Requiring review again preserves the existing Ready revision.
         new MapReadinessSettingsStore(temp.Path).Save(new());
         var repeated = await AtlasCatalogCommand.ExecuteAsync(ready);
         Assert.Equal(result.Revision, repeated.Revision);

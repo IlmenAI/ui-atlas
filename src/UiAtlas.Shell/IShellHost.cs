@@ -18,6 +18,11 @@ public interface IShellHost
     FrameworkElement CreateRecordingsView();
 }
 
+public interface IShellWorkspaceNavigationHost
+{
+    FrameworkElement CreateWorkspaceSidebar(ShellWindow window);
+}
+
 public interface IShellSettingsSectionNavigation
 {
     void ShowRecordingSettings();
