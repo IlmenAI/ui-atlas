@@ -114,7 +114,8 @@ public sealed class LauncherTests
                 Assert.IsType<DiagnosticsHubView>(page.Content);
                 window.Navigate("settings");
                 var settingsView = Assert.IsType<AtlasSettingsView>(page.Content);
-                var readiness = Assert.IsType<DockPanel>(settingsView.Content).Children.OfType<MapReadinessSettingsPanel>().Single();
+                var settingsScroll = Assert.IsType<ScrollViewer>(settingsView.Content);
+                var readiness = Assert.IsType<DockPanel>(settingsScroll.Content).Children.OfType<MapReadinessSettingsPanel>().Single();
                 var toggle = Assert.IsType<StackPanel>(readiness.Content).Children.OfType<CheckBox>().Single();
                 Assert.True(toggle.IsChecked);
                 toggle.IsChecked = false;

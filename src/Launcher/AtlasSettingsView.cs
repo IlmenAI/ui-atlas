@@ -31,7 +31,7 @@ public sealed class AtlasSettingsView : UserControl, IShellNavigationGuard
         var editor = (UIElement)_editor.Content;
         _editor.Content = null;
         root.Children.Add(editor);
-        Content = root;
+        Content = new ScrollViewer { Content = root, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
     }
     public bool CanLeave(Window owner) => _editor.ConfirmDiscard(owner);
 }

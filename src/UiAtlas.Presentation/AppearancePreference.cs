@@ -6,11 +6,8 @@ namespace UiAtlas.Presentation;
 /// <summary>Only immutable identity crosses dispatchers or process boundaries.</summary>
 public sealed record AppearancePreference(string ThemeId = "maplock", string ColorMode = "light")
 {
-    public static IReadOnlyList<(string Id, string Label)> Themes { get; } = Array.AsReadOnly(new[]
-    {
-        ("plex", "Plex"), ("aero", "Longhorn Aero"), ("chatgpt", "ChatGPT-like"),
-        ("maplock", "MapLock"), ("ilmen", "Ilmen"), ("fluent", "Fluent")
-    });
+    public static IReadOnlyList<(string Id, string Label)> Themes { get; } =
+        Array.AsReadOnly(ThemePreview.All.Select(theme => (theme.Id, theme.Label)).ToArray());
 
     public AppearancePreference Validated() => new(
         Themes.Any(t => t.Id == ThemeId) ? ThemeId : "maplock",

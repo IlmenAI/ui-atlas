@@ -1,7 +1,9 @@
 using System.IO;
 using System.Runtime.ExceptionServices;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -82,14 +84,7 @@ public sealed class AppearanceTests
                     var hc = Appearance.CreateResources(new(id, mode), true);
                     Assert.Same(SystemColors.WindowBrush, hc["CanvasBrush"]);
                     Assert.Same(SystemColors.HighlightTextBrush, hc["SelectionInkBrush"]);
-                    if (Environment.GetEnvironmentVariable("UIATLAS_APPEARANCE_QA_DIR") is { Length: > 0 } directory)
-                    {
-                        Directory.CreateDirectory(directory);
-                        var bitmap = new RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, PixelFormats.Pbgra32);
-                        bitmap.Render(window);
-                        var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
-                        using var stream = File.Create(Path.Combine(directory, $"{id}-{mode}.png")); encoder.Save(stream);
-                    }
+                    Capture(window, $"{id}-{mode}");
                 }
                 finally { window.Close(); }
             }
@@ -109,16 +104,26 @@ public sealed class AppearanceTests
                 var draft = new TextBox { Text = "Unsubmitted correction", SelectionStart = 3, SelectionLength = 5 };
                 var selector = new ComboBox { IsEditable = true, ItemsSource = new[] { "Saved map 7", "Saved map 8" }, SelectedIndex = 1 };
                 var panel = new StackPanel(); panel.Children.Add(draft); panel.Children.Add(selector);
-                var settings = new AppearanceSettingsPanel(); panel.Children.Add(settings);
-                var window = new Window { Content = panel, Width = 400, Height = 240, ShowActivated = false, ShowInTaskbar = false, Left = -10000 };
+                var settings = new AppearanceSettingsPanel();
+                var settingsSurface = Appearance.Bind(new Border { Child = settings, Padding = new Thickness(16) },
+                    ("Background", "CanvasBrush"));
+                panel.Children.Add(settingsSurface);
+                var window = new Window { Content = panel, Width = 1100, Height = 740, ShowActivated = false, ShowInTaskbar = false, Left = -10000 };
                 Appearance.Apply(window); window.Show();
                 try
                 {
                     Appearance.Bind(draft, ("Foreground", "InkBrush"));
                     window.UpdateLayout();
-                    var choices = settings.Children.OfType<WrapPanel>().Single().Children.OfType<StackPanel>()
-                        .SelectMany(field => field.Children.OfType<ComboBox>()).ToArray();
-                    choices[0].SelectedValue = "aero"; choices[1].SelectedIndex = 1;
+                    var themes = Assert.IsType<ListBox>(settings.FindName("ThemeList"));
+                    var modes = Assert.IsType<ListBox>(settings.FindName("ModeList"));
+                    var cards = themes.Items.Cast<object>().Select(item =>
+                        Assert.IsType<ListBoxItem>(themes.ItemContainerGenerator.ContainerFromItem(item))).ToArray();
+                    Assert.Equal(new[] { "Plex", "Slate", "ChatGPT-like", "MapLock", "Ilmen", "Fluent" },
+                        cards.Select(AutomationProperties.GetName));
+                    var grid = Assert.IsType<UniformGrid>(VisualTreeHelper.GetParent(cards[0]));
+                    Assert.Equal(3, grid.Columns);
+                    cards[1].IsSelected = true;
+                    Assert.IsType<ListBoxItem>(modes.Items[1]).IsSelected = true;
                     Assert.Equal(new("aero", "dark"), new AppearancePreferenceStore(path).Load());
                     var editor = (TextBox)selector.Template.FindName("PART_EditableTextBox", selector);
                     editor.Select(2, 4);
@@ -126,8 +131,9 @@ public sealed class AppearanceTests
                     foreach (var mode in new[] { "dark", "light" })
                     {
                         Appearance.SetPreference(new(id, mode)); window.UpdateLayout();
-                        Assert.Equal(id, choices[0].SelectedValue);
-                        Assert.Equal(mode == "dark" ? 1 : 0, choices[1].SelectedIndex);
+                        Assert.Equal(id, themes.SelectedValue);
+                        Assert.Equal(mode, modes.SelectedValue);
+                        if (id == "ilmen") Capture(settingsSurface, $"picker-{id}-{mode}");
                         Assert.Same(panel, window.Content);
                         Assert.Equal("Unsubmitted correction", draft.Text);
                         Assert.Equal(3, draft.SelectionStart); Assert.Equal(5, draft.SelectionLength);
@@ -136,11 +142,27 @@ public sealed class AppearanceTests
                         Assert.Equal(2, editor.SelectionStart); Assert.Equal(4, editor.SelectionLength);
                         Assert.Same(window.FindResource("InkBrush"), draft.Foreground);
                     }
+                    window.Width = 440; window.UpdateLayout();
+                    Assert.Equal(2, grid.Columns);
+                    window.Width = 300; window.UpdateLayout();
+                    Assert.Equal(1, grid.Columns);
                     // An independent process writes this same atomic store. Timer and activation both use Refresh.
                     new AppearancePreferenceStore(path).Save(new("ilmen", "dark"));
                     Appearance.Refresh();
                     Assert.Equal(new("ilmen", "dark"), Appearance.Current);
+                    Assert.Equal("ilmen", themes.SelectedValue);
+                    Assert.Equal("dark", modes.SelectedValue);
                     Assert.Same(window.FindResource("InkBrush"), draft.Foreground);
+
+                    // A failed save must restore the card for the still-active theme.
+                    Environment.SetEnvironmentVariable("UIMAPS_APPEARANCE_SETTINGS", Path.Combine(path, "unwritable.json"));
+                    try
+                    {
+                        cards[1].IsSelected = true;
+                        Assert.Equal("ilmen", themes.SelectedValue);
+                        Assert.True(Assert.IsType<TextBlock>(settings.FindName("SaveError")).IsVisible);
+                    }
+                    finally { Environment.SetEnvironmentVariable("UIMAPS_APPEARANCE_SETTINGS", path); }
                 }
                 finally { window.Close(); }
                 var closedResources = window.Resources.MergedDictionaries.Last();
@@ -201,6 +223,20 @@ public sealed class AppearanceTests
             }
         }
         finally { Environment.SetEnvironmentVariable("UIMAPS_APPEARANCE_SETTINGS", previous); File.Delete(path); }
+    }
+
+    private static void Capture(FrameworkElement element, string name)
+    {
+        if (Environment.GetEnvironmentVariable("UIATLAS_APPEARANCE_QA_DIR") is not { Length: > 0 } directory) return;
+        Directory.CreateDirectory(directory);
+        var bitmap = new RenderTargetBitmap((int)Math.Ceiling(element.ActualWidth),
+            (int)Math.Ceiling(element.ActualHeight), 96, 96, PixelFormats.Pbgra32);
+        var drawing = new DrawingVisual();
+        using (var context = drawing.RenderOpen())
+            context.DrawRectangle(new VisualBrush(element), null, new Rect(element.RenderSize));
+        bitmap.Render(drawing);
+        var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        using var stream = File.Create(Path.Combine(directory, name + ".png")); encoder.Save(stream);
     }
 
     private static void Sta(Action action)
