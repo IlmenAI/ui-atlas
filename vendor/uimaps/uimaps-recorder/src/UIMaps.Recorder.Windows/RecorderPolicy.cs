@@ -27,6 +27,7 @@ public sealed record RecorderPolicy(
     public IReadOnlySet<string> TargetWindowHandleEvidence { get; init; } = new HashSet<string>(StringComparer.Ordinal);
     public string TargetProcessInstanceEvidence { get; init; } = string.Empty;
     public bool RuntimeGroundingWindowScope { get; init; }
+    public string RuntimeRootWindowHandle { get; init; } = string.Empty;
     public static RecorderPolicy Default { get; } = new(
         TimeSpan.FromSeconds(5),
         TimeSpan.FromSeconds(1),
@@ -99,6 +100,7 @@ public sealed record RecorderPolicy(
             UseCachedUia = value.ResolvedProfileRef?.ProfileId == "capture-optimized",
             ReuseMsaaClientRoot = value.ResolvedProfileRef?.ProfileId == "capture-optimized",
             RuntimeGroundingWindowScope = value.ResolvedProfileRef?.ProfileId == "runtime-grounding",
+            RuntimeRootWindowHandle = value.CaptureScope?.TargetWindowHandleEvidence.FirstOrDefault() ?? string.Empty,
             CaptureMsaa = value.ProviderBudgets.Any(budget => budget.ProviderId == "msaa"),
             ExhaustiveCoverage = exhaustive,
             MaxNodesPerEpisode = exhaustive ? int.MaxValue : value.MaxNodesPerEpisode,

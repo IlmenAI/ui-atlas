@@ -49,6 +49,7 @@ public sealed partial class AtlasRecordingsView : UserControl
             StatusFilter.SelectedIndex, SortFilter.SelectedIndex);
         RecordingList.ItemsSource = items;
         var total = _recordings.Count(item => item.Archived == archived);
+        ResultsCount.Text = $"{items.Length:N0} {(items.Length == 1 ? "RESULT" : "RESULTS")}";
         CountText.Text = $"{items.Length} of {total} {(archived ? "archived" : "active")} recordings";
         EmptyMessage.Visibility = items.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
         EmptyMessage.Text = total == 0 ? archived ? "No archived recordings." : "No recordings yet. Import a recording or record a UI Map from Maps."

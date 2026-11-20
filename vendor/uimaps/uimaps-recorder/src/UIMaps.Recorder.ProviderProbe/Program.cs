@@ -23,7 +23,7 @@ try
     IMessage response = request.Operation switch
     {
         "screen" => await CaptureScreenAsync(request),
-        "windows" => await CaptureWindowsAsync(request),
+        "windows" or "runtime-windows" => await CaptureWindowsAsync(request),
         "target-window" => await new NativeWindowTopologyProvider().CaptureWindowAsync(
             ToDisplay(request), request.WindowHandle, RecorderPolicy.Default, CancellationToken.None),
         "native-accessibility" => CaptureNativeAccessibility(request),
@@ -56,7 +56,9 @@ static async Task<ScreenshotPacket> CaptureScreenAsync(ProbeRequest request)
 static async Task<WindowTopologyPacket> CaptureWindowsAsync(ProbeRequest request)
 {
     var display = ToDisplay(request);
-    var policy = RecorderPolicy.Default with { MaxWindows = request.MaxWindows };
+    var policy = request.Operation == "runtime-windows"
+        ? (request.AssignedWindows ?? throw new InvalidDataException("Assigned window scope is required.")).ToPolicy(request.MaxWindows)
+        : RecorderPolicy.Default with { MaxWindows = request.MaxWindows };
     return await new NativeWindowTopologyProvider().CaptureAsync(display, policy, CancellationToken.None);
 }
 

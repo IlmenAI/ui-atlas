@@ -1,4 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ResourceDictionary.MergedDictionaries>
+    <ResourceDictionary Source="WorkspaceIcons.xaml"/>
+  </ResourceDictionary.MergedDictionaries>
       <SolidColorBrush x:Key="TransparentBrush" Color="Transparent"/>
       <!-- Window close states are independent of brand and status palettes. -->
       <SolidColorBrush x:Key="WindowCloseHoverBrush" Color="#C42B1C"/>
@@ -29,7 +32,13 @@
         <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="0"/>
         <Setter Property="Template" Value="{DynamicResource WindowCloseButtonTemplate}"/>
       </Style>
+      <Style x:Key="WorkspaceKeyboardFocus">
+        <Setter Property="Control.Template"><Setter.Value><ControlTemplate>
+          <Border BorderBrush="{DynamicResource FocusBrush}" BorderThickness="1" CornerRadius="4" Margin="1" IsHitTestVisible="False"/>
+        </ControlTemplate></Setter.Value></Setter>
+      </Style>
       <Style TargetType="Button">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource WorkspaceKeyboardFocus}"/>
         <Setter Property="Background" Value="{DynamicResource ButtonBrush}"/><Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/><Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Padding" Value="12,7"/><Setter Property="MinHeight" Value="32"/>
@@ -41,7 +50,6 @@
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="Opacity" Value="0.86"/></Trigger>
             <Trigger Property="IsPressed" Value="True"><Setter TargetName="Frame" Property="Opacity" Value="0.68"/></Trigger>
-            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource FocusBrush}"/><Setter TargetName="Frame" Property="BorderThickness" Value="2"/></Trigger>
             <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Frame" Property="Background" Value="{DynamicResource DisabledFillBrush}"/><Setter Property="Foreground" Value="{DynamicResource DisabledInkBrush}"/></Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate></Setter.Value></Setter>
@@ -50,11 +58,11 @@
         <Setter Property="Padding" Value="10,8"/><Setter Property="Background" Value="{DynamicResource InputBrush}"/><Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/><Setter Property="BorderThickness" Value="1"/>
         <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox">
-          <Border x:Name="Frame" CornerRadius="{DynamicResource ControlCornerRadius}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+          <Border x:Name="Frame" CornerRadius="{DynamicResource ControlCornerRadius}" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
             <ScrollViewer x:Name="PART_ContentHost"/>
           </Border>
           <ControlTemplate.Triggers>
-            <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/><Setter TargetName="Frame" Property="BorderThickness" Value="2"/></Trigger>
+            <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></Trigger>
             <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="{DynamicResource DisabledInkBrush}"/><Setter Property="Background" Value="{DynamicResource DisabledFillBrush}"/></Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate></Setter.Value></Setter>
@@ -184,6 +192,26 @@
                     </Setter.Value>
                 </Setter>
             </Style>
+            <!-- The preview uses tightly tracked display type. WPF TextBlock preserves its native line metrics with this horizontal scale. -->
+            <ScaleTransform x:Key="WorkspaceDisplayWidth" ScaleX="0.934"/>
+            <Style x:Key="WorkspaceStatusTextStyle" TargetType="TextBlock">
+                <Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger></Style.Triggers>
+            </Style>
+            <Style x:Key="WorkspaceIconButtonStyle" TargetType="Button">
+                <Setter Property="Width" Value="34"/><Setter Property="Height" Value="39"/>
+                <Setter Property="Background" Value="{DynamicResource PanelBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/>
+                <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="5">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource SoftBrush}"/></Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate></Setter.Value></Setter>
+            </Style>
             <Style x:Key="SecondaryActionButtonStyle" TargetType="Button"
                    BasedOn="{StaticResource RecorderSecondaryButtonStyle}">
                 <Setter Property="MinHeight" Value="38" />
@@ -238,7 +266,30 @@
   <Style TargetType="ListBoxItem"><Setter Property="Foreground" Value="{DynamicResource InkBrush}"/><Setter Property="Padding" Value="10,7"/><Style.Triggers><Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="{DynamicResource AccentSelectionBrush}"/><Setter Property="Foreground" Value="{DynamicResource SelectionInkBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource SelectionBorderBrush}"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="{DynamicResource DisabledInkBrush}"/></Trigger></Style.Triggers></Style>
   <Style TargetType="TreeView"><Setter Property="Background" Value="{DynamicResource PanelBrush}"/><Setter Property="Foreground" Value="{DynamicResource InkBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/></Style>
   <Style TargetType="TreeViewItem"><Setter Property="Foreground" Value="{DynamicResource InkBrush}"/></Style>
-  <Style TargetType="Expander"><Setter Property="Foreground" Value="{DynamicResource InkBrush}"/><Setter Property="Background" Value="{DynamicResource PanelBrush}"/></Style>
+  <Style TargetType="Expander">
+    <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/><Setter Property="Background" Value="{DynamicResource PanelBrush}"/>
+    <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+    <Style.Triggers><Trigger Property="ExpandDirection" Value="Down">
+    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Expander">
+      <StackPanel HorizontalAlignment="Stretch"><ToggleButton x:Name="Switch" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+          FocusVisualStyle="{StaticResource WorkspaceKeyboardFocus}" Content="{TemplateBinding Header}" ContentTemplate="{TemplateBinding HeaderTemplate}">
+        <ToggleButton.Template><ControlTemplate TargetType="ToggleButton">
+          <Border x:Name="Surface" Padding="14,10" MinHeight="40" BorderThickness="1" BorderBrush="{DynamicResource LineBrush}" Background="{DynamicResource PanelBrush}" CornerRadius="6">
+            <DockPanel><TextBlock x:Name="Chevron" DockPanel.Dock="Right" FontFamily="Segoe Fluent Icons" Text="&#xE70D;" FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"/>
+              <ContentPresenter VerticalAlignment="Center" RecognizesAccessKey="True"/></DockPanel>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True"><Setter TargetName="Chevron" Property="Text" Value="&#xE70E;"/></Trigger>
+            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="{DynamicResource SoftBrush}"/></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate></ToggleButton.Template>
+      </ToggleButton>
+      <ContentPresenter x:Name="Body" Visibility="Collapsed" ContentSource="Content" Margin="12,8,12,12" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+      </StackPanel><ControlTemplate.Triggers><Trigger Property="IsExpanded" Value="True"><Setter TargetName="Body" Property="Visibility" Value="Visible"/></Trigger></ControlTemplate.Triggers>
+    </ControlTemplate></Setter.Value></Setter>
+    </Trigger></Style.Triggers>
+  </Style>
   <Style TargetType="TabControl"><Setter Property="Background" Value="{DynamicResource PanelBrush}"/><Setter Property="Foreground" Value="{DynamicResource InkBrush}"/><Setter Property="BorderBrush" Value="{DynamicResource LineBrush}"/></Style>
   <Style TargetType="TabItem">
     <Setter Property="Foreground" Value="{DynamicResource InkBrush}"/><Setter Property="Background" Value="{DynamicResource SoftBrush}"/>

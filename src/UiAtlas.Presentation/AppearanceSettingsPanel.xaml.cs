@@ -12,6 +12,8 @@ public sealed partial class AppearanceSettingsPanel : StackPanel
     public AppearanceSettingsPanel()
     {
         InitializeComponent();
+        // A local type in this XAML forces a second markup pass for the theme assembly.
+        PaletteIconHost.Child = new WorkspaceIcon { Kind = "palette", Width = 17, Height = 17 };
         ThemeList.ItemsSource = ThemePreview.All;
         Sync();
         ThemeList.SelectionChanged += Save;

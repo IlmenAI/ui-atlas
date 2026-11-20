@@ -19,7 +19,34 @@ public sealed record ProbeRequest(
     int MaxDepth,
     int MaxWindows,
     long DeadlineTimestamp = 0,
-    string InteractionRequest = "");
+    string InteractionRequest = "")
+{
+    public RuntimeWindowCensus? AssignedWindows { get; init; }
+}
+
+public sealed record RuntimeWindowCensus(string RootHandle, string ProcessInstance, string? PopupHandle)
+{
+    internal static RuntimeWindowCensus FromPolicy(RecorderPolicy policy)
+    {
+        var handles = policy.TargetWindowHandleEvidence;
+        var root = policy.RuntimeRootWindowHandle;
+        if (root.Length == 0 && handles.Count == 1) root = handles.Single();
+        if (handles.Count is < 1 or > 2 || !handles.Contains(root) || handles.Any(handle =>
+                !long.TryParse(handle, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var value)
+                || value <= 0 || value.ToString(System.Globalization.CultureInfo.InvariantCulture) != handle)
+            || string.IsNullOrWhiteSpace(policy.TargetProcessInstanceEvidence))
+            throw new RecorderException("RECORDER_RUNTIME_WINDOW_SCOPE_INVALID", "Assigned capture requires one identified root and at most one owned popup.");
+        return new(root, policy.TargetProcessInstanceEvidence, handles.SingleOrDefault(handle => handle != root));
+    }
+
+    // Both the private and standalone worker use the same capture contract.
+    public RecorderPolicy ToPolicy(int maxWindows) => RecorderPolicy.Default with
+    {
+        RuntimeGroundingWindowScope = true, RuntimeRootWindowHandle = RootHandle,
+        TargetProcessInstanceEvidence = ProcessInstance, MaxWindows = maxWindows,
+        TargetWindowHandleEvidence = PopupHandle is null ? new HashSet<string> { RootHandle } : new HashSet<string> { RootHandle, PopupHandle },
+    };
+}
 
 public interface IProviderProcessRunner
 {
@@ -223,6 +250,14 @@ public sealed class IsolatedWindowTopologyProvider(IProviderProcessRunner runner
 {
     public async Task<WindowTopologyPacket> CaptureAsync(DisplayDescriptor display, RecorderPolicy policy, CancellationToken cancellationToken)
     {
+        if (policy.RuntimeGroundingWindowScope)
+        {
+            // The worker still enumerates every HWND for owner relationships. An exact-HWND
+            // timeout fallback would omit newly opened owned dialogs from that census.
+            var request = new ProbeRequest("runtime-windows", display.BoundsPx.X, display.BoundsPx.Y, display.WidthPx,
+                display.HeightPx, 0, string.Empty, 0, 0, policy.MaxWindows) { AssignedWindows = RuntimeWindowCensus.FromPolicy(policy) };
+            return await runner.RunAsync(request, WindowTopologyPacket.Parser, policy.WindowTopologyDeadline, cancellationToken).ConfigureAwait(false);
+        }
         // Always census the native top-level set before applying a bounded
         // profile. Otherwise an arbitrary EnumWindows/Z-order prefix can omit
         // the explicitly targeted window before target priority is evaluated.

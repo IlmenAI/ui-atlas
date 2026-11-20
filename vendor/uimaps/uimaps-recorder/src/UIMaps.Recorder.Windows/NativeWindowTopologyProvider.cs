@@ -19,18 +19,30 @@ public sealed class NativeWindowTopologyProvider : IWindowTopologyProvider
         var packet = new WindowTopologyPacket { Health = ProtocolHealth.Complete() };
         var observed = 0;
         var zOrder = 0;
+        var incompleteFamily = false;
         var catalog = new List<WindowObservationRecord>();
         var currentSessionId = Process.GetCurrentProcess().SessionId;
         var processEvidence = new Dictionary<uint, ProcessEvidence>();
+        var scope = policy.RuntimeGroundingWindowScope ? RuntimeWindowCensus.FromPolicy(policy) : null;
         bool ObserveWindow(IntPtr hwnd, IntPtr unused)
         {
             cancellationToken.ThrowIfCancellationRequested();
             observed++;
+            var handle = HandleEvidence(hwnd);
+            var owner = NativeWindowMethods.GetWindow(hwnd, 4);
+            var rootOwner = HandleEvidence(NativeWindowMethods.GetAncestor(hwnd, 3));
+            var immediateOwner = HandleEvidence(owner);
+            var inScope = scope is null || IsInRuntimeFamily(handle, rootOwner, immediateOwner, policy.TargetWindowHandleEvidence);
             if (!NativeWindowMethods.GetWindowRect(hwnd, out var rect))
             {
+                if (scope is not null && inScope) incompleteFamily = true;
                 return true;
             }
 
+            var windowZOrder = zOrder++;
+            // Enumerate the whole desktop in native order, but read titles, DWM, process
+            // lifetime and package metadata only for windows eligible for this request.
+            if (!inScope) return true;
             var windowBounds = NativeMethods.ToRect(rect);
             var extendedFrameResult = NativeWindowMethods.DwmGetWindowAttribute(
                 hwnd, NativeWindowMethods.DwmwaExtendedFrameBounds, out NativeMethods.NativeRect extendedFrameRect,
@@ -49,8 +61,6 @@ public sealed class NativeWindowTopologyProvider : IWindowTopologyProvider
 
             var cloaked = 0;
             _ = NativeWindowMethods.DwmGetWindowAttribute(hwnd, NativeWindowMethods.DwmwaCloaked, out cloaked, sizeof(int));
-            var owner = NativeWindowMethods.GetWindow(hwnd, 4);
-            var rootOwner = NativeWindowMethods.GetAncestor(hwnd, 3);
             var visible = NativeWindowMethods.IsWindowVisible(hwnd);
             var minimized = NativeWindowMethods.IsIconic(hwnd);
             var intersects = IsMeaningfulIntersection(intersection);
@@ -69,12 +79,12 @@ public sealed class NativeWindowTopologyProvider : IWindowTopologyProvider
                 ProcessId = pid,
                 ProcessName = evidence.ProcessName,
                 ExecutablePath = evidence.ExecutablePath,
-                WindowHandleEvidence = hwnd.ToInt64().ToString(System.Globalization.CultureInfo.InvariantCulture),
+                WindowHandleEvidence = handle,
                 Title = title,
                 ClassName = className,
                 BoundsPx = bounds,
                 IntersectionWithDisplayPx = intersection,
-                ZOrder = zOrder,
+                ZOrder = windowZOrder,
                 IsVisible = visible,
                 IsMinimized = minimized,
                 IsCloakedOrUnavailable = cloaked != 0,
@@ -82,7 +92,7 @@ public sealed class NativeWindowTopologyProvider : IWindowTopologyProvider
                 ProcessInstanceEvidence = evidence.ProcessInstance,
                 ApplicationUserModelId = evidence.ApplicationUserModelId,
                 PackageFamilyName = evidence.PackageFamilyName,
-                RootOwnerHandleEvidence = rootOwner.ToInt64().ToString(System.Globalization.CultureInfo.InvariantCulture),
+                RootOwnerHandleEvidence = rootOwner,
                 IsForeground = foreground,
                 IsActive = foreground,
                 IsToolWindow = (style & 0x80L) != 0,
@@ -95,9 +105,8 @@ public sealed class NativeWindowTopologyProvider : IWindowTopologyProvider
                 CaptureRelevance = eligibility == "eligible" ? "active_probe" : "catalog_only",
                 Health = ProtocolHealth.Complete(),
             };
-            if (owner != IntPtr.Zero) record.OwnerChainEvidence.Add(owner.ToInt64().ToString(System.Globalization.CultureInfo.InvariantCulture));
+            if (owner != IntPtr.Zero) record.OwnerChainEvidence.Add(immediateOwner);
             catalog.Add(record);
-            zOrder++;
             return true;
         }
 
@@ -106,7 +115,10 @@ public sealed class NativeWindowTopologyProvider : IWindowTopologyProvider
             // A fresh native observation; no cached identity or desktop census.
             if (target != IntPtr.Zero) ObserveWindow(target, IntPtr.Zero);
         }
-        else NativeWindowMethods.EnumWindows(ObserveWindow, IntPtr.Zero);
+        else if (!NativeWindowMethods.EnumWindows(ObserveWindow, IntPtr.Zero)) incompleteFamily = true;
+
+        if (scope is not null)
+            return Task.FromResult(CompleteRuntimeCensus(catalog, observed, policy, scope, !incompleteFamily));
 
         var included = ApplyPolicy(catalog, policy);
         packet.Windows.AddRange(included);
@@ -118,6 +130,38 @@ public sealed class NativeWindowTopologyProvider : IWindowTopologyProvider
             packet.Health = ProtocolHealth.Single(HealthState.WindowLimited, "RECORDER_WINDOW_LIMIT_REACHED", "Window capture reached its configured limit.", "window_topology");
         }
         return Task.FromResult(packet);
+    }
+
+    private static string HandleEvidence(nint handle) => handle.ToInt64().ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    internal static bool IsInRuntimeFamily(string handle, string rootOwner, string immediateOwner, IReadOnlySet<string> targets) =>
+        targets.Contains(handle) || targets.Contains(rootOwner) || targets.Contains(immediateOwner);
+
+    internal static WindowTopologyPacket CompleteRuntimeCensus(IReadOnlyList<WindowObservationRecord> catalog,
+        int observed, RecorderPolicy policy, RuntimeWindowCensus scope, bool complete)
+    {
+        var packet = new WindowTopologyPacket { WindowsObserved = observed };
+        bool EligibleAssignment(WindowObservationRecord w) => w.ProcessInstanceEvidence == scope.ProcessInstance
+            && w.SelectionEligibility == "eligible" && w.IsVisible && !w.IsMinimized && !w.IsCloakedOrUnavailable;
+        var root = catalog.FirstOrDefault(w => w.WindowHandleEvidence == scope.RootHandle);
+        var popup = catalog.FirstOrDefault(w => w.WindowHandleEvidence == scope.PopupHandle);
+        if (!complete || root is null || !EligibleAssignment(root)
+            || (scope.PopupHandle is not null && (popup is null || !EligibleAssignment(popup)
+                || (popup.RootOwnerHandleEvidence != scope.RootHandle && !popup.OwnerChainEvidence.Contains(scope.RootHandle)))))
+        {
+            packet.WindowLimited = true;
+            packet.Health = ProtocolHealth.Single(HealthState.Partial, "RECORDER_RUNTIME_WINDOW_SCOPE_CHANGED",
+                "The native window census could not confirm the assigned root and its owned window family.", "window_topology");
+            return packet;
+        }
+        packet.Windows.AddRange(ApplyPolicy(catalog, policy));
+        packet.WindowsIncluded = packet.Windows.Count;
+        packet.WindowLimited = packet.WindowsIncluded < observed;
+        packet.Health = packet.WindowLimited
+            ? ProtocolHealth.Single(HealthState.WindowLimited, "RECORDER_RUNTIME_WINDOW_SCOPE",
+                "All top-level handles were enumerated. Detailed observations cover the assigned window family.", "window_topology")
+            : ProtocolHealth.Complete();
+        return packet;
     }
 
     [DllImport("user32.dll")]

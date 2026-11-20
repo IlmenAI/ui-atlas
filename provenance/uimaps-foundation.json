@@ -469,16 +469,16 @@
       "repository": "https://github.com/IlmenAI/UI-Atlas",
       "commit": "8d6514273cfcb25f01feac2d492286f6fd88e89a",
       "source": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/NativeWindowTopologyProvider.cs",
-      "sha256": "3a88e2234ec1d0937cc6b75f144bcec5078301ab19467127d876fac16a981e12",
-      "disposition": "atlas-integrated-source"
+      "sha256": "79745f5eaad5e313c6497cec085736e19afb53215b7ceb4ddc9e6886cf21248a",
+      "disposition": "reviewed-adaptation: enumerate top-level handles in native order and validate the assigned window family before returning its detailed observations"
     },
     {
       "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/ProviderIsolation.cs",
       "repository": "https://github.com/AI-Successors/uimaps-recorder",
       "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
       "source": "src/UIMaps.Recorder.Windows/ProviderIsolation.cs",
-      "sha256": "06464e2f37691a857e78c217ceaa4a30105ed82c145ab2fa0095d13ac0df16a7",
-      "disposition": "reviewed-adaptation: candidate cached UIA and MSAA root reuse; explicit alias diagnostics; bounded visual cooperative deadline; shared-budget exact root/modal topology recovery",
+      "sha256": "d47c6c384079bad0c7f074c7c939331a6b45571ef9aa31e31e20e5d788ab20d0",
+      "disposition": "reviewed-adaptation: candidate cached UIA and MSAA root reuse; explicit alias diagnostics; bounded visual cooperative deadline; shared-budget exact root/modal topology recovery for general captures; assigned-family recovery requires a full ownership census",
       "reviewEvidence": "tests/UiAtlas.Core.Windows.Tests/MsaaRootAliasTests.cs; tests/UiAtlas.Core.Windows.Tests/OptimizedCaptureProfileTests.cs; tests/UiAtlas.Core.Windows.Tests/TargetWindowRecoveryTests.cs"
     },
     {
@@ -502,8 +502,8 @@
       "repository": "https://github.com/AI-Successors/uimaps-recorder",
       "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
       "source": "src/UIMaps.Recorder.Windows/RecorderPolicy.cs",
-      "sha256": "b0548ea4cae21a75441fd0487e6b72f5e6206d5826b924e9d54b15b5afdc717d",
-      "disposition": "reviewed-adaptation: opt-in candidate UIA cache and request-local MSAA root reuse",
+      "sha256": "384bdc7f4c8f4ecf0848e220af3a5aae763ede476a3cffa87797aeb86b620332",
+      "disposition": "reviewed-adaptation: opt-in candidate UIA cache and request-local MSAA root reuse; preserve the explicitly assigned root handle for runtime grounding",
       "reviewEvidence": "tests/UiAtlas.Core.Windows.Tests/MsaaRootAliasTests.cs; tests/UiAtlas.Core.Windows.Tests/OptimizedCaptureProfileTests.cs"
     },
     {
@@ -511,8 +511,8 @@
       "repository": "https://github.com/AI-Successors/uimaps-recorder",
       "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
       "source": "src/UIMaps.Recorder.ProviderProbe/Program.cs",
-      "sha256": "2686786a1ed5e9c8871a23048c36667a74d4832f82b5291ad38a7e902814b24f",
-      "disposition": "reviewed-adaptation: manual field evidence presence and safe value acquisition; original import reference retained",
+      "sha256": "96e3b91f0b9151e416dd2732e2b9dddc38933a1f9fa7217218988fb3d81fbf3c",
+      "disposition": "reviewed-adaptation: manual field evidence presence and safe value acquisition; dispatch assigned-window census requests with their explicit scope; original import reference retained",
       "reviewEvidence": "tests/UiAtlas.Core.Windows.Tests/MsaaRootAliasTests.cs; tests/UiAtlas.Core.Windows.Tests/OptimizedCaptureProfileTests.cs"
     },
     {

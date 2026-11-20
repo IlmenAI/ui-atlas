@@ -1,0 +1,212 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Lucide outline geometry from the approved MapLock preview. See Lucide-LICENSE.txt. -->
+  <GeometryGroup x:Key="WorkspaceIcon.house">
+    <PathGeometry Figures="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/>
+    <PathGeometry Figures="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.building-2">
+    <PathGeometry Figures="M10 12h4"/>
+    <PathGeometry Figures="M10 8h4"/>
+    <PathGeometry Figures="M14 21v-3a2 2 0 0 0-4 0v3"/>
+    <PathGeometry Figures="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/>
+    <PathGeometry Figures="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.folders">
+    <PathGeometry Figures="M20 5a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2.5a1.5 1.5 0 0 1 1.2.6l.6.8a1.5 1.5 0 0 0 1.2.6z"/>
+    <PathGeometry Figures="M3 8.268a2 2 0 0 0-1 1.738V19a2 2 0 0 0 2 2h11a2 2 0 0 0 1.732-1"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.hotel">
+    <PathGeometry Figures="M10 22v-6.57"/>
+    <PathGeometry Figures="M12 11h.01"/>
+    <PathGeometry Figures="M12 7h.01"/>
+    <PathGeometry Figures="M14 15.43V22"/>
+    <PathGeometry Figures="M15 16a5 5 0 0 0-6 0"/>
+    <PathGeometry Figures="M16 11h.01"/>
+    <PathGeometry Figures="M16 7h.01"/>
+    <PathGeometry Figures="M8 11h.01"/>
+    <PathGeometry Figures="M8 7h.01"/>
+    <RectangleGeometry Rect="4.0,2.0,16.0,20.0" RadiusX="2.0" RadiusY="2.0"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.sparkles">
+    <PathGeometry Figures="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/>
+    <PathGeometry Figures="M20 2v4"/>
+    <PathGeometry Figures="M22 4h-4"/>
+    <EllipseGeometry Center="4.0,20.0" RadiusX="2.0" RadiusY="2.0"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.app-window">
+    <RectangleGeometry Rect="2.0,4.0,20.0,16.0" RadiusX="2.0" RadiusY="2.0"/>
+    <PathGeometry Figures="M10 4v4"/>
+    <PathGeometry Figures="M2 8h20"/>
+    <PathGeometry Figures="M6 4v4"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.book-open">
+    <PathGeometry Figures="M12 7v14"/>
+    <PathGeometry Figures="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.network">
+    <RectangleGeometry Rect="16.0,16.0,6.0,6.0" RadiusX="1.0" RadiusY="1.0"/>
+    <RectangleGeometry Rect="2.0,16.0,6.0,6.0" RadiusX="1.0" RadiusY="1.0"/>
+    <RectangleGeometry Rect="9.0,2.0,6.0,6.0" RadiusX="1.0" RadiusY="1.0"/>
+    <PathGeometry Figures="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/>
+    <PathGeometry Figures="M12 12V8"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.database">
+    <EllipseGeometry Center="12.0,5.0" RadiusX="9.0" RadiusY="3.0"/>
+    <PathGeometry Figures="M3 5V19A9 3 0 0 0 21 19V5"/>
+    <PathGeometry Figures="M3 12A9 3 0 0 0 21 12"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.list-checks">
+    <PathGeometry Figures="M13 5h8"/>
+    <PathGeometry Figures="M13 12h8"/>
+    <PathGeometry Figures="M13 19h8"/>
+    <PathGeometry Figures="m3 17 2 2 4-4"/>
+    <PathGeometry Figures="m3 7 2 2 4-4"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.panels-top-left">
+    <RectangleGeometry Rect="3.0,3.0,18.0,18.0" RadiusX="2.0" RadiusY="2.0"/>
+    <PathGeometry Figures="M3 9h18"/>
+    <PathGeometry Figures="M9 21V9"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.sliders-horizontal">
+    <PathGeometry Figures="M10 5H3"/>
+    <PathGeometry Figures="M12 19H3"/>
+    <PathGeometry Figures="M14 3v4"/>
+    <PathGeometry Figures="M16 17v4"/>
+    <PathGeometry Figures="M21 12h-9"/>
+    <PathGeometry Figures="M21 19h-5"/>
+    <PathGeometry Figures="M21 5h-7"/>
+    <PathGeometry Figures="M8 10v4"/>
+    <PathGeometry Figures="M8 12H3"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.library-big">
+    <RectangleGeometry Rect="3.0,3.0,8.0,18.0" RadiusX="1.0" RadiusY="1.0"/>
+    <PathGeometry Figures="M7 3v18"/>
+    <PathGeometry Figures="M20.4 18.9c.2.5-.1 1.1-.6 1.3l-1.9.7c-.5.2-1.1-.1-1.3-.6L11.1 5.1c-.2-.5.1-1.1.6-1.3l1.9-.7c.5-.2 1.1.1 1.3.6Z"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.plug">
+    <PathGeometry Figures="M12 22v-5"/>
+    <PathGeometry Figures="M15 8V2"/>
+    <PathGeometry Figures="M17 8a1 1 0 0 1 1 1v4a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1z"/>
+    <PathGeometry Figures="M9 8V2"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.video">
+    <PathGeometry Figures="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/>
+    <RectangleGeometry Rect="2.0,6.0,14.0,12.0" RadiusX="2.0" RadiusY="2.0"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.layers">
+    <PathGeometry Figures="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/>
+    <PathGeometry Figures="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/>
+    <PathGeometry Figures="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.settings-2">
+    <PathGeometry Figures="M14 17H5"/>
+    <PathGeometry Figures="M19 7h-9"/>
+    <EllipseGeometry Center="17.0,17.0" RadiusX="3.0" RadiusY="3.0"/>
+    <EllipseGeometry Center="7.0,7.0" RadiusX="3.0" RadiusY="3.0"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.activity">
+    <PathGeometry Figures="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.server">
+    <RectangleGeometry Rect="2.0,2.0,20.0,8.0" RadiusX="2.0" RadiusY="2.0"/>
+    <RectangleGeometry Rect="2.0,14.0,20.0,8.0" RadiusX="2.0" RadiusY="2.0"/>
+    <LineGeometry StartPoint="6.0,6.0" EndPoint="6.01,6.0"/>
+    <LineGeometry StartPoint="6.0,18.0" EndPoint="6.01,18.0"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.hard-drive">
+    <PathGeometry Figures="M10 16h.01"/>
+    <PathGeometry Figures="M2.212 11.577a2 2 0 0 0-.212.896V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5.527a2 2 0 0 0-.212-.896L18.55 5.11A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+    <PathGeometry Figures="M21.946 12.013H2.054"/>
+    <PathGeometry Figures="M6 16h.01"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.cpu">
+    <PathGeometry Figures="M12 20v2"/>
+    <PathGeometry Figures="M12 2v2"/>
+    <PathGeometry Figures="M17 20v2"/>
+    <PathGeometry Figures="M17 2v2"/>
+    <PathGeometry Figures="M2 12h2"/>
+    <PathGeometry Figures="M2 17h2"/>
+    <PathGeometry Figures="M2 7h2"/>
+    <PathGeometry Figures="M20 12h2"/>
+    <PathGeometry Figures="M20 17h2"/>
+    <PathGeometry Figures="M20 7h2"/>
+    <PathGeometry Figures="M7 20v2"/>
+    <PathGeometry Figures="M7 2v2"/>
+    <RectangleGeometry Rect="4.0,4.0,16.0,16.0" RadiusX="2.0" RadiusY="2.0"/>
+    <RectangleGeometry Rect="8.0,8.0,8.0,8.0" RadiusX="1.0" RadiusY="1.0"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.scan-line">
+    <PathGeometry Figures="M3 7V5a2 2 0 0 1 2-2h2"/>
+    <PathGeometry Figures="M17 3h2a2 2 0 0 1 2 2v2"/>
+    <PathGeometry Figures="M21 17v2a2 2 0 0 1-2 2h-2"/>
+    <PathGeometry Figures="M7 21H5a2 2 0 0 1-2-2v-2"/>
+    <PathGeometry Figures="M7 12h10"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.play">
+    <PathGeometry Figures="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.scan-text">
+    <PathGeometry Figures="M3 7V5a2 2 0 0 1 2-2h2"/>
+    <PathGeometry Figures="M17 3h2a2 2 0 0 1 2 2v2"/>
+    <PathGeometry Figures="M21 17v2a2 2 0 0 1-2 2h-2"/>
+    <PathGeometry Figures="M7 21H5a2 2 0 0 1-2-2v-2"/>
+    <PathGeometry Figures="M7 8h8"/>
+    <PathGeometry Figures="M7 12h10"/>
+    <PathGeometry Figures="M7 16h6"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.folder-open">
+    <PathGeometry Figures="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.file-text">
+    <PathGeometry Figures="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/>
+    <PathGeometry Figures="M14 2v5a1 1 0 0 0 1 1h5"/>
+    <PathGeometry Figures="M10 9H8"/>
+    <PathGeometry Figures="M16 13H8"/>
+    <PathGeometry Figures="M16 17H8"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.search">
+    <PathGeometry Figures="m21 21-4.34-4.34"/>
+    <EllipseGeometry Center="11.0,11.0" RadiusX="8.0" RadiusY="8.0"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.chevron-right">
+    <PathGeometry Figures="m9 18 6-6-6-6"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.chevron-down">
+    <PathGeometry Figures="m6 9 6 6 6-6"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.arrow-right">
+    <PathGeometry Figures="M5 12h14"/>
+    <PathGeometry Figures="m12 5 7 7-7 7"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.clipboard-list">
+    <RectangleGeometry Rect="8.0,2.0,8.0,4.0" RadiusX="1.0" RadiusY="1.0"/>
+    <PathGeometry Figures="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+    <PathGeometry Figures="M12 11h4"/>
+    <PathGeometry Figures="M12 16h4"/>
+    <PathGeometry Figures="M8 11h.01"/>
+    <PathGeometry Figures="M8 16h.01"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.cloud">
+    <PathGeometry Figures="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.mic">
+    <PathGeometry Figures="M12 19v3"/>
+    <PathGeometry Figures="M19 10v2a7 7 0 0 1-14 0v-2"/>
+    <RectangleGeometry Rect="9.0,2.0,6.0,13.0" RadiusX="3.0" RadiusY="3.0"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.workflow">
+    <RectangleGeometry Rect="3.0,3.0,8.0,8.0" RadiusX="2.0" RadiusY="2.0"/>
+    <PathGeometry Figures="M7 11v4a2 2 0 0 0 2 2h4"/>
+    <RectangleGeometry Rect="13.0,13.0,8.0,8.0" RadiusX="2.0" RadiusY="2.0"/>
+  </GeometryGroup>
+  <PathGeometry x:Key="WorkspaceIcon.refresh-cw" Figures="M20 7a9 9 0 1 0 1 8 M21 3v5h-5"/>
+  <PathGeometry x:Key="WorkspaceIcon.inbox" Figures="M3 13l3-8h12l3 8v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M3 13h5l2 3h4l2-3h5"/>
+  <GeometryGroup x:Key="WorkspaceIcon.palette">
+    <PathGeometry Figures="M12 22a10 10 0 1 1 10-10c0 3-2 4-4 4h-2a2 2 0 0 0-1.5 3.3A1.6 1.6 0 0 1 13 22Z"/>
+    <EllipseGeometry Center="6.5,12" RadiusX=".8" RadiusY=".8"/><EllipseGeometry Center="9,7.5" RadiusX=".8" RadiusY=".8"/>
+    <EllipseGeometry Center="14,7" RadiusX=".8" RadiusY=".8"/><EllipseGeometry Center="17.5,11" RadiusX=".8" RadiusY=".8"/>
+  </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.user-round">
+    <EllipseGeometry Center="12,7.5" RadiusX="4.5" RadiusY="4.5"/><PathGeometry Figures="M4 21a8 8 0 0 1 16 0"/>
+  </GeometryGroup>
+</ResourceDictionary>

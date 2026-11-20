@@ -12,18 +12,20 @@ public sealed class MapReadinessSettingsPanel : UserControl
     private readonly CheckBox _requireReview = new() { Content = SettingLabel, Margin = new(0, 8, 0, 8) };
     private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap, Margin = new(0, 4, 0, 0) };
 
-    public MapReadinessSettingsPanel(string? catalogRoot = null)
+    public MapReadinessSettingsPanel(string? catalogRoot = null, bool compact = false)
     {
+        _status.SetResourceReference(StyleProperty, "WorkspaceStatusTextStyle");
         _store = new(catalogRoot);
         AutomationProperties.SetName(_requireReview, SettingLabel);
-        var panel = new StackPanel { Margin = new(24, 12, 24, 12) };
-        panel.Children.Add(new TextBlock { Text = "UI Map readiness", FontSize = 18, FontWeight = FontWeights.SemiBold });
+        var panel = new StackPanel { Margin = compact ? new(0) : new(24, 12, 24, 12) };
+        if (!compact) panel.Children.Add(new TextBlock { Text = "UI Map readiness", FontSize = 18, FontWeight = FontWeights.SemiBold });
         panel.Children.Add(_requireReview);
-        panel.Children.Add(new TextBlock
+        if (!compact) panel.Children.Add(new TextBlock
         {
             Text = "When off, Mark ready automatically accepts pending map items. Validation still runs. This setting is shared by MapLock and UI Atlas.",
             TextWrapping = TextWrapping.Wrap,
         });
+        if (compact) _status.Margin = new(0);
         panel.Children.Add(_status);
         Content = panel;
         Reload();

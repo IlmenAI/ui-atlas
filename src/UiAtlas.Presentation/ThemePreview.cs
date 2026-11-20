@@ -1,22 +1,22 @@
 namespace UiAtlas.Presentation;
 
-internal sealed record ThemePreview(string Id, string Label, string Description, string TitleStart,
-    string TitleEnd, string Sidebar, string Line, string Accent, string Surface = "#FFFFFF")
+internal sealed record ThemePreview(string Id, string Label, string Description, string Accent,
+    string Line, string Sidebar)
 {
     // Each miniature has a fixed palette so the choices stay recognizable in either color mode.
     internal static IReadOnlyList<ThemePreview> All { get; } =
     [
         new("plex", "Plex", "Blue title bands, sculpted controls and softly shaded workspaces.",
-            "#4C83CB", "#7AB9F7", "#E2E8F1", "#BCCCE3", "#5595D5"),
+            "#356EB5", "#CBD7E7", "#EDF2FA"),
         new("aero", "Slate", "Silver glass, blue command bars and luminous selection.",
-            "#E1E5E6", "#A7B5C2", "#EFF2F4", "#C3CEDB", "#3E679E"),
+            "#386DA8", "#C2CBD4", "#F0F3F6"),
         new("chatgpt", "ChatGPT-like", "Neutral surfaces, quiet dividers and a text-first hierarchy.",
-            "#F8F8F8", "#F8F8F8", "#EEEEEE", "#D7D7D7", "#222222"),
+            "#222222", "#E3E3E3", "#F4F4F5"),
         new("maplock", "MapLock", "The current MapLock palette, Segoe UI and familiar blue accents.",
-            "#F8FBFF", "#F8FBFF", "#F0F5FB", "#CCDAEF", "#066BD7"),
+            "#066BD7", "#D5E0F0", "#F2F6FC"),
         new("ilmen", "Ilmen", "DM Sans, Instrument Serif and Ilmen’s calm blue-gray palette.",
-            "#080B0E", "#080B0E", "#18232D", "#5B7283", "#A9CCE0", "#10151B"),
+            "#426D87", "#D3DEE5", "#EEF3F6"),
         new("fluent", "Fluent", "Windows-inspired layered surfaces, restrained elevation and clear blue selection.",
-            "#EEF2F7", "#EEF2F7", "#EDF1F6", "#CBD3DF", "#005FB8")
+            "#005FB8", "#DCE1E8", "#EEF1F6")
     ];
 }

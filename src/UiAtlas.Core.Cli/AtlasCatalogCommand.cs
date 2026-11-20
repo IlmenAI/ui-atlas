@@ -62,12 +62,26 @@ internal static class AtlasCatalogCommand
                     request.SimulationCapture ?? throw new ArgumentException("An owned simulation process is required."),
                     request.SourcePath ?? throw new ArgumentException("A capture directory is required."), token) };
             case "header-settings-read": case "header-settings-save": case "header-providers-sync":
+            case "header-assignment-save": case "header-automatic-save":
                 var headerStore = new UiAtlas.Core.Recording.Windows.AzureHeaderSettingsStore();
                 if (request.Operation == "header-providers-sync")
                 {
                     var providers = request.HeaderSettingsUpdate?.Providers ?? throw new ArgumentException("Provider references are required.");
                     headerStore.Update(current => current with { Providers = providers.Select(p =>
                         new UiAtlas.Core.Recording.Windows.HeaderProviderReference(p.Id, p.Model, p.Endpoint, p.CredentialReference)).ToArray() }, validateConnection: false);
+                }
+                if (request.Operation == "header-automatic-save")
+                {
+                    var change = request.HeaderSettingsUpdate ?? throw new ArgumentException("Header settings are required.");
+                    headerStore.Update(previous => previous with { AutoAnalyze = change.AutoAnalyze }, validateConnection: false);
+                }
+                if (request.Operation == "header-assignment-save")
+                {
+                    var change = request.HeaderSettingsUpdate ?? throw new ArgumentException("Header settings are required.");
+                    var references = change.Providers ?? throw new ArgumentException("Provider references are required.");
+                    headerStore.Update(previous => previous with { Enabled = change.Enabled, Provider = change.Provider ?? "local",
+                        Providers = references.Select(p => new UiAtlas.Core.Recording.Windows.HeaderProviderReference(
+                            p.Id, p.Model, p.Endpoint, p.CredentialReference)).ToArray() });
                 }
                 if (request.Operation == "header-settings-save")
                 {

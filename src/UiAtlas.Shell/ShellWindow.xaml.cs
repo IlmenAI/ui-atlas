@@ -56,6 +56,32 @@ public partial class ShellWindow : Window
         InitializeComponent();
         if (host is IShellWorkspaceNavigationHost workspace)
         {
+            MinHeight = 480;
+            UseLayoutRounding = true;
+            SnapsToDevicePixels = true;
+            PageLayout.Margin = new Thickness(0);
+            RailLayout.Margin = new Thickness(14, 20, 0, 12);
+            ProductLogo.Width = 162; ProductLogo.Height = 42;
+            ProductLogo.Margin = new Thickness(0, -5, 0, -7);
+            WorkspaceSidebar.Margin = new Thickness(0, 12, 0, 0);
+            WorkspaceTag.Visibility = Visibility.Visible;
+            BreadcrumbBar.MinHeight = 52; BreadcrumbBar.Margin = new Thickness(0);
+            BreadcrumbBar.SetResourceReference(Border.BackgroundProperty, "PanelBrush");
+            void FitWorkspace(double width)
+            {
+                RailWidth.Width = new GridLength(width < 1100 ? 205 : 236);
+                var inset = Math.Round(Math.Clamp(width * .034, 20, 62));
+                var settings = _activeRoute == "settings";
+                var viewport = PageHost.Content is UiAtlas.Presentation.IWorkspaceViewport;
+                var gutter = Math.Max(inset, (width - RailWidth.Width.Value - 1550) / 2);
+                PageHost.Resources[UiAtlas.Presentation.IWorkspaceViewport.RightGutter] = new Thickness(0, 0, gutter, 0);
+                PageHost.MaxWidth = settings || viewport ? double.PositiveInfinity : 1550;
+                PageHost.Margin = new Thickness(settings || viewport ? gutter : inset, 34, settings || viewport ? 0 : inset, 20);
+                BreadcrumbBar.Padding = new Thickness(inset, 0, inset, 0);
+            }
+            FitWorkspace(Width);
+            PageChanged += (_, _) => FitWorkspace(ActualWidth > 0 ? ActualWidth : Width);
+            SizeChanged += (_, e) => FitWorkspace(e.NewSize.Width);
             WorkspaceSidebar.Content = workspace.CreateWorkspaceSidebar(this);
             WorkspaceSidebar.Visibility = Visibility.Visible;
             NavigationList.Visibility = ProfileSelector.Visibility = Visibility.Collapsed;
@@ -79,7 +105,7 @@ public partial class ShellWindow : Window
             RefreshOrganizations();
             organizations.OrganizationChanged += (_, _) => Dispatcher.Invoke(() =>
             {
-                _routeBack.Clear(); RefreshOrganizations(); if (_activeRoute != "settings") _activeRoute = organizations.OrganizationId is null ? (_host is IShellBusinessUnitHost ? (_activeRoute is "platform-organizations" or "platform-overview" ? _activeRoute : "platform-home") : "organizations") : (_host is IShellBusinessUnitHost ? "platform-unit" : "skills");
+                _routeBack.Clear(); RefreshOrganizations(); if (_activeRoute != "settings") _activeRoute = organizations.OrganizationId is null ? (_host is IShellBusinessUnitHost ? (_activeRoute is "platform-organizations" or "platform-overview" or "platform-organization" or "platform-shared" ? _activeRoute : "platform-home") : "organizations") : (_host is IShellBusinessUnitHost ? "platform-unit" : "skills");
                 ApplyProfile(ActiveProfileId);
             });
         }
@@ -161,7 +187,7 @@ public partial class ShellWindow : Window
         base.OnClosed(e);
     }
 
-    private static nint MainWindowWindowProc(nint hwnd, int message, nint wParam, nint lParam, ref bool handled)
+    private nint MainWindowWindowProc(nint hwnd, int message, nint wParam, nint lParam, ref bool handled)
     {
         if (message != WmGetMinMaxInfo || lParam == 0)
             return 0;
@@ -178,6 +204,9 @@ public partial class ShellWindow : Window
             monitorInfo.Monitor.ToRectangle(),
             monitorInfo.WorkArea.ToRectangle());
         var minMaxInfo = Marshal.PtrToStructure<MinMaxInfo>(lParam);
+        var dpi = System.Windows.Media.VisualTreeHelper.GetDpi(this);
+        minMaxInfo.MinTrackSize.X = Math.Max(minMaxInfo.MinTrackSize.X, (int)Math.Ceiling(MinWidth * dpi.DpiScaleX));
+        minMaxInfo.MinTrackSize.Y = Math.Max(minMaxInfo.MinTrackSize.Y, (int)Math.Ceiling(MinHeight * dpi.DpiScaleY));
         minMaxInfo.MaxPosition.X = maximizeBounds.Position.X;
         minMaxInfo.MaxPosition.Y = maximizeBounds.Position.Y;
         minMaxInfo.MaxSize.X = maximizeBounds.Size.Width;
@@ -196,13 +225,13 @@ public partial class ShellWindow : Window
             ? BusinessUnitNavigation(unitHost.BusinessUnitLabel is not null, _activeProfile.Option.Id, unitHost.BusinessOrganizationName is not null)
             : _host is IShellPlatformHost
                 ? new ExperienceNavigationItem[] { new("platform-home", "Home", "\uE80F"), new("platform-ontology", "Shared ontology", "\uE8F1"),
-                    new("platform-data", "Data explorer", "\uE9D9"), new("platform-integrations", "Integrations", "\uE774") }.Concat(navigation).ToArray()
+                    new("platform-data", "Organization data", "\uE9D9"), new("platform-integrations", "Integrations", "\uE774") }.Concat(navigation).ToArray()
                 : navigation;
         var retainedHistory = _routeBack.Where(route => Navigation.Any(i => i.Route == route && i.IsAvailable)).Reverse().ToArray();
         _routeBack.Clear(); foreach (var route in retainedHistory) _routeBack.Push(route);
         RefreshNavigationItems();
 
-        if (_host is IShellOrganizationHost && _activeRoute == "recordings" && _activeProfile.Option.Id != ExperienceProfileId.Diagnostics) _activeRoute = "maps";
+        if (_host is IShellOrganizationHost and not IShellBusinessUnitHost && _activeRoute == "recordings" && _activeProfile.Option.Id != ExperienceProfileId.Diagnostics) _activeRoute = "maps";
         var retained = Navigation.FirstOrDefault(item =>
             item.IsAvailable && string.Equals(item.Route, _activeRoute, StringComparison.Ordinal));
         SelectNavigation(retained ?? Navigation.First(item => item.IsAvailable));
@@ -211,33 +240,36 @@ public partial class ShellWindow : Window
     public static IReadOnlyList<ExperienceNavigationItem> BusinessUnitNavigation(bool selected, ExperienceProfileId profile, bool organizationSelected = true)
     {
         List<ExperienceNavigationItem> items = [new("platform-overview", "Home", "\uE80F"), new("platform-organizations", "Organizations", "\uE821")];
-        if (organizationSelected || selected) items.Add(new("platform-home", "Business units", "\uE81E", StartsNewSection: true));
+        if (organizationSelected || selected)
+        {
+            items.Add(new("platform-organization", "Organization", "\uE902", StartsNewSection: true));
+            items.Add(new("platform-home", "Business units", "\uE81E"));
+            items.Add(new("platform-shared", "Shared resources", "\uE8F1"));
+        }
         if (selected)
         {
             items.Add(new("platform-unit", "Home", "\uE80F", StartsNewSection: true));
             items.Add(new("skills", "Skills", "\uE945"));
-            items.Add(new("organization-maps", "UI Maps", "\uE81E"));
+            items.Add(new("organization-maps", "Applications", "\uE81E"));
             items.Add(new("organization-knowledge", "Knowledge", "\uE8F1"));
             items.Add(new("platform-unit-ontology", "Ontology", "\uE8F1"));
             items.Add(new("platform-unit-data", "Data Explorer", "\uE9D9"));
             items.Add(new("platform-unit-plans", "Collection plans", "\uE8FD"));
-            items.Add(new("platform-unit-actions", "Actions", "\uE768"));
-            items.Add(new("evaluations", "Evals", "\uE9D9"));
+            items.Add(new("evaluations", "Evaluations", "\uE9D9"));
             items.Add(new("simulations", "Simulations", "\uE7F4"));
             items.Add(new("organization-about", "Business unit details", "\uE946"));
         }
         items.AddRange(new ExperienceNavigationItem[] { new("organization-tools", "Organization tools", "\uE76C", StartsNewSection: true), new("platform-ontology", "Shared ontology", "\uE8F1"),
             new("platform-data", "Data explorer", "\uE9D9"), new("platform-integrations", "Integrations", "\uE774"),
             new("maps", "Shared UI Maps", "\uE81E"), new("settings", "Settings", "\uE713", StartsNewSection: true) });
-        if (profile == ExperienceProfileId.Diagnostics)
-            items.Insert(items.FindIndex(i => i.Route == "maps"), new("recordings", "UI Map Recordings", "\uE714"));
+        items.Insert(items.FindIndex(i => i.Route == "maps"), new("recordings", "UI Map Recordings", "\uE714"));
         return items;
     }
 
     public static IReadOnlyList<ExperienceNavigationItem> OrganizationNavigation(string? organizationId, ExperienceProfileId profile)
     {
         List<ExperienceNavigationItem> items = organizationId is null ? [new("organizations", "Organizations", "\uE80F")]
-            : [new("skills", "Skills", "\uE945"), new("evaluations", "Evals", "\uE9D9"), new("simulations", "Simulations", "\uE7F4"), new("organization-maps", "UI maps", "\uE81E"),
+            : [new("skills", "Skills", "\uE945"), new("evaluations", "Evaluations", "\uE9D9"), new("simulations", "Simulations", "\uE7F4"), new("organization-maps", "UI maps", "\uE81E"),
                 new("organization-knowledge", "Knowledge", "\uE8F1"), new("organization-about", "About", "\uE946")];
         items.Add(new("maps", "Shared UI Maps", "\uE81E", StartsNewSection: true));
         if (profile == ExperienceProfileId.Diagnostics) items.Add(new("recordings", "UI Map Recordings", "\uE714"));
@@ -323,7 +355,7 @@ public partial class ShellWindow : Window
             _restoringNavigation = false;
             return;
         }
-        if (item.Route is "platform-home" or "platform-organizations" or "platform-overview" && _host is IShellBusinessUnitHost { BusinessUnitLabel: not null } unit)
+        if (item.Route is "platform-home" or "platform-organization" or "platform-organizations" or "platform-overview" && _host is IShellBusinessUnitHost { BusinessUnitLabel: not null } unit)
         {
             _activeRoute = item.Route; unit.LeaveBusinessUnit(); return;
         }
@@ -406,7 +438,8 @@ public partial class ShellWindow : Window
         {
             if (CanLeaveCurrentPage()) _pageBackNavigation.GoBack();
         }
-        else if (_activeRoute == "platform-home" && _host is IShellBusinessUnitHost) Navigate("platform-organizations");
+        else if (_activeRoute is "platform-home" or "platform-shared" && _host is IShellBusinessUnitHost) Navigate("platform-organization");
+        else if (_activeRoute == "platform-organization" && _host is IShellBusinessUnitHost) Navigate("platform-organizations");
         else if (_activeRoute == "platform-organizations" && _host is IShellBusinessUnitHost) Navigate("platform-overview");
         else if (_activeRoute == "platform-unit" && _host is IShellBusinessUnitHost { BusinessUnitLabel: not null })
             Navigate("platform-home");
@@ -424,7 +457,7 @@ public partial class ShellWindow : Window
     private void UpdateBackButton()
     {
         if (BackButton is not null)
-            BackButton.Visibility = _pageBackNavigation?.CanGoBack == true || (_host is IShellBusinessUnitHost && _activeRoute is ("platform-home" or "platform-organizations")) || _routeBack.Count != 0 || _host is IShellBusinessUnitHost { BusinessUnitLabel: not null }
+            BackButton.Visibility = _pageBackNavigation?.CanGoBack == true || (_host is IShellBusinessUnitHost && _activeRoute is ("platform-home" or "platform-organization" or "platform-shared" or "platform-organizations")) || _routeBack.Count != 0 || _host is IShellBusinessUnitHost { BusinessUnitLabel: not null }
                 ? Visibility.Visible
                 : Visibility.Collapsed;
     }
