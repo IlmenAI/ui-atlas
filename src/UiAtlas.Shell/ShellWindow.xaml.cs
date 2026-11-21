@@ -105,7 +105,7 @@ public partial class ShellWindow : Window
             RefreshOrganizations();
             organizations.OrganizationChanged += (_, _) => Dispatcher.Invoke(() =>
             {
-                _routeBack.Clear(); RefreshOrganizations(); if (_activeRoute != "settings") _activeRoute = organizations.OrganizationId is null ? (_host is IShellBusinessUnitHost ? (_activeRoute is "platform-organizations" or "platform-overview" or "platform-organization" or "platform-shared" ? _activeRoute : "platform-home") : "organizations") : (_host is IShellBusinessUnitHost ? "platform-unit" : "skills");
+                _routeBack.Clear(); RefreshOrganizations(); if (_activeRoute is not ("settings" or "platform-assistant")) _activeRoute = organizations.OrganizationId is null ? (_host is IShellBusinessUnitHost ? (_activeRoute is "platform-organizations" or "platform-overview" or "platform-organization" or "platform-shared" ? _activeRoute : "platform-home") : "organizations") : (_host is IShellBusinessUnitHost ? "platform-unit" : "skills");
                 ApplyProfile(ActiveProfileId);
             });
         }
@@ -113,7 +113,7 @@ public partial class ShellWindow : Window
         {
             if (_host is IShellBusinessUnitHost unit)
             {
-                _navigation = BusinessUnitNavigation(unit.BusinessUnitLabel is not null, ActiveProfileId, unit.BusinessOrganizationName is not null);
+                _navigation = BusinessUnitNavigation(unit.BusinessUnitLabel is not null, ActiveProfileId, unit.BusinessOrganizationName is not null, _host is IShellAssistantHost);
                 _restoringNavigation = true;
                 try { RefreshNavigationItems(); NavigationList.SelectedItem = Navigation.FirstOrDefault(i => i.Route == _activeRoute); }
                 finally { _restoringNavigation = false; }
@@ -222,7 +222,7 @@ public partial class ShellWindow : Window
         var navigation = _host is IShellOrganizationHost organizations
             ? OrganizationNavigation(organizations.OrganizationId, _activeProfile.Option.Id) : _activeProfile.Navigation;
         _navigation = _host is IShellBusinessUnitHost unitHost
-            ? BusinessUnitNavigation(unitHost.BusinessUnitLabel is not null, _activeProfile.Option.Id, unitHost.BusinessOrganizationName is not null)
+            ? BusinessUnitNavigation(unitHost.BusinessUnitLabel is not null, _activeProfile.Option.Id, unitHost.BusinessOrganizationName is not null, _host is IShellAssistantHost)
             : _host is IShellPlatformHost
                 ? new ExperienceNavigationItem[] { new("platform-home", "Home", "\uE80F"), new("platform-ontology", "Shared ontology", "\uE8F1"),
                     new("platform-data", "Organization data", "\uE9D9"), new("platform-integrations", "Integrations", "\uE774") }.Concat(navigation).ToArray()
@@ -237,7 +237,7 @@ public partial class ShellWindow : Window
         SelectNavigation(retained ?? Navigation.First(item => item.IsAvailable));
     }
 
-    public static IReadOnlyList<ExperienceNavigationItem> BusinessUnitNavigation(bool selected, ExperienceProfileId profile, bool organizationSelected = true)
+    public static IReadOnlyList<ExperienceNavigationItem> BusinessUnitNavigation(bool selected, ExperienceProfileId profile, bool organizationSelected = true, bool assistantAvailable = false)
     {
         List<ExperienceNavigationItem> items = [new("platform-overview", "Home", "\uE80F"), new("platform-organizations", "Organizations", "\uE821")];
         if (organizationSelected || selected)
@@ -263,6 +263,7 @@ public partial class ShellWindow : Window
             new("platform-data", "Data explorer", "\uE9D9"), new("platform-integrations", "Integrations", "\uE774"),
             new("maps", "Shared UI Maps", "\uE81E"), new("settings", "Settings", "\uE713", StartsNewSection: true) });
         items.Insert(items.FindIndex(i => i.Route == "maps"), new("recordings", "UI Map Recordings", "\uE714"));
+        if (assistantAvailable) items.Insert(items.FindIndex(i => i.Route == "settings"), new("platform-assistant", "Assistant", "\uE8F2"));
         return items;
     }
 

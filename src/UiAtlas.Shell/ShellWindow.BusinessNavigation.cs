@@ -23,12 +23,13 @@ public partial class ShellWindow
         BreadcrumbItems.Children.Clear();
         if (_host is not IShellBusinessUnitHost unit) { BreadcrumbBar.Visibility = Visibility.Collapsed; return; }
         BreadcrumbBar.Visibility = Visibility.Visible;
-        Resources["WorkspaceScopeName"] = (_activeRoute == "settings" ? "Settings" :
+        Resources["WorkspaceScopeName"] = (_activeRoute == "settings" ? "Settings" : _activeRoute == "platform-assistant" ? "Assistant" :
             IsSharedTool(_activeRoute) || _activeRoute == "platform-shared" ? "Shared resources" :
             unit.BusinessUnitName ?? unit.BusinessOrganizationName ?? "Workspace").ToUpperInvariant();
         NavigationList.Tag = new { Unit = unit.BusinessUnitName, Organization = unit.BusinessOrganizationName };
         Crumb("Home", () => Navigate("platform-overview"));
         if (_activeRoute == "platform-overview") return;
+        if (_activeRoute == "platform-assistant") { AddSeparator(); CurrentCrumb("Assistant"); return; }
         if (_activeRoute == "settings")
         {
             AddSeparator(); Crumb("Settings", () => Navigate("settings"));
