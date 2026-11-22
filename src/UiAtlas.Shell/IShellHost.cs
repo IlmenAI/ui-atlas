@@ -42,6 +42,13 @@ public interface IShellNavigationGuard
     bool CanLeave(Window owner);
 }
 
+/// <summary>A drill-down page can replace its route label with a navigable breadcrumb trail.</summary>
+public sealed record ShellBreadcrumb(string Label, Action? Open = null);
+public interface IShellPageBreadcrumbs
+{
+    IReadOnlyList<ShellBreadcrumb> Breadcrumbs { get; }
+}
+
 // Optional product capability. The standalone Atlas host does not implement it.
 public interface IShellWorkSessionsHost
 {

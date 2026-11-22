@@ -37,16 +37,15 @@ public sealed partial class AtlasRecordingsView : UserControl
         Unloaded += (_, _) => { if (_owner is not null) _owner.Activated -= OwnerActivated; _owner = null; _job?.Cancel(); };
     }
     private async void OwnerActivated(object? sender, EventArgs args) => await RefreshAsync();
-    private void Scope_Click(object sender, RoutedEventArgs args) => ApplyFilters();
     private void Search_Changed(object sender, TextChangedEventArgs args) => ApplyFilters();
     private void Filter_Changed(object sender, SelectionChangedEventArgs args) => ApplyFilters();
     private void ApplyFilters()
     {
         if (!_initialized || _changingFilters) return;
-        var archived = ArchiveTab.IsChecked == true;
+        var archived = StatusFilter.SelectedIndex == 4;
         var items = RecordingLibraryItem.Filter(_recordings, archived, SearchBox.Text,
             ApplicationFilter.SelectedIndex > 0 ? ApplicationFilter.SelectedItem as string : null,
-            StatusFilter.SelectedIndex, SortFilter.SelectedIndex);
+            archived ? 0 : StatusFilter.SelectedIndex, SortFilter.SelectedIndex);
         RecordingList.ItemsSource = items;
         var total = _recordings.Count(item => item.Archived == archived);
         ResultsCount.Text = $"{items.Length:N0} {(items.Length == 1 ? "RESULT" : "RESULTS")}";
@@ -110,6 +109,16 @@ public sealed partial class AtlasRecordingsView : UserControl
         if (sender is not FrameworkElement { Tag: RecordingLibraryItem item }) return;
         ShowRecordingMenu((Button)sender, item);
     }
+    private async void RecordingDetails_Click(object sender, RoutedEventArgs args)
+    {
+        args.Handled = true;
+        if (sender is not Button { Tag: RecordingLibraryItem item }) return;
+        if (item.HasMap) await RunAsync(() => OpenAsync(item.Recording));
+        else ShowRecordingDetails(item);
+    }
+    private void ShowRecordingDetails(RecordingLibraryItem item) =>
+        MessageBox.Show(Window.GetWindow(this), item.Details + $"\nFrames: {item.Recording.FrameCount:N0}", "Recording details", MessageBoxButton.OK, MessageBoxImage.Information);
+
     private void RecordingMenu_Click(object sender, RoutedEventArgs args)
     {
         args.Handled = true;
@@ -134,12 +143,12 @@ public sealed partial class AtlasRecordingsView : UserControl
         Add("Add to existing map…", () => AppendAsync(item.Recording), _job is null && !item.IsInvalid && !item.Recording.Archived
             && item.Recording.Outcome is "complete" or "partial");
         menu.Items.Add(new Separator());
-        Add(item.Recording.Archived ? "Restore recording" : "Archive recording", () => SetArchivedAsync(item.Recording), _job is null);
+        Add(item.Recording.Archived ? "Restore" : "Archive", () => SetArchivedAsync(item.Recording), _job is null);
         var delete = global::UiAtlas.Presentation.Appearance.Bind(new MenuItem { Header = "Delete recording…", IsEnabled = _job is null && !_refreshing }, ("Foreground", "ErrorBrush"));
         delete.Click += async (_, _) => await RunAsync(() => DeleteRecordingAsync(item.Recording)); menu.Items.Add(delete);
         Add("Recording details", () =>
         {
-            MessageBox.Show(Window.GetWindow(this), item.Details + $"\nFrames: {item.Recording.FrameCount:N0}", "Recording details", MessageBoxButton.OK, MessageBoxImage.Information);
+            ShowRecordingDetails(item);
             return Task.CompletedTask;
         });
         button.ContextMenu = menu;

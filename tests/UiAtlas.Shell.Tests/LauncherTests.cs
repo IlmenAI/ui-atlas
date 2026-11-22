@@ -106,9 +106,8 @@ public sealed class LauncherTests
                 search.Text = "word";
                 Assert.Equal(2, recordingList.Items.Count);
                 search.Text = "";
-                var archiveTab = Assert.IsType<RadioButton>(recordingsView.FindName("ArchiveTab"));
-                archiveTab.IsChecked = true;
-                archiveTab.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                var status = Assert.IsType<ComboBox>(recordingsView.FindName("StatusFilter"));
+                status.SelectedItem = status.Items.Cast<ComboBoxItem>().Single(item => Equals(item.Content, "Archived"));
                 Assert.Single(recordingList.Items.Cast<object>());
                 window.Navigate("diagnostics");
                 Assert.IsType<DiagnosticsHubView>(page.Content);

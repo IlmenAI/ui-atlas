@@ -13,6 +13,7 @@ public enum MapLibraryFilter
     Drafts,
     Ready,
     Warnings,
+    Archived,
 }
 
 public enum MapLibrarySort
@@ -119,7 +120,6 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
     private MapLibraryFilterOption _selectedFilter;
     private MapLibrarySortOption _selectedSort;
     private bool _isBusy;
-    private bool _showArchived;
     private bool _lastRefreshSucceeded;
     private string _status = "Loading recorded maps…";
 
@@ -128,10 +128,11 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
         _source = source;
         Filters =
         [
-            new(MapLibraryFilter.All, "All statuses"),
+            new(MapLibraryFilter.All, "All active"),
             new(MapLibraryFilter.Ready, "Ready"),
             new(MapLibraryFilter.Drafts, "Drafts"),
             new(MapLibraryFilter.NeedsReview, "Review needed"),
+            new(MapLibraryFilter.Archived, "Archived"),
         ];
         SortOptions =
         [
@@ -150,7 +151,11 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
     public int AttentionCount => _allGroups.Count(value => value.NeedsReview || value.HasWarnings);
     public bool HasAttention => AttentionCount > 0;
     public bool HasGroups => Groups.Count > 0;
-    public bool ShowArchived { get => _showArchived; set { if (Set(ref _showArchived, value)) ApplyView(); } }
+    public bool ShowArchived
+    {
+        get => SelectedFilter.Value == MapLibraryFilter.Archived;
+        set { if (value != ShowArchived) SelectedFilter = value ? Filters.Single(f => f.Value == MapLibraryFilter.Archived) : Filters[0]; }
+    }
     public bool LastRefreshSucceeded { get => _lastRefreshSucceeded; private set => Set(ref _lastRefreshSucceeded, value); }
     public bool IsBusy { get => _isBusy; private set => Set(ref _isBusy, value); }
     public string Status { get => _status; private set => Set(ref _status, value); }
@@ -164,7 +169,7 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
     public MapLibraryFilterOption SelectedFilter
     {
         get => _selectedFilter;
-        set { if (value is not null && Set(ref _selectedFilter, value)) ApplyView(); }
+        set { if (value is not null && Set(ref _selectedFilter, value)) { OnPropertyChanged(nameof(ShowArchived)); ApplyView(); } }
     }
 
     public MapLibrarySortOption SelectedSort

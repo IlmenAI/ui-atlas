@@ -706,7 +706,11 @@ public partial class ShellWindow : Window
         return _mapsView;
     }
 
-    private void PageBackChanged(object? sender, EventArgs e) => UpdateBackButton();
+    private void PageBackChanged(object? sender, EventArgs e)
+    {
+        UpdateBackButton();
+        if (PageHost.Content is IShellPageBreadcrumbs) UpdateBreadcrumbs();
+    }
 
     private void ShowPage(FrameworkElement page)
     {

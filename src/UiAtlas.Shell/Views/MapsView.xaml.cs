@@ -248,6 +248,9 @@ public partial class MapsView : UserControl, UiAtlas.Shell.IShellBackNavigation
             };
             menu.Items.Add(record);
         }
+        var archive = new MenuItem { Header = map.IsArchived ? "Restore" : "Archive" };
+        archive.Click += async (_, _) => await RunMapActionAsync(token => map.IsArchived ? ViewModel.RestoreAsync(map, token) : ViewModel.ArchiveAsync(map, token));
+        menu.Items.Add(archive);
         var delete = global::UiAtlas.Presentation.Appearance.Bind(new MenuItem { Header = "Delete UI Map…"}, ("Foreground", "ErrorBrush"));
         delete.Click += async (_, _) =>
         {
@@ -276,26 +279,18 @@ public partial class MapsView : UserControl, UiAtlas.Shell.IShellBackNavigation
     {
         _selectedApplicationRef = application.ApplicationRef;
         _detailsShowArchived = application.IsArchived;
-        DetailsActiveTab.IsChecked = !_detailsShowArchived;
-        DetailsArchiveTab.IsChecked = _detailsShowArchived;
+        DetailsStatusFilter.SelectedIndex = _detailsShowArchived ? 1 : 0;
         ShowSelectedApplicationProjection(application);
         ApplicationsPanel.Visibility = Visibility.Collapsed;
         ApplicationDetailsPanel.Visibility = Visibility.Visible;
         CanGoBackChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private void ApplicationsActiveTab_Click(object sender, RoutedEventArgs e) => ViewModel.ShowArchived = false;
-    private void ApplicationsArchiveTab_Click(object sender, RoutedEventArgs e) => ViewModel.ShowArchived = true;
-
-    private void DetailsActiveTab_Click(object sender, RoutedEventArgs e)
+    private void DetailsStatus_Changed(object sender, SelectionChangedEventArgs e)
     {
-        _detailsShowArchived = false;
-        RefreshSelectedApplication();
-    }
-
-    private void DetailsArchiveTab_Click(object sender, RoutedEventArgs e)
-    {
-        _detailsShowArchived = true;
+        var archived = ((ComboBox)sender).SelectedIndex == 1;
+        if (_detailsShowArchived == archived) return;
+        _detailsShowArchived = archived;
         RefreshSelectedApplication();
     }
 
@@ -370,24 +365,12 @@ public partial class MapsView : UserControl, UiAtlas.Shell.IShellBackNavigation
             await RunMapActionAsync(token => ViewModel.MarkDraftAsync(map, token));
     }
 
-    private async void Archive_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button { Tag: MapRowPresentation map })
-            await RunMapActionAsync(token => ViewModel.ArchiveAsync(map, token));
-    }
-
-    private async void Restore_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button { Tag: MapRowPresentation map })
-            await RunMapActionAsync(token => ViewModel.RestoreAsync(map, token));
-    }
-
     private async void RestoreApplication_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: MapApplicationPresentation application }) return;
         await RunMapActionAsync(token => ViewModel.RestoreApplicationAsync(application, token));
         _detailsShowArchived = false;
-        DetailsActiveTab.IsChecked = true;
+        DetailsStatusFilter.SelectedIndex = 0;
         RefreshSelectedApplication();
     }
 

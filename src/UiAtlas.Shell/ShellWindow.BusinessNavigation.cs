@@ -56,6 +56,16 @@ public partial class ShellWindow
         }
         if (_activeRoute is not ("platform-home" or "platform-unit"))
         {
+            if (PageHost.Content is IShellPageBreadcrumbs page && page.Breadcrumbs is { Count: > 0 } trail)
+            {
+                foreach (var crumb in trail)
+                {
+                    AddSeparator();
+                    if (crumb.Open is { } open) Crumb(crumb.Label, open);
+                    else CurrentCrumb(crumb.Label);
+                }
+                return;
+            }
             AddSeparator();
             BreadcrumbItems.Children.Add(new TextBlock { Text = Navigation.FirstOrDefault(n => n.Route == _activeRoute)?.Label ?? "Home", FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 4, 0, 4) });
         }
