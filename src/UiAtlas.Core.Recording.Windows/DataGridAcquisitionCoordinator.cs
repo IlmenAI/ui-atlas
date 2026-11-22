@@ -194,7 +194,8 @@ public sealed class DataGridAcquisitionCoordinator
             var limits = request.Limits;
             var imageExploration = request.Mode == GridAcquisitionMode.ImageExploration;
             var optimized = request.OptimizeImageTraversal && request.Mode == GridAcquisitionMode.ImageExploration && !RowBandOnly;
-            if (request.OptimizeImageTraversal && !optimized || limits.MaxDurationMs < 1 || limits.MaxDurationMs > (optimized ? 120_000 : 60_000) ||
+            var maximumDurationMs = imageExploration ? UiAtlas.Presentation.TableCaptureDuration.MaximumMinutes * 60_000 : 60_000;
+            if (request.OptimizeImageTraversal && !optimized || limits.MaxDurationMs < 1 || limits.MaxDurationMs > maximumDurationMs ||
                 limits.MaxMovements < 1 || limits.MaxMovements > (imageExploration ? TableCaptureSettings.MaximumAllowedImages + 64 : 32) ||
                 limits.MaxTiles < 1 || limits.MaxTiles > (imageExploration ? TableCaptureSettings.MaximumAllowedImages : 24) || limits.MaxPngBytes is < 1 or > 64L * 1024 * 1024 ||
                 limits.RestorationReserveMs < 0 || limits.RestorationReserveMs > (optimized ? 30_000 : 5_000) ||

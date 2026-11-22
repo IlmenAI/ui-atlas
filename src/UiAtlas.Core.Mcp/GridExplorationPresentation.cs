@@ -12,6 +12,7 @@ internal sealed class GridExplorationPresentation : IAsyncDisposable, IProgress<
     private readonly FloatingCapsuleWindow _window;
     private readonly CancellationTokenRegistration _registration;
     private int _disposed;
+    internal UiAtlas.Presentation.TableCaptureDuration CaptureDuration => _window.CaptureDuration;
     internal GridExplorationChoice? SelectedChoice { get; private set; }
 
     private GridExplorationPresentation(FloatingCapsuleWindow window, CancellationTokenSource stop)

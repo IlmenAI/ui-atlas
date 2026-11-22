@@ -17,7 +17,7 @@ public sealed class DataGridAcquisitionTests : IDisposable
     {
         var request = Request() with { Mode = GridAcquisitionMode.ImageExploration,
             Scope = optimized ? GridCaptureScope.FullTable : GridCaptureScope.VisibleRowBand,
-            OptimizeImageTraversal = optimized, Limits = new TableCaptureSettings(images).Limits(60_000, optimized), Approval = null };
+            OptimizeImageTraversal = optimized, Limits = new TableCaptureSettings(images).Limits(new UiAtlas.Presentation.TableCaptureDuration(15).ToMilliseconds(), optimized), Approval = null };
         var result = await Coordinator(new FixtureSession()).AcquireAsync(request);
         Assert.Contains("approval-required", result.Reasons);
         Assert.DoesNotContain("invalid-limits", result.Reasons);

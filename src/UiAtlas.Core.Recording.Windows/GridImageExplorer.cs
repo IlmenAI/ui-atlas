@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using UiAtlas.Core.Contracts;
 using UiAtlas.Core.Recording;
+using UiAtlas.Presentation;
 
 namespace UiAtlas.Core.Recording.Windows;
 
@@ -38,7 +39,9 @@ public sealed class TableCaptureSettingsStore(string? path = null)
 public sealed class GridImageExplorer
 {
     private readonly UiaWorkerClient _worker;
+    private readonly TableCaptureDuration? _approvedDuration;
     public GridImageExplorer() => _worker = new();
+    public GridImageExplorer(TableCaptureDuration approvedDuration) : this() => _approvedDuration = approvedDuration;
     public GridImageExplorer(string workerExecutable) => _worker = new(workerExecutable);
     public async Task<GridImageExplorationResult> ExploreAsync(long selectedWindow, long hostHandle,
         RectI selectedBounds, string displayName, string evidenceDirectory,
@@ -48,7 +51,7 @@ public sealed class GridImageExplorer
         if (!Enum.IsDefined(scope)) throw new ArgumentOutOfRangeException(nameof(scope));
         var elapsed = System.Diagnostics.Stopwatch.StartNew();
         using var duration = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var budgetMs = readTable ? 120_000 : 60_000;
+        var budgetMs = (_approvedDuration ?? new TableCaptureDurationStore().Load()).ToMilliseconds();
         duration.CancelAfter(TimeSpan.FromMilliseconds(budgetMs));
         var cancellation = duration.Token;
         WindowTarget window, host;

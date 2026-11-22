@@ -121,7 +121,7 @@ public sealed class GridExplorationService(SavedGridCatalog catalog, GridEvidenc
         GridImageExplorationResult image;
         try
         {
-            image = await new GridImageExplorer().ExploreAsync(target.SelectedHwnd, target.HostHwnd,
+            image = await new GridImageExplorer(presentation.CaptureDuration).ExploreAsync(target.SelectedHwnd, target.HostHwnd,
                 bounds, grid.DisplayName, directory, new CapsuleProgress(progress, presentation), cancellation).ConfigureAwait(false);
         }
         catch (Exception error)

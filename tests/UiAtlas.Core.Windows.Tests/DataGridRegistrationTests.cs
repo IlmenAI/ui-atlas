@@ -45,6 +45,27 @@ public sealed class DataGridRegistrationTests
         Assert.Equal(expected, DataGridTargetBinding.IsPassiveHandwritingCanvas(className, styles));
     }
 
+    [Fact]
+    public void PassiveOverlayComparisonChecksEveryVisibleTablePixelAtItsScreenPosition()
+    {
+        var window = new RectI(-6, 10, 8, 6);
+        var host = new RectI(-4, 11, 5, 4);
+        var table = new RectI(-3, 12, 3, 2);
+        var pixels = Enumerable.Range(0, 8 * 6 * 4).Select(i => (byte)i).ToArray();
+        var crop = new byte[5 * 4 * 4];
+        for (var row = 0; row < host.Height; row++)
+            Array.Copy(pixels, ((row + 1) * 8 + 2) * 4, crop, row * 5 * 4, 5 * 4);
+        var isolated = new OpaqueSurfaceScanner.PixelFrame(8, 6, pixels);
+        var screen = new OpaqueSurfaceScanner.PixelFrame(5, 4, crop);
+        crop[0] ^= 1; // Outside the table.
+        crop[(1 * 5 + 1) * 4 + 3] ^= 1; // Alpha does not change displayed RGB.
+        Assert.True(DataGridTargetBinding.TablePixelsMatch(table, window, isolated, host, screen));
+        crop[(2 * 5 + 3) * 4 + 2] ^= 1; // Last pixel of the table.
+        Assert.False(DataGridTargetBinding.TablePixelsMatch(table, window, isolated, host, screen));
+        Assert.False(DataGridTargetBinding.TablePixelsMatch(host with { Width = 7 }, window, isolated, host, screen));
+        Assert.False(DataGridTargetBinding.TablePixelsMatch(table, window with { Width = 9 }, isolated, host, screen));
+    }
+
     [Theory]
     [InlineData(GridScrollAxis.Horizontal, 31)]
     [InlineData(GridScrollAxis.Horizontal, 7)]

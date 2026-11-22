@@ -224,6 +224,7 @@ internal sealed class MapperGridInspector : Window
         var dialog = new Window { Title = "Table capture settings", Owner = this, Width = 380,
             SizeToContent = SizeToContent.Height, ResizeMode = ResizeMode.NoResize,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, Content = panel };
+        panel.Children.Add(new TableCaptureDurationPanel());
         panel.Children.Add(Label("Maximum captured images", 16, AtlasFluent.Ink));
         panel.Children.Add(Label("2–1000 images per capture. Default: 100. The time limit still applies.", 12, AtlasFluent.Muted));
         var input = new TextBox { Text = store.Load().MaximumImages.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -348,7 +349,7 @@ internal sealed class MapperGridInspector : Window
         stack.Children.Add(Label("Explore this table", 17, AtlasFluent.Ink));
         stack.Children.Add(Label("Capture the table and identify its header row.", 13, AtlasFluent.Ink));
         stack.Children.Add(Label("Scrolls horizontally to find columns, using visible rows as a sample.", 12, AtlasFluent.Muted));
-        stack.Children.Add(Label($"Up to 60 seconds · {new TableCaptureSettingsStore().Load().MaximumImages} images", 12, AtlasFluent.Muted));
+        stack.Children.Add(Label($"Up to {new TableCaptureDurationStore().Load().Minutes} min · {new TableCaptureSettingsStore().Load().MaximumImages} images", 12, AtlasFluent.Muted));
         stack.Children.Add(AtlasFluent.Card(Label("Stops if you take control. Returns to the starting view when safe.", 12, AtlasFluent.Muted), "#E9F4FF"));
         var button = ActionButton("Explore table", explore, true); button.Margin = new Thickness(0, 10, 0, 0); stack.Children.Add(button);
     }
@@ -366,7 +367,8 @@ internal sealed class MapperGridInspector : Window
         "foreground-lost" => "Stopped because the app is no longer in front.",
         "target-activation-failed" => "Could not bring the app to the front. Close any blocking dialog and try again.",
         "cancelled" => "Exploration stopped.",
-        "duration-limit" or "tile-limit" or "movement-limit" or "png-byte-limit" => "Exploration reached its limit. More content may remain.",
+        "duration-limit" => "Table capture reached its time limit. To allow more time, open Capture settings and explore again.",
+        "tile-limit" or "movement-limit" or "png-byte-limit" => "Exploration reached its limit. More content may remain.",
         "table-scroll-support-unavailable" => "This table does not expose safe scrolling.",
         "no-room-for-explorer" => "Move or resize the app to leave room for the Stop control beside the table.",
         "no-compatible-content-overlap" or "ambiguous-repeated-content" when axis == GridScrollAxis.Horizontal =>

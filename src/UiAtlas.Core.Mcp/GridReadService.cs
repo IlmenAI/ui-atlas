@@ -37,7 +37,7 @@ internal sealed class GridReadService(AppGridCatalog apps, GridEvidenceLifetime 
             await hud.CountdownAsync(stop.Token).ConfigureAwait(false);
             try
             {
-                image = await new GridImageExplorer().ExploreAsync(selected.Target.SelectedHwnd, selected.Target.HostHwnd,
+                image = await new GridImageExplorer(hud.CaptureDuration).ExploreAsync(selected.Target.SelectedHwnd, selected.Target.HostHwnd,
                     selected.Bounds, selected.Grid.DisplayName, directory, combined, stop.Token, GridCaptureScope.FullTable, readTable: true).ConfigureAwait(false);
             }
             catch (Exception error)

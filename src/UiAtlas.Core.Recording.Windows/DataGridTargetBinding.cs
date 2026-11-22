@@ -103,22 +103,28 @@ public static class DataGridTargetBinding
 
             var data = ToScreen(definition.Regions.Data, expected.HostBounds);
             var occluded = false;
+            var verifyPixels = false;
             NativeMethods.EnumWindows((hwnd, _) =>
             {
                 if (hwnd.ToInt64() == expected.SelectedHwnd) return false;
                 if (!NativeMethods.IsWindowVisible(hwnd) || !NativeMethods.GetWindowRect(hwnd, out var rect)) return true;
                 if (NativeMethods.DwmGetWindowAttribute(hwnd, NativeMethods.DwmaCloaked, out var cloaked, sizeof(int)) == 0 && cloaked != 0)
                     return true;
-                if (IsPassiveHandwritingCanvas(WindowCatalog.GetClass(hwnd),
-                    NativeMethods.GetWindowLongPtr(hwnd, NativeMethods.GwlExStyle).ToInt64())) return true;
+                var styles = NativeMethods.GetWindowLongPtr(hwnd, NativeMethods.GwlExStyle).ToInt64();
+                if (IsPassiveHandwritingCanvas(WindowCatalog.GetClass(hwnd), styles)) return true;
                 if (Intersects(data, new(rect.Left, rect.Top, rect.Right - rect.Left, rect.Bottom - rect.Top)))
                 {
+                    if (IsPassiveLayer(styles))
+                    {
+                        verifyPixels = true;
+                        return true;
+                    }
                     Console.WriteLine($"Grid capture occluded: title={WindowCatalog.GetText(hwnd)}; hwnd=0x{hwnd:X}; bounds={rect.Left},{rect.Top},{rect.Right},{rect.Bottom}; table={data}.");
                     occluded = true;
                 }
                 return !occluded;
             }, 0);
-            if (occluded) return "unsafe-occluded-table";
+            if (occluded || (verifyPixels && !MatchesIsolatedTable(expected, data))) return "unsafe-occluded-table";
 
             // Root-owner equality alone would incorrectly permit a sibling panel or a modal dialog.
             foreach (var x in new[] { data.X + 2, data.X + data.Width / 2, data.X + data.Width - 3 })
@@ -180,6 +186,48 @@ public static class DataGridTargetBinding
         (long)inner.Y + inner.Height <= (long)outer.Y + outer.Height;
     private static bool Intersects(RectI a, RectI b) => b.Width > 0 && b.Height > 0 &&
         a.X < (long)b.X + b.Width && b.X < (long)a.X + a.Width && a.Y < (long)b.Y + b.Height && b.Y < (long)a.Y + a.Height;
+    private static bool IsPassiveLayer(long styles)
+    {
+        const long mask = 0x00000020 | 0x00080000 | 0x08000000; // Transparent, Layered, NoActivate
+        return (styles & mask) == mask;
+    }
+
+    // A desktop-sized pointer overlay can paint only a few pixels. Compare the actual grid
+    // acquisition path against an independent, cursor-free HWND capture before trusting it.
+    private static bool MatchesIsolatedTable(GridTargetIdentity expected, RectI data)
+    {
+        try
+        {
+            var window = WindowCatalog.Resolve(expected.SelectedHwnd);
+            var host = WindowCatalog.Resolve(expected.HostHwnd);
+            if (window.Bounds != expected.WindowBounds || host.Bounds != expected.HostBounds) return false;
+            var isolated = WindowSnapshotCapture.CaptureIndependentAsync([window], 0, CancellationToken.None)
+                .GetAwaiter().GetResult().Single();
+            if (isolated.Png is null) return false;
+            var screen = WindowSnapshotCapture.CapturePngAsync([host], CancellationToken.None, preferScreenBounds: true)
+                .GetAwaiter().GetResult();
+            return !screen.IsPartial && TablePixelsMatch(data, isolated.Observation.Bounds,
+                OpaqueSurfaceScanner.PixelFrame.Decode(isolated.Png), host.Bounds, OpaqueSurfaceScanner.PixelFrame.Decode(screen.Png));
+        }
+        catch (Exception ex) when (WindowSnapshotCapture.IsRecoverableCaptureFailure(ex) || ex is IOException or Win32Exception)
+        { return false; }
+    }
+
+    internal static bool TablePixelsMatch(RectI data, RectI window, OpaqueSurfaceScanner.PixelFrame isolated,
+        RectI host, OpaqueSurfaceScanner.PixelFrame screen)
+    {
+        if (!Contains(window, data) || !Contains(host, data) ||
+            window.Width != isolated.Width || window.Height != isolated.Height ||
+            host.Width != screen.Width || host.Height != screen.Height) return false;
+        for (var row = 0; row < data.Height; row++)
+        {
+            var a = ((data.Y - window.Y + row) * window.Width + data.X - window.X) * 4;
+            var b = ((data.Y - host.Y + row) * host.Width + data.X - host.X) * 4;
+            for (var x = 0; x < data.Width; x++, a += 4, b += 4)
+                if (!isolated.Pixels.AsSpan(a, 3).SequenceEqual(screen.Pixels.AsSpan(b, 3))) return false;
+        }
+        return true;
+    }
     // TabTip keeps this full-screen shell input surface visible even when it
     // paints no handwriting UI. Its rectangle alone is not an obstruction.
     // Do not exempt arbitrary layered/click-through windows: they can paint over

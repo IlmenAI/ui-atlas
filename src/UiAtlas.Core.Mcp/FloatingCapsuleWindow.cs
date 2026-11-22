@@ -24,13 +24,15 @@ internal sealed class FloatingCapsuleWindow : Window
     private RectI _tableBounds;
     private readonly IReadOnlyList<GridExplorationChoice>? _choices;
     private readonly bool _readTable;
-    private string _phaseLimit = "01:00";
+    internal TableCaptureDuration CaptureDuration { get; } = new TableCaptureDurationStore().Load();
+    private string _phaseLimit;
+    private bool _extracting;
     internal GridExplorationChoice? SelectedChoice { get; private set; }
     private readonly Stopwatch _elapsed = new();
     private readonly DispatcherTimer _timer;
     private readonly TextBlock _headline = Text("UI Atlas is controlling your desktop", 14, "#FFFFFF", true);
     private readonly TextBlock _stage = Text("Preparing capture", 12, "#D6DCE6");
-    private readonly TextBlock _time = Text("00:00 / 01:00", 12, "#FFFFFF");
+    private readonly TextBlock _time = Text("", 12, "#FFFFFF");
     private readonly TextBlock _hint = Text("Move your mouse or type to take over", 11, "#E5E9F0");
     private readonly TextBlock _captures = Text("0 / 24 captures", 12, "#FFFFFF");
     private readonly Button _stop;
@@ -48,7 +50,8 @@ internal sealed class FloatingCapsuleWindow : Window
         _table = table; _application = application; _target = target; _tableBounds = tableBounds;
         _choices = choices;
         _readTable = readTable;
-        if (readTable) { _phaseLimit = "02:00"; _time.Text = "00:00 / 02:00"; }
+        _phaseLimit = FormatElapsed(TimeSpan.FromMinutes(CaptureDuration.Minutes));
+        _time.Text = "00:00 / " + _phaseLimit;
         Title = "UI Atlas — Explore " + table;
         WindowStyle = WindowStyle.None;
         ResizeMode = ResizeMode.NoResize;
@@ -124,7 +127,7 @@ internal sealed class FloatingCapsuleWindow : Window
             card.Children.Add(availability);
         }
         var limits = new UniformGrid { Columns = 3, Margin = new(0, 22, 0, 18) };
-        limits.Children.Add(Limit("\uE823", _readTable ? "120 sec max" : "60 sec max"));
+        limits.Children.Add(Limit("\uE823", $"{CaptureDuration.Minutes} min max"));
         limits.Children.Add(Limit("\uE8AB", _readTable ? "192 moves max" : "32 moves max"));
         limits.Children.Add(Limit("\uE722", _readTable ? "96 captures max" : "24 captures max"));
         card.Children.Add(Appearance.Bind(new Border { BorderThickness = new(0, 1, 0, 1),
@@ -217,7 +220,7 @@ internal sealed class FloatingCapsuleWindow : Window
         _captures.Text = $"{progress.TileCount + 1} / {(_readTable ? 96 : 24)} captures";
         if (_readTable && progress.Stage == GridAcquisitionStage.Extract)
         {
-            if (_phaseLimit != "03:00") { _phaseLimit = "03:00"; _elapsed.Restart(); }
+            if (!_extracting) { _extracting = true; _phaseLimit = "03:00"; _elapsed.Restart(); }
             _time.Text = FormatElapsed(_elapsed.Elapsed) + " / " + _phaseLimit;
             _hint.Text = "Capture finished. You can use your desktop.";
             _headline.Text = "UI Atlas is reading the captured table";

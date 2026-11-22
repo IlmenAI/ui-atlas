@@ -153,7 +153,9 @@ public sealed class AtlasSettingsWindow : Window
         }));
         actions.Children.Add(Button("Restore build defaults", () => { _identity.IsChecked = false; _nodes.Text = new MapBuildSettings().MaxNodes.ToString(CultureInfo.InvariantCulture); _edges.Text = new MapBuildSettings().MaxEdges.ToString(CultureInfo.InvariantCulture); _buildDirty = true;
             _buildStatus.Text = "Defaults restored in the editor. Save build settings to apply."; }));
-        panel.Children.Add(actions); panel.Children.Add(_buildStatus); return Scroll(panel);
+        panel.Children.Add(actions); panel.Children.Add(_buildStatus);
+        panel.Children.Add(new global::UiAtlas.Presentation.TableCaptureDurationPanel());
+        return Scroll(panel);
     }
 
     private void LoadSettings()
