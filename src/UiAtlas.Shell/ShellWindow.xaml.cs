@@ -251,6 +251,7 @@ public partial class ShellWindow : Window
             items.Add(new("platform-unit", "Home", "\uE80F", StartsNewSection: true));
             items.Add(new("skills", "Skills", "\uE945"));
             items.Add(new("organization-maps", "Applications", "\uE81E"));
+            items.Add(new("organization-permissions", "Permissions", "\uE72E"));
             items.Add(new("organization-knowledge", "Knowledge", "\uE8F1"));
             items.Add(new("platform-unit-ontology", "Ontology", "\uE8F1"));
             items.Add(new("platform-unit-data", "Data Explorer", "\uE9D9"));
@@ -367,7 +368,7 @@ public partial class ShellWindow : Window
         {
             ShowPage(platform.CreatePlatformView(item.Route, this)); return;
         }
-        if (_host is IShellOrganizationHost organizations && item.Route is "organizations" or "skills" or "evaluations" or "simulations" or "organization-maps" or "organization-knowledge" or "organization-about")
+        if (_host is IShellOrganizationHost organizations && item.Route is "organizations" or "skills" or "evaluations" or "simulations" or "organization-maps" or "organization-permissions" or "organization-knowledge" or "organization-about")
         {
             ShowPage(organizations.CreateOrganizationView(item.Route, this, Navigate)); return;
         }

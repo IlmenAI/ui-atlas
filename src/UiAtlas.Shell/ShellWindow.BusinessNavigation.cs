@@ -44,7 +44,7 @@ public partial class ShellWindow
             if (_activeRoute == "platform-organization") return;
         }
         var scoped = _activeRoute is "platform-unit" or "platform-unit-ontology" or "platform-unit-data" or "platform-unit-plans" or "platform-unit-actions"
-            or "skills" or "evaluations" or "simulations" or "organization-maps" or "organization-knowledge" or "organization-about";
+            or "skills" or "evaluations" or "simulations" or "organization-maps" or "organization-permissions" or "organization-knowledge" or "organization-about";
         if (_activeRoute == "platform-home") { AddSeparator(); Crumb("Business units", () => Navigate("platform-home")); }
         if (unit.BusinessUnitName is { } name && scoped)
         {
