@@ -297,25 +297,7 @@ public static class WindowSnapshotCapture
         return true;
     }
 
-    internal static BitmapSource DecodeOpaquePng(byte[] png)
-    {
-        ArgumentNullException.ThrowIfNull(png);
-        using var input = new MemoryStream(png, writable: false);
-        var decoder = new PngBitmapDecoder(input, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
-        BitmapSource bitmap = decoder.Frames[0];
-        if (bitmap.Format != PixelFormats.Bgr32)
-        {
-            var converted = new FormatConvertedBitmap(bitmap, PixelFormats.Bgr32, null, 0);
-            converted.Freeze();
-            bitmap = converted;
-        }
-        else
-        {
-            bitmap.Freeze();
-        }
-
-        return bitmap;
-    }
+    internal static BitmapSource DecodeOpaquePng(byte[] png) => WindowEvidencePixels.DecodeOpaquePng(png);
 
     internal static bool AreVisuallyEquivalentPng(byte[] firstPng, byte[] secondPng)
     {

@@ -4492,33 +4492,7 @@ public sealed partial class ExplorerWindow : Window
 
     internal static BitmapSource? RenderRawWindowImage(BitmapSource source, RectI window, RectI imageBounds,
         IReadOnlyList<RectI>? occludedRegions = null, IReadOnlyList<RectI>? visibleRegions = null)
-    {
-        var layout = RawSurfaceImageLayout.Create(window, imageBounds, source.PixelWidth, source.PixelHeight);
-        if (layout is null) return null;
-        var crop = layout.SourcePixels;
-        var destination = layout.WindowLocalBounds;
-        var visual = new DrawingVisual();
-        using (var drawing = visual.RenderOpen())
-        {
-            if (visibleRegions is not null)
-            {
-                var clip = new GeometryGroup { FillRule = FillRule.Nonzero };
-                foreach (var region in visibleRegions)
-                    clip.Children.Add(new RectangleGeometry(new Rect(region.X - window.X, region.Y - window.Y, region.Width, region.Height)));
-                drawing.PushClip(clip);
-            }
-            drawing.DrawImage(new CroppedBitmap(source, new Int32Rect(crop.X, crop.Y, crop.Width, crop.Height)),
-                new Rect(destination.X, destination.Y, destination.Width, destination.Height));
-            if (visibleRegions is not null) drawing.Pop();
-            foreach (var region in occludedRegions ?? [])
-                drawing.DrawRectangle(Brush("#F4F5F9"), null,
-                    new Rect(region.X - window.X, region.Y - window.Y, region.Width, region.Height));
-        }
-        var bitmap = new RenderTargetBitmap(window.Width, window.Height, 96, 96, PixelFormats.Pbgra32);
-        bitmap.Render(visual);
-        bitmap.Freeze();
-        return bitmap;
-    }
+        => MapProjectionVisual.RenderWindow(source, window, imageBounds, occludedRegions, visibleRegions);
 
     private static double IntersectionOverUnion(RectI first, RectI second)
     {

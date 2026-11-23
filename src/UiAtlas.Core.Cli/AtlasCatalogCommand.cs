@@ -98,6 +98,7 @@ internal static class AtlasCatalogCommand
                     headerSettings.Enabled ? headerSettings.Provider : "local", headerSettings.AutoAnalyze), Message = "Header reading settings saved for the next read." };
             case "maps": return new() { Root = catalog.Root, Maps = AtlasApplicationNames.Read(catalog.Root).Apply(LoadMaps(catalog, token)) };
             case "maps-summary": return AtlasCatalogIndex.Read(catalog, request.KnownCatalogVersion, token);
+            case "surface-observations":
             case "simulation-evidence":
             case "revision-read": case "revision-eligibility": case "semantic-source-read": case "semantic-reference-retain": case "semantic-field-inspect": return ReadRevision(catalog, request, token);
             case "identity-review-read": case "identity-confirm": case "parameter-review-read": case "parameter-confirm": return ReadRevision(catalog, request, token);
@@ -190,6 +191,8 @@ internal static class AtlasCatalogCommand
     private static CatalogReply ReadRevision(LocalArtifactCatalog catalog, CatalogRequest request, CancellationToken token)
     {
         const string prefix = "uimaps:map-revision:sha256:";
+        if (request.Operation == "surface-observations" && (string.IsNullOrWhiteSpace(request.MapId) || string.IsNullOrWhiteSpace(request.Generation)))
+            throw new InvalidDataException("Select a saved map version to view its window evidence.");
         if ((request.Operation is "semantic-source-read" or "semantic-reference-retain" or "semantic-field-inspect") && string.IsNullOrWhiteSpace(request.MapId))
             throw new InvalidDataException("Select one exact owned map for a bounded source summary.");
         var reference = request.RevisionRef ?? "";
@@ -252,6 +255,12 @@ internal static class AtlasCatalogCommand
             if (request.Operation == "semantic-source-read")
                 return new CatalogReply { Root = catalog.Root, SemanticSource = AtlasSemanticCatalog.Summarize(
                     Path.GetFileNameWithoutExtension(path), revision, ready, entry?.Archived ?? false, request.SemanticAfter, request.SemanticLimit, token) };
+            if (request.Operation == "surface-observations")
+            {
+                if (request.MapId != Path.GetFileNameWithoutExtension(path) || request.Generation != Path.GetFileName(workspace.DirectoryPath))
+                    throw new InvalidDataException("The selected map generation changed. Reopen the editor to refresh its evidence.");
+                return new() { SurfaceObservations = AtlasSurfaceObservations.Read(workspace, revision, request.MapId, token) };
+            }
             if (request.Operation == "simulation-evidence")
                 return new CatalogReply { Root = catalog.Root, SimulationEvidence = AtlasSimulationEvidence.Export(workspace, revision,
                     request.SourcePath ?? throw new ArgumentException("An export directory is required."), token) };

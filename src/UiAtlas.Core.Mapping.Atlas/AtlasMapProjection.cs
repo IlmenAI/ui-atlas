@@ -13,11 +13,30 @@ namespace UiAtlas.Core.Mapping.Atlas;
 public static class AtlasMapProjection
 {
     public static UiKnowledgeGraph Create(AtlasMapWorkspace workspace, MapBuildSettings? buildSettings = null)
+        => Create(workspace, workspace.Index, workspace.Drafts, buildSettings, null, default);
+
+    public static UiKnowledgeGraph ForRevision(AtlasMapWorkspace workspace, UiMapRevision revision, CancellationToken token)
+    {
+        var retained = revision.Sources.ToDictionary(s => s.SourceObservationSetRef, StringComparer.Ordinal);
+        var sources = workspace.Index.Sources.Where(s => retained.ContainsKey(s.SourceRef)).ToArray();
+        if (sources.Length == 0 || sources.Length != retained.Count)
+            throw new InvalidDataException("The recordings for this map version are incomplete.");
+        var files = sources.Select(s => "recordings/" + s.BundleHash + ".mlrec").Distinct().ToArray();
+        if (files.Except(workspace.Index.BundleFiles, StringComparer.Ordinal).Any())
+            throw new InvalidDataException("A recording for this map version is missing.");
+        var draft = new UiMapDraft { MapDraftRef = revision.MapRevisionRef, Entities = { revision.Entities },
+            Sources = { revision.Sources }, ControlIdentityPolicy = revision.ControlIdentityPolicy,
+            LogicalControlGroups = { revision.LogicalControlGroups } };
+        return Create(workspace, workspace.Index with { Sources = sources, BundleFiles = files }, [draft], null, retained, token);
+    }
+
+    private static UiKnowledgeGraph Create(AtlasMapWorkspace workspace, AtlasMapIndex index, IEnumerable<UiMapDraft> drafts,
+        MapBuildSettings? buildSettings, Dictionary<string, SourceObservationSet>? retained, CancellationToken token)
     {
         var nodes = new Dictionary<string, GraphNode>(StringComparer.Ordinal);
         var observedTransitions = new List<GraphEdge>();
-        var appId = "atlas-app:" + AtlasEpisodeAdapter.Hash(System.Text.Encoding.UTF8.GetBytes(workspace.Index.LogicalMapId))[..32];
-        nodes.Add(appId, new(appId, GraphNodeKind.Application, "", appId, workspace.Index.ApplicationName,
+        var appId = "atlas-app:" + AtlasEpisodeAdapter.Hash(System.Text.Encoding.UTF8.GetBytes(index.LogicalMapId))[..32];
+        nodes.Add(appId, new(appId, GraphNodeKind.Application, "", appId, index.ApplicationName,
             [new("layer", "shared"), new("mappingEngine", "UIMaps"), new("workspaceFormat", AtlasMapWorkspace.Format)], []));
         var worldBySource = new Dictionary<(string Source, string World), string>();
         var evidenceBySource = new Dictionary<string, AtlasMapSource>(StringComparer.Ordinal);
@@ -28,8 +47,9 @@ public static class AtlasMapProjection
         EvidenceRef Evidence(AtlasMapSource source, RectPx? bounds) => new(source.BundleId, source.Frame,
             $"raw/observations/frame-{source.Frame:D6}.json", AtlasEpisodeAdapter.Rect(bounds),
             source.ScreenshotEntry == $"raw/frames/frame-{source.Frame:D6}.png" ? source.ScreenshotEntry : null);
-        foreach (var source in workspace.Index.Sources.OrderBy(source => source.BundleId, StringComparer.Ordinal).ThenBy(source => source.Frame))
+        foreach (var source in index.Sources.OrderBy(source => source.BundleId, StringComparer.Ordinal).ThenBy(source => source.Frame))
         {
+            token.ThrowIfCancellationRequested();
             // Separate recordings do not establish continuous observation history.
             if (reconstructionBundle != source.BundleId) reconstruction = new SurfaceSceneReconstructor();
             reconstructionBundle = source.BundleId;
@@ -38,6 +58,14 @@ public static class AtlasMapProjection
             var objects = publication.Snapshot?.WorldStateSnapshot.WorldObjects.ToArray()
                 ?? publication.Survey.WorldObjects.Select(value => value.WorldObject).ToArray();
             var episode = SensorEpisodeBundle.Parser.ParseFrom(File.ReadAllBytes(workspace.Resolve(source.EpisodeFile)));
+            if (retained is not null)
+            {
+                var pin = retained[source.SourceRef];
+                IMessage? payload = (IMessage?)publication.Snapshot?.WorldStateSnapshot ?? publication.Survey;
+                if (episode.EpisodeId != pin.EpisodeId || payload is null || AtlasEpisodeAdapter.Hash(payload.ToByteArray()) != pin.SourcePayloadHash)
+                    throw new InvalidDataException("An observation differs from the saved revision.");
+                new PacketValidator(PerceptionPolicy.Default).ValidateRecorded(episode);
+            }
             objects = WorldObjectBuilder.CompleteAccessibility(episode, objects).ToArray();
             reconstruction.Apply(episode, objects);
             objects = UIMaps.Protocol.RawWorldControlFusion.Reconstruct(objects).ToArray();
@@ -135,11 +163,11 @@ public static class AtlasMapProjection
 
         // Raw Data Streams come straight from sealed provider responses, including
         // provider/query HWND identity. They never use the perceived World State.
-        foreach (var bundleFile in workspace.Index.BundleFiles)
+        foreach (var bundleFile in index.BundleFiles)
         {
             using var bundle = RecordingBundle.Open(workspace.Resolve(bundleFile));
             var manifest = bundle.ReadJson<RecordingManifest>("manifest.json");
-            foreach (var source in workspace.Index.Sources.Where(value => value.BundleId == manifest.SessionId))
+            foreach (var source in index.Sources.Where(value => value.BundleId == manifest.SessionId))
             {
                 var frame = bundle.ReadJson<FrameObservation>($"raw/observations/frame-{source.Frame:D6}.json");
                 var episode = frame.NativeEpisodeEntry is { Length: > 0 } nativeEntry
@@ -189,7 +217,7 @@ public static class AtlasMapProjection
                 }
             }
         }
-        foreach (var draft in workspace.Drafts)
+        foreach (var draft in drafts)
         {
             var entities = draft.Entities.ToDictionary(entity => entity.MapEntityRef, StringComparer.Ordinal);
             string? Surface(MapEntity entity)
@@ -316,9 +344,9 @@ public static class AtlasMapProjection
         var edges = containment.Concat(relationships).Concat(lineage).Concat(observedTransitions).OrderBy(edge => edge.Id, StringComparer.Ordinal).ToArray();
         // Reject an over-limit build before serializing its entire projection for hashing.
         buildSettings?.CheckCounts(values.Length, edges.Length);
-        var bundleIds = workspace.Index.Sources.Select(source => source.BundleId).Distinct(StringComparer.Ordinal).ToArray();
-        return new(new(FormatVersions.Graph, FormatVersions.Tool, workspace.Index.LogicalMapId, DateTimeOffset.UtcNow,
-            bundleIds[0], GraphSemantics.ComputeHash(values, edges), FormatVersions.FullEvidenceProfile, bundleIds, workspace.Index.LogicalMapId), values, edges);
+        var bundleIds = index.Sources.Select(source => source.BundleId).Distinct(StringComparer.Ordinal).ToArray();
+        return new(new(FormatVersions.Graph, FormatVersions.Tool, index.LogicalMapId, DateTimeOffset.UtcNow,
+            bundleIds[0], GraphSemantics.ComputeHash(values, edges), FormatVersions.FullEvidenceProfile, bundleIds, index.LogicalMapId), values, edges);
     }
     private static string Limit(string text) => text.Length <= 4096 ? text : text[..4096];
 }

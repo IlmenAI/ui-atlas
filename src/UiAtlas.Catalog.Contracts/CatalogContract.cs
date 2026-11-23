@@ -75,6 +75,7 @@ public sealed record CatalogIdentityCandidate(string Fingerprint, string Canonic
 public sealed record CatalogIdentityReview(string MapId, string Generation, string RevisionRef, string DraftRef, string DraftEtag, CatalogIdentityCandidate[] Candidates);
 public sealed record CatalogReply
 {
+    public CatalogSurfaceObservations? SurfaceObservations { get; init; }
     public CatalogLearnedSurface? LearnedSurface { get; init; }
     public CatalogSemanticPage? SemanticSource { get; init; }
     public CatalogExternalReference? ExternalReference { get; init; }
