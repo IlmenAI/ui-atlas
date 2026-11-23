@@ -55,7 +55,7 @@ public sealed class InspectionVisibilityTests
     }
 
     [NewBookingFact]
-    public void Retained_new_booking_switches_only_to_clear_frames_in_both_worlds()
+    public void Retained_booking_and_reservations_offer_only_clear_variants_in_the_selector_and_hierarchy()
     {
         var graphPath = Path.Combine(Environment.GetEnvironmentVariable("MAPLOCK_PERMISSION_SAMPLE_ATLAS")!, "maps",
             Environment.GetEnvironmentVariable("MAPLOCK_PERMISSION_SAMPLE_MAP_ID") + ".db");
@@ -87,16 +87,34 @@ public sealed class InspectionVisibilityTests
                     var image = Assert.IsAssignableFrom<BitmapSource>(Field<Image>("_appMapImage").Source);
                     Assert.Equal((668, 466), (image.PixelWidth, image.PixelHeight));
                     Assert.DoesNotContain(covered, Field<IReadOnlyList<UiMapVariantView>>("_visibleVariants"));
+                    var variants = Field<ListBox>("_inspectionVariantSelector");
+                    var booking = Assert.Single(variants.Items.OfType<UiInspectionFrameGroup>());
+                    Assert.Contains(clear, booking.Frames);
+                    CheckHierarchy(surface);
                     if (level == UiUnderstandingLevel.SemanticWorld)
                     {
-                        var variants = Field<ListBox>("_inspectionVariantSelector");
-                        variants.SelectedItem = Assert.Single(variants.Items.OfType<UiInspectionFrameGroup>(), g => g.Frames.Count == 0);
-                        Assert.Null(Field<Image>("_appMapImage").Source);
-                        Assert.Empty(Field<Canvas>("_appMapOverlay").Children);
-                        Assert.Contains("Guest Cards", Field<string>("_inspectionUnavailableVariant"));
-                        variants.SelectedItem = variants.Items.OfType<UiInspectionFrameGroup>().Single(g => g.Frames.Contains(clear));
-                        Assert.NotNull(Field<Image>("_appMapImage").Source);
+                        Assert.Equal("Observed variant 2", booking.Label);
+                        var reservations = Assert.Single(model.LayerFor(level).Surfaces, s => s.DisplayName.EndsWith("Reservations"));
+                        Call("SelectSurface", reservations, null);
+                        var choices = variants.Items.OfType<UiInspectionFrameGroup>().ToArray();
+                        Assert.Equal(new[] { "Observed variant 2", "Observed variant 3" }, choices.Select(g => g.Label));
+                        CheckHierarchy(reservations);
+                        foreach (var choice in choices)
+                        {
+                            variants.SelectedItem = choice;
+                            Assert.Contains(Field<UiMapVariantView>("_selectedVariant"), choice.Frames);
+                            Assert.All(choice.Frames, f => Assert.Null(reader.SurfaceExclusion(f)));
+                            Assert.NotNull(Field<Image>("_appMapImage").Source);
+                        }
                     }
+                }
+                void CheckHierarchy(UiMapSurfaceView surface)
+                {
+                    var tree = new TreeViewItem();
+                    Call("PopulateInspectionHierarchy", tree, surface, "", null, false);
+                    var selector = Field<ListBox>("_inspectionVariantSelector").Items.OfType<UiInspectionFrameGroup>();
+                    Assert.Equal(selector.Select(g => g.Id), tree.Items.OfType<TreeViewItem>()
+                        .Select(item => ((string)item.ToolTip).Split('\n')[0]));
                 }
             }
             finally { editor.Close(); }

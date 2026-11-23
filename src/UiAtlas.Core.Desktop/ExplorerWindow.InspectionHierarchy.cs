@@ -13,14 +13,15 @@ public sealed partial class ExplorerWindow
     private sealed record InspectionTreeSelection(string SurfaceId, string GroupId,
         string? GridId = null, string? ColumnKey = null, string? ControlId = null);
     private readonly List<(TreeViewItem Branch, UiMapSurfaceView Surface, string GroupId)> _inspectionGridBranches = [];
-    private string? _inspectionUnavailableGroupId;
+    private IReadOnlyList<UiInspectionVariant> HierarchyVariants(UiMapSurfaceView surface) =>
+        UiInspectionPresentation.Variants(_model!, surface, _parameterProposals, SurfacePreviewGroups(surface));
 
     private void PopulateInspectionHierarchy(TreeViewItem surfaceItem, UiMapSurfaceView surface,
         string query, string? revealedControlId, bool expand)
     {
         if (_model is null) return;
         surfaceItem.Items.Clear();
-        foreach (var variant in UiInspectionPresentation.Variants(_model, surface, _parameterProposals))
+        foreach (var variant in HierarchyVariants(surface))
         {
             var group = variant.Group;
             var groupMatches = group.Label.Contains(query, StringComparison.OrdinalIgnoreCase) ||
@@ -122,7 +123,7 @@ public sealed partial class ExplorerWindow
         if (_search.Text.Trim().Length > 0) { BuildHierarchy(_search.Text.Trim()); return; }
         foreach (var surfaceBranches in _inspectionGridBranches.GroupBy(entry => entry.Surface.Id))
         {
-            var variants = UiInspectionPresentation.Variants(_model, surfaceBranches.First().Surface, _parameterProposals);
+            var variants = HierarchyVariants(surfaceBranches.First().Surface);
             foreach (var (branch, surface, groupId) in surfaceBranches)
             {
                 var variant = variants.FirstOrDefault(v => v.Group.Id == groupId);
@@ -145,8 +146,8 @@ public sealed partial class ExplorerWindow
         var scroll = ancestor as ScrollViewer;
         var horizontal = scroll?.HorizontalOffset ?? 0;
         var vertical = scroll?.VerticalOffset ?? 0;
-        SelectHierarchyVariant(new(selection.SurfaceId, selection.GroupId));
-        if (selection.ControlId is not null && _inspectionUnavailableVariant is null)
+        if (!SelectHierarchyVariant(selection)) return;
+        if (selection.ControlId is not null)
             SelectControlById(selection.ControlId);
         _synchronizing = true;
         item.IsSelected = true;

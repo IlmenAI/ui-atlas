@@ -3247,8 +3247,6 @@ public sealed partial class ExplorerWindow : Window
     private void BuildVariants(UiMapSurfaceView surface)
     {
         if (_model is null) return;
-        _inspectionUnavailableVariant = null;
-        _inspectionUnavailableGroupId = null;
         var variants = _model.VariantsFor(_selectedSurfaceScope, _selectedControl);
         if (_inspectionLevel != UiUnderstandingLevel.RawDataStreams)
             variants = UiInspectionPresentation.IncludeEquivalentFrames(variants, _selectedSurfaceScope.SelectMany(s => s.Variants));
@@ -3284,7 +3282,7 @@ public sealed partial class ExplorerWindow : Window
             variants = RawVariantPresentation.Filter(variants, _showExcludedRaw.IsChecked != true,
                 _showSupplementaryRaw.IsChecked == true, variant => _rawExclusionReasons.GetValueOrDefault(variant.Id));
         }
-        var groups = UiInspectionPresentation.FrameGroups(variants).Select(PreviewGroup).ToArray();
+        var groups = PreviewGroups(variants, _inspectionLevel);
         if (InspectingWorld) variants = groups.SelectMany(group => group.Frames).ToArray();
         _visibleVariants = variants;
         var requestedFrame = _selectedVariant?.FrameSequence;
@@ -3308,13 +3306,7 @@ public sealed partial class ExplorerWindow : Window
     {
         _updatingInspectionVariants = true;
         _inspectionVariantSelector.ItemsSource = groups;
-        var selected = groups.FirstOrDefault(group => group.Frames.Any(frame => frame.Id == _selectedVariant?.Id))
-            ?? groups.FirstOrDefault(group => group.Id == _inspectionUnavailableGroupId) ?? groups.FirstOrDefault();
-        if (_selectedVariant is null && selected?.Unavailable is { } reason)
-        {
-            _inspectionUnavailableVariant = reason;
-            _inspectionUnavailableGroupId = selected.Id;
-        }
+        var selected = groups.FirstOrDefault(group => group.Frames.Any(frame => frame.Id == _selectedVariant?.Id)) ?? groups.FirstOrDefault();
         _inspectionVariantSelector.SelectedItem = selected;
         _inspectionVariantSelector.IsEnabled = groups.Count > 0;
         _inspectionVariantSelector.ToolTip = selected is null ? "No eligible recorded observations"
@@ -3377,8 +3369,6 @@ public sealed partial class ExplorerWindow : Window
 
     private void SelectVariant(UiMapVariantView variant)
     {
-        _inspectionUnavailableVariant = null;
-        _inspectionUnavailableGroupId = null;
         _selectedVariant = variant;
         if (_selectedControl is not null && !variant.ControlIds.Contains(_selectedControl.Id)) _selectedControl = null;
         _selectedSurface = ResolveSurfaceForVariant(variant) ?? _selectedSurface;
@@ -3509,9 +3499,9 @@ public sealed partial class ExplorerWindow : Window
                 return;
             }
         }
-        var unavailable = _inspectionUnavailableVariant ?? (InspectingWorld
+        var unavailable = InspectingWorld
             ? _selectedVariant is null ? "No clear capture for this selection." : SurfaceExclusion(_selectedVariant)
-            : null);
+            : null;
         if (unavailable is not null)
         {
             _traceBannerHost.Content = Text(unavailable, 12, FontWeights.Normal, Muted, textWrapping: TextWrapping.Wrap);
@@ -5479,7 +5469,7 @@ public sealed partial class ExplorerWindow : Window
                surface.Source.Properties.Any(property => property.Value.Contains(query, StringComparison.OrdinalIgnoreCase)) ||
                _model?.LayerFor(surface.Level).ControlsForSurface(surface.Id).Any(control =>
                    UiInspectionPresentation.Matches(control, query)) == true ||
-               _model is not null && UiInspectionPresentation.Variants(_model, surface, _parameterProposals).Any(variant =>
+               _model is not null && HierarchyVariants(surface).Any(variant =>
                    variant.Group.Label.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                    variant.Group.Id.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                    variant.Grids.Any(grid => UiInspectionPresentation.Matches(grid, query)));

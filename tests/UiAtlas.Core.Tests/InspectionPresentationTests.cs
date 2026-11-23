@@ -209,20 +209,21 @@ public sealed class InspectionPresentationTests
                     [new("layer", "raw-world"), new("sceneVisible", "False")], graph.Nodes.Single(n => n.Id == "v2").Evidence)).ToArray() }));
                 Call("RefreshAll"); Call("SelectSurfaceById", "surface");
                 Call("BuildHierarchy", "", "details");
-                var hiddenVariant = (TreeViewItem)((TreeViewItem)Get<Dictionary<string, TreeViewItem>>("_hierarchyItems")["details"].Parent).Parent;
-                hiddenVariant.IsSelected = true; Pump(20);
+                var choices = Assert.Single(variants.Items.OfType<UiInspectionFrameGroup>());
+                Assert.Equal("semantic:v1", choices.Id);
+                var visibleTree = Get<Dictionary<string, TreeViewItem>>("_hierarchyItems");
+                Assert.DoesNotContain("details", visibleTree.Keys);
+                Assert.Single(visibleTree["surface"].Items.OfType<TreeViewItem>());
+                Assert.Contains(Get<UiMapVariantView>("_selectedVariant"), choices.Frames);
+                var attached = Get<UiEvidenceReader>("_evidence");
+                Set("_evidence", null);
+                Call("SelectSurfaceById", "surface");
+                Assert.Empty(variants.Items);
                 Assert.Null(Get<UiMapVariantView?>("_selectedVariant"));
                 Assert.Null(Get<Image>("_appMapImage").Source);
-                Assert.Contains("Details: no eligible recorded frames", Get<string>("_inspectionUnavailableVariant"));
-                Assert.Contains("no eligible frames", variants.SelectedItem.ToString());
-                Call("RenderAppMap");
-                Assert.Contains("no eligible recorded frames", ((TextBlock)Get<ContentControl>("_traceBannerHost").Content).Text);
-                variants.SelectedItem = variants.Items.OfType<UiInspectionFrameGroup>().Single(g => g.Id == "semantic:v1");
-                Assert.NotNull(Get<UiMapVariantView>("_selectedVariant"));
-                Assert.Null(Get<string?>("_inspectionUnavailableVariant"));
-                variants.SelectedItem = variants.Items.OfType<UiInspectionFrameGroup>().Single(g => g.Id == "semantic:v2");
-                Assert.Null(Get<UiMapVariantView?>("_selectedVariant"));
-                Assert.Contains("no eligible recorded frames", Get<string>("_inspectionUnavailableVariant"));
+                Assert.Empty(Get<Canvas>("_appMapOverlay").Children);
+                Assert.Contains("No clear capture", ((TextBlock)Get<ContentControl>("_traceBannerHost").Content).Text);
+                Set("_evidence", attached);
                 var streamSurface = graph.Nodes.Single(n => n.Id == "raw") with { Id = "streams", Properties = [new("layer", "raw-data-streams")] };
                 Set("_model", new UiMappingReadModel(graph with { Nodes = graph.Nodes.Append(streamSurface).ToArray() }));
                 Get<CheckBox>("_showExcludedRaw").IsChecked = true; Get<CheckBox>("_showSupplementaryRaw").IsChecked = true;
@@ -230,7 +231,7 @@ public sealed class InspectionPresentationTests
                 Assert.True(variants.IsVisible); Assert.NotEmpty(variants.Items);
             }
             finally { viewer.Close(); }
-            void Set(string name, object value) => typeof(ExplorerWindow).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(viewer, value);
+            void Set(string name, object? value) => typeof(ExplorerWindow).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(viewer, value);
             T Get<T>(string name) => (T)typeof(ExplorerWindow).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(viewer)!;
             void Call(string name, params object[] args) => typeof(ExplorerWindow).GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(viewer, args);
         });
@@ -249,9 +250,9 @@ public sealed class InspectionPresentationTests
         "Collection", "Mapped grid", "Contents", true, new(0, 0, 300, 100), [], "fingerprint",
         new("schema", false, null, [new("a", 0, "Name", 0, 100), new("b", 1, "Name", 100, 200), new("c", 2, "", 200, 300)], 24, 30));
 
-    private static string InspectionEvidence(string directory)
+    internal static string InspectionEvidence(string directory, string sessionId = "recording")
     {
-        var original = SyntheticBundleFactory.Create(directory, includeScreenshot: true, sessionId: "recording");
+        var original = SyntheticBundleFactory.Create(directory, includeScreenshot: true, sessionId: sessionId);
         using var bundle = UiAtlas.Core.Recording.RecordingBundle.Open(original);
         using var writer = new UiAtlas.Core.Recording.RecordingBundleWriter(Path.Combine(directory, "inspection-staging"));
         foreach (var entry in bundle.Entries.Where(e => e is not ("manifest.json" or "hashes.sha256") &&

@@ -14,20 +14,26 @@ public sealed record UiInspectionVariant(UiInspectionFrameGroup Group,
 public static class UiInspectionPresentation
 {
     public static IReadOnlyList<UiInspectionVariant> Variants(UiMappingReadModel model,
-        UiMapSurfaceView surface, IReadOnlyList<ParameterProposal> proposals)
+        UiMapSurfaceView surface, IReadOnlyList<ParameterProposal> proposals) => Variants(model, surface, proposals, null);
+
+    public static IReadOnlyList<UiInspectionVariant> Variants(UiMappingReadModel model,
+        UiMapSurfaceView surface, IReadOnlyList<ParameterProposal> proposals, IReadOnlyList<UiInspectionFrameGroup>? previewGroups)
     {
         if (surface.Level == UiUnderstandingLevel.RawDataStreams) return [];
         var controls = model.LayerFor(surface.Level).ControlsForSurface(surface.Id);
-        var groups = FrameGroups(surface.Variants).ToList();
-        var declared = surface.Level == UiUnderstandingLevel.SemanticWorld
-            ? model.Graph.Nodes.Where(n => n.Kind == GraphNodeKind.State && n.ParentId == surface.Id && Property(n, "layer") == "semantic-world").Select(n => n.Id)
-            : [];
-        foreach (var id in controls.Select(c => Property(c.Source, "semanticVariantRef")).Concat(declared)
-            .Where(id => id.Length > 0).Distinct(StringComparer.Ordinal))
+        var groups = (previewGroups ?? FrameGroups(surface.Variants)).ToList();
+        if (previewGroups is null)
         {
-            if (groups.Any(g => g.Id == "semantic:" + id)) continue;
-            var label = model.Graph.Nodes.FirstOrDefault(n => n.Id == id)?.Label;
-            groups.Add(new("semantic:" + id, string.IsNullOrWhiteSpace(label) ? "Recorded variant" : label, []));
+            var declared = surface.Level == UiUnderstandingLevel.SemanticWorld
+                ? model.Graph.Nodes.Where(n => n.Kind == GraphNodeKind.State && n.ParentId == surface.Id && Property(n, "layer") == "semantic-world").Select(n => n.Id)
+                : [];
+            foreach (var id in controls.Select(c => Property(c.Source, "semanticVariantRef")).Concat(declared)
+                .Where(id => id.Length > 0).Distinct(StringComparer.Ordinal))
+            {
+                if (groups.Any(g => g.Id == "semantic:" + id)) continue;
+                var label = model.Graph.Nodes.FirstOrDefault(n => n.Id == id)?.Label;
+                groups.Add(new("semantic:" + id, string.IsNullOrWhiteSpace(label) ? "Recorded variant" : label, []));
+            }
         }
         var members = groups.Select(group =>
         {
@@ -37,7 +43,7 @@ public static class UiInspectionPresentation
         }).ToList();
         var assigned = members.SelectMany(m => m).Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
         var unclassified = controls.Where(c => !assigned.Contains(c.Id)).ToArray();
-        if (unclassified.Length > 0 || groups.Count == 0)
+        if (previewGroups is null && (unclassified.Length > 0 || groups.Count == 0))
         {
             var index = groups.FindIndex(g => g.Id == "unclassified:" + surface.Id);
             if (index >= 0) members[index] = members[index].Concat(unclassified).ToArray();

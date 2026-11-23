@@ -259,6 +259,7 @@ public sealed class ParameterizationTests
             var viewer = new ExplorerWindow(null) { Width = 1600, Height = 980, Left = 100, Top = 70 };
             try
             {
+                Set("_evidence", UiEvidenceReader.Open(InspectionPresentationTests.InspectionEvidence(temp.Path, "source")));
                 Set("_model", new UiMappingReadModel(graph)); Set("_graphPath", path);
                 Set("_parameterDocument", MapParameterizationDocument.Empty("map")); Set("_parameterProposals", proposals);
                 viewer.Show(); Pump(50);
@@ -294,16 +295,6 @@ public sealed class ParameterizationTests
                 Assert.Equal(2, nameGroup.Items.Count);
                 Assert.True(nameGroup.IsExpanded);
                 // The renderer must replace the previous selection, never draw all proposals.
-                var preview = new BitmapImage();
-                using (var stream = new MemoryStream(File.ReadAllBytes(imagePath)))
-                {
-                    preview.BeginInit(); preview.CacheOption = BitmapCacheOption.OnLoad;
-                    preview.StreamSource = stream; preview.EndInit(); preview.Freeze();
-                }
-                Get<Image>("_appMapImage").Source = preview;
-                Set("_renderedViewportBounds", new RectI(0, 0, 800, 600));
-                Get<Canvas>("_appMapOverlay").Children.Clear();
-                Invoke("RenderParameterOverlays");
                 var box = Assert.Single(Get<Canvas>("_appMapOverlay").Children.OfType<Rectangle>());
                 Assert.Equal(sheet.Id, box.Tag);
                 Assert.Equal(100, box.Width); Assert.Equal(30, box.Height);
@@ -470,7 +461,7 @@ public sealed class ParameterizationTests
 
     internal static UiKnowledgeGraph Graph()
     {
-        var evidence = new EvidenceRef("source", 1, "frame.json", new(0, 0, 800, 600));
+        var evidence = new EvidenceRef("source", 1, "raw/observations/frame-000001.json", new(0, 0, 800, 600));
         RectI Bounds(string id) => id.StartsWith("sheet", StringComparison.Ordinal) ? new(30, 540, 100, 30) :
             new(30, id == "grid" ? 140 : 40, 500, id == "grid" ? 300 : 30);
         GraphNode Node(string id, string parent, string label, string role, params string[] values) =>
@@ -481,7 +472,7 @@ public sealed class ParameterizationTests
                     new(id, parent, "", v, role, "", new(30, 40, 500, 30), true, false, "", 1), 1, "recorded", true)).ToArray());
         return new(new("5", "test", "graph", DateTimeOffset.UnixEpoch, "source", "", "test", LogicalMapId: "map"),
             [new("app", GraphNodeKind.Application, "", "app", "EXCEL", [], []),
-             new("surface", GraphNodeKind.Surface, "app", "surface", "Book2 - Excel", [new("layer", "semantic-world")], [evidence]),
+             new("surface", GraphNodeKind.Surface, "app", "surface", "Book2 - Excel", [new("layer", "semantic-world"), new("hwnd", "1")], [evidence]),
              Node("sheet", "document", "Sheet1", "Sheet Tab"),
              Node("sheet2", "document", "Sheet1", "Sheet Tab"),
              Node("sheet-pane", "document", "Sheet Sheet1", "Pane"),
