@@ -1,3 +1,4 @@
+using UiAtlas.Core.Mapping.Atlas;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -315,17 +316,7 @@ public sealed class MapViewerModel : INotifyPropertyChanged
         return Surfaces.Where(value => !reachable.Contains(value.EntityRef)).ToArray();
     }
 
-    private string ResolveSurfaceRef(string entityRef)
-    {
-        if (!_entities.TryGetValue(entityRef, out var current)) return "";
-        var visited = new HashSet<string>(StringComparer.Ordinal);
-        while (visited.Add(current.MapEntityRef))
-        {
-            if (current.EntityKind == MapEntityKind.MapSurface) return current.MapEntityRef;
-            if (string.IsNullOrWhiteSpace(current.ParentEntityRef) || !_entities.TryGetValue(current.ParentEntityRef, out current!)) return "";
-        }
-        return "";
-    }
+    private string ResolveSurfaceRef(string entityRef) => AtlasSurfaceInventory.Owner(_entities, entityRef);
 
     public static string KindLabel(MapEntityKind kind) => Label(kind.ToString(), "Map");
     private static string Label(string value, string prefix) => value.StartsWith(prefix, StringComparison.Ordinal) ? value[prefix.Length..] : value;

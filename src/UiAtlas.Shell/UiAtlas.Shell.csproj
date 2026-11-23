@@ -5,6 +5,7 @@
     <AssemblyName>UiAtlas.Shell</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../UiAtlas.Core.Mapping.Atlas/AtlasSurfaceInventory.cs" Link="Core/AtlasSurfaceInventory.cs" />
     <Using Remove="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
