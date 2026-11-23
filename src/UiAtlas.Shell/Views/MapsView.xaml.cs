@@ -397,7 +397,7 @@ public partial class MapsView : UserControl, UiAtlas.Shell.IShellBackNavigation
         }
         var viewer = new MapViewerWindow(record)
         {
-            Owner = Window.GetWindow(this),
+            WindowStartupLocation = WindowStartupLocation.CenterScreen,
             WindowState = WindowState.Maximized,
         };
         viewer.Show();

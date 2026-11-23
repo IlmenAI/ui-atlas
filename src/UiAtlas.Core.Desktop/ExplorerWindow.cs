@@ -40,7 +40,7 @@ public sealed partial class ExplorerWindow : Window
     private static readonly Brush Blue = Brush("#4F7EF7");
     private static readonly Brush Orange = Brush("#FF8B3D");
     private static readonly Brush Violet = Brush("#8B5CF6");
-    private static readonly Brush Green = Brush("#2DCE91");
+    private static readonly Brush Green = MapProjectionVisual.SemanticStroke;
     private static readonly Style HierarchyTreeItemStyle = CreateHierarchyTreeItemStyle();
     private static readonly Style ModernComboBoxStyle = CreateModernComboBoxStyle();
     private static readonly Lazy<ImageSource?> ToolbarImportArt = new(() => LoadToolbarAssetImage("explorer-icon-import.png"));
@@ -282,12 +282,12 @@ public sealed partial class ExplorerWindow : Window
 
     private UIElement BuildStatusBar()
     {
-        var leftPaneToggle = PaneVisibilityToggleButton(leftPane: true, "Show or hide the Environment Hierarchy pane.");
+        var leftPaneToggle = global::UiAtlas.Presentation.PaneVisibilityButton.Create(leftPane: true, "Show or hide the Environment Hierarchy pane.");
         leftPaneToggle.IsChecked = true;
         leftPaneToggle.Checked += (_, _) => SetHierarchyCollapsed(false);
         leftPaneToggle.Unchecked += (_, _) => SetHierarchyCollapsed(true);
 
-        var rightPaneToggle = PaneVisibilityToggleButton(leftPane: false, "Show or hide the Properties pane.");
+        var rightPaneToggle = global::UiAtlas.Presentation.PaneVisibilityButton.Create(leftPane: false, "Show or hide the Properties pane.");
         rightPaneToggle.IsChecked = true;
         rightPaneToggle.Checked += (_, _) => SetPropertiesCollapsed(false);
         rightPaneToggle.Unchecked += (_, _) => SetPropertiesCollapsed(true);
@@ -652,11 +652,7 @@ public sealed partial class ExplorerWindow : Window
         };
         foreach (var mode in new[] { "Window", "Controls", "Overlay", "Structure", "Structure Overlay", "Trace", "Routes" })
         {
-            var button = global::UiAtlas.Presentation.Appearance.Bind(new Button { Content = mode, Padding = new Thickness(8, 4, 8, 4), Margin = new Thickness(3, 0, 0, 0),
-Tag = mode,
-ToolTip = mode,
-                Template = RoundedButtonTemplate(8) },("Foreground", (mode == _viewMode ? "AccentBrush" : "InkBrush")),("BorderBrush", "LineBrush"),("Background", (mode == _viewMode ? "AccentSelectionBrush" : "PanelBrush")));
-            System.Windows.Automation.AutomationProperties.SetName(button, mode);
+            var button = global::UiAtlas.Presentation.MapProjectionButton.Create(mode, mode == _viewMode);
             button.Click += (_, _) =>
             {
                 SetViewMode(mode);
@@ -845,93 +841,6 @@ ToolTip = mode,
             Stretch = Stretch.Uniform,
             Child = path
         };
-    }
-
-    private static ToggleButton PaneVisibilityToggleButton(bool leftPane, string toolTip)
-    {
-        var button = global::UiAtlas.Presentation.Appearance.Bind(new ToggleButton
-        {
-            Content = CreatePaneVisibilityIcon(leftPane),
-            Width = 35,
-            Height = 30,
-            Margin = new Thickness(0, 0, 0, 3),
-            Padding = new Thickness(0),
-            BorderThickness = new Thickness(1),
-            Cursor = Cursors.Hand,
-            ToolTip = toolTip,
-            Focusable = false,
-            Template = PaneToggleButtonTemplate()
-        },("Foreground", "InkBrush"),("BorderBrush", "LineBrush"),("Background", "PanelBrush"));
-        button.Checked += (_, _) =>
-        {
-            global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "AccentBrush"));
-            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "LineBrush"));
-            global::UiAtlas.Presentation.Appearance.Bind(button, ("Foreground", "AccentTextBrush"));
-        };
-        button.Unchecked += (_, _) =>
-        {
-            global::UiAtlas.Presentation.Appearance.Bind(button, ("Background", "PanelBrush"));
-            global::UiAtlas.Presentation.Appearance.Bind(button, ("BorderBrush", "LineBrush"));
-            global::UiAtlas.Presentation.Appearance.Bind(button, ("Foreground", "InkBrush"));
-        };
-        System.Windows.Automation.AutomationProperties.SetName(button, toolTip);
-        return button;
-    }
-
-    private static FrameworkElement CreatePaneVisibilityIcon(bool leftPane)
-    {
-        var path = new System.Windows.Shapes.Path
-        {
-            Data = Geometry.Parse(leftPane ? "M3,3H17V17H3Z M8,3V17" : "M3,3H17V17H3Z M12,3V17"),
-            StrokeThickness = 1.8,
-            StrokeStartLineCap = PenLineCap.Round,
-            StrokeEndLineCap = PenLineCap.Round,
-            StrokeLineJoin = PenLineJoin.Round,
-            Fill = Brushes.Transparent
-        };
-        path.SetBinding(System.Windows.Shapes.Shape.StrokeProperty, new Binding(nameof(Control.Foreground))
-        {
-            RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor, typeof(ToggleButton), 1)
-        });
-        return new Viewbox { Width = 17, Height = 17, Stretch = Stretch.Uniform, Child = path };
-    }
-
-    private static ControlTemplate PaneToggleButtonTemplate()
-    {
-        var border = new FrameworkElementFactory(typeof(Border));
-        border.SetBinding(Border.BackgroundProperty, new Binding(nameof(Control.Background))
-        {
-            RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent)
-        });
-        border.SetBinding(Border.BorderBrushProperty, new Binding(nameof(Control.BorderBrush))
-        {
-            RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent)
-        });
-        border.SetBinding(Border.BorderThicknessProperty, new Binding(nameof(Control.BorderThickness))
-        {
-            RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent)
-        });
-        border.SetValue(Border.CornerRadiusProperty, new CornerRadius(6));
-
-        var presenter = new FrameworkElementFactory(typeof(ContentPresenter));
-        presenter.SetBinding(ContentPresenter.ContentProperty, new Binding(nameof(ContentControl.Content))
-        {
-            RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent)
-        });
-        presenter.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-        presenter.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
-        border.AppendChild(presenter);
-
-        var template = new ControlTemplate(typeof(ToggleButton)) { VisualTree = border };
-        var checkedTrigger = new Trigger { Property = ToggleButton.IsCheckedProperty, Value = true };
-        checkedTrigger.Setters.Add(new Setter(Control.BackgroundProperty, new System.Windows.DynamicResourceExtension("AccentBrush")));
-        checkedTrigger.Setters.Add(new Setter(Control.BorderBrushProperty, new System.Windows.DynamicResourceExtension("LineBrush")));
-        checkedTrigger.Setters.Add(new Setter(Control.ForegroundProperty, new System.Windows.DynamicResourceExtension("AccentTextBrush")));
-        template.Triggers.Add(checkedTrigger);
-        var hoverTrigger = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-        hoverTrigger.Setters.Add(new Setter(UIElement.OpacityProperty, 0.84));
-        template.Triggers.Add(hoverTrigger);
-        return template;
     }
 
     private static FrameworkElement CreateResumeIcon()
@@ -3706,7 +3615,7 @@ ToolTip = mode,
                     }
                     else if (UiMapPresentation.ShouldCropSceneToSurface(ParseProjectionMode(_viewMode)) &&
                         frame.Highlight is { } surfaceCrop && evidence.Bounds is { } absolute &&
-                        TryClipBitmapRect(surfaceCrop, sourceBitmap, out var clippedCrop))
+                        MapProjectionVisual.TryClipBitmapRect(surfaceCrop, sourceBitmap, out var clippedCrop))
                     {
                         bitmap = new CroppedBitmap(sourceBitmap, clippedCrop);
                         _renderedImageSourceOffset = new Point(clippedCrop.X, clippedCrop.Y);
@@ -3811,11 +3720,8 @@ ToolTip = mode,
                     ? RawVariantPresentation.ShouldUseControlCrop(control, ownerSurface)
                     : UiMapPresentation.ShouldUseControlCrop(control, ownerSurface)))
                 {
-                    var image = (Evidence: evidenceImage, Bitmap: bitmap);
-                    if (image.Bitmap is not null && (!isRaw || image.Evidence is not null &&
-                        RawSurfaceImageLayout.CanCropControl(image.Evidence, item.Bounds)) &&
-                        TryClipBitmapRect(local, image.Bitmap, out var cropRect))
-                        controlCrop = new ImageBrush(new CroppedBitmap(image.Bitmap, cropRect)) { Stretch = Stretch.Fill };
+                    if (bitmap != null && (!isRaw || evidenceImage != null && RawSurfaceImageLayout.CanCropControl(evidenceImage, item.Bounds)))
+                        controlCrop = MapProjectionVisual.Crop(bitmap, local);
                 }
                 var isSelected = control.Id == _selectedControl?.Id;
                 var isUnverified = GraphControlConfirmation.IsUnverified(control.Source);
@@ -3824,29 +3730,18 @@ ToolTip = mode,
                 var manualAnnotationId = PropertyValue(control.Source, "manualAnnotationId");
                 var canMove = isSelected && _mapEditing &&
                               _inspectionLevel == UiUnderstandingLevel.SemanticWorld;
-                var highlightColor = isUnverified ? Color.FromRgb(0xFF, 0x8B, 0x3D) : Color.FromRgb(0x2D, 0xCE, 0x91);
-                var rectangle = new Rectangle { Width = Math.Max(1, local.Width), Height = Math.Max(1, local.Height),
-                    Stroke = isSelected || isButtonCandidate || isCompactPopupAction
-                        ? new SolidColorBrush(highlightColor)
-                        : isRaw && PropertyValue(control.Source, "rawStreamSource")?.StartsWith("msaa", StringComparison.Ordinal) == true
-                            ? Green : LevelBrush(_inspectionLevel),
-                    StrokeThickness = isSelected ? 4 : isButtonCandidate || isCompactPopupAction ? 2 : 1.2,
-                    StrokeDashArray = !isSelected && isButtonCandidate && !isCompactPopupAction ? [4, 2] : null,
-                    Fill = (Brush?)controlCrop ?? (isSelected
-                        ? new SolidColorBrush(Color.FromArgb(92, highlightColor.R, highlightColor.G, highlightColor.B))
-                        : isButtonCandidate || isCompactPopupAction
-                            ? new SolidColorBrush(Color.FromArgb(28, highlightColor.R, highlightColor.G, highlightColor.B))
-                        : ResolveBlueprintFill(control, ownerSurface, _inspectionLevel, projection.BlueprintFillOpacity)),
-                    Effect = isSelected
-                        ? new DropShadowEffect { Color = highlightColor, BlurRadius = 14, ShadowDepth = 0, Opacity = 0.8 }
-                        : null,
-                    Cursor = canMove ? Cursors.SizeAll : Cursors.Hand,
-                    ToolTip = canMove ? "Drag to move button" : isRaw
+                var rectangle = MapProjectionVisual.AddControl(_appMapOverlay, control, ownerSurface, local, projection,
+                    controlCrop, isSelected, _inspectionLevel,
+                    isRaw && PropertyValue(control.Source, "rawStreamSource")?.StartsWith("msaa", StringComparison.Ordinal) == true
+                        ? Green : LevelBrush(_inspectionLevel), isUnverified, isButtonCandidate, isCompactPopupAction,
+                    showMissingCropLabel: !isRaw && !isWorld);
+                if (canMove) rectangle.Cursor = Cursors.SizeAll;
+                rectangle.ToolTip = canMove ? "Drag to move button" : isRaw
                         ? $"{control.DisplayName} • {PropertyValue(control.Source, "rawStreamSource")} [{PropertyValue(control.Source, "rawStreamId")}] • query window {PropertyValue(ownerSurface.Source, "hwnd")} • frame {frameSequence}" +
                             (RawOfficeCoordinates.ForControl(rawCoordinates, control) is { } registration
                                 ? $" • Reported: {registration.Reported} • Display: {registration.Display} • Scale: {registration.Scale:0.###} • {registration.Evidence}" : "")
                         :
-                        $"{control.DisplayName} • {PropertyValue(control.Source, "sceneStatus")} from frame {PropertyValue(control.Source, "sourceFrame")}" };
+                        $"{control.DisplayName} • {PropertyValue(control.Source, "sceneStatus")} from frame {PropertyValue(control.Source, "sourceFrame")}";
                 rectangle.MouseLeftButtonDown += (_, args) =>
                 {
                     if (canMove)
@@ -3864,19 +3759,6 @@ ToolTip = mode,
                     }
                     args.Handled = true;
                 };
-                Canvas.SetLeft(rectangle, local.X); Canvas.SetTop(rectangle, local.Y); _appMapOverlay.Children.Add(rectangle);
-                if ((projection.ShowsControlLabels || !isRaw && !isWorld && projection.ShowsControlCrops && controlCrop is null) &&
-                    !(ownerSurface.SurfaceKind.Contains("Popup", StringComparison.OrdinalIgnoreCase) &&
-                      (control.CanonicalKind is "Window" or "Menu" or "Pane" or "List" ||
-                       control.CanonicalKind == "Group" && string.IsNullOrWhiteSpace(PropertyValue(control.Source, "name")))))
-                {
-                    var label = Text(control.DisplayName, 9, FontWeights.Normal, Ink, textTrimming: TextTrimming.CharacterEllipsis);
-                    // An evidence annotation is drawn over retained pixels, independent of app appearance.
-                    label.Foreground = Ink;
-                    label.MaxWidth = Math.Max(30, local.Width - 4);
-                    label.IsHitTestVisible = false;
-                    Canvas.SetLeft(label, local.X + 2); Canvas.SetTop(label, local.Y + 1); _appMapOverlay.Children.Add(label);
-                }
                 if (isSelected && _mapEditing && _inspectionLevel == UiUnderstandingLevel.SemanticWorld)
                 {
                     if (!string.IsNullOrWhiteSpace(manualAnnotationId))
@@ -4605,11 +4487,7 @@ ToolTip = mode,
     {
         _viewMode = mode;
         foreach (var pair in _viewModeButtons)
-        {
-            global::UiAtlas.Presentation.Appearance.Bind(pair.Value, ("Background", (pair.Key == mode ? "AccentSelectionBrush" : "PanelBrush")));
-            global::UiAtlas.Presentation.Appearance.Bind(pair.Value, ("Foreground", (pair.Key == mode ? "AccentBrush" : "InkBrush")));
-            global::UiAtlas.Presentation.Appearance.Bind(pair.Value, ("BorderBrush", (pair.Key == mode ? "AccentBrush" : "LineBrush")));
-        }
+            global::UiAtlas.Presentation.MapProjectionButton.SetSelected(pair.Value, pair.Key == mode);
     }
 
     internal static BitmapSource? RenderRawWindowImage(BitmapSource source, RectI window, RectI imageBounds,
@@ -4642,21 +4520,6 @@ ToolTip = mode,
         return bitmap;
     }
 
-    private static bool TryClipBitmapRect(RectI bounds, BitmapSource bitmap, out Int32Rect result)
-    {
-        var left = Math.Clamp(bounds.X, 0, bitmap.PixelWidth);
-        var top = Math.Clamp(bounds.Y, 0, bitmap.PixelHeight);
-        var right = Math.Clamp((long)bounds.X + bounds.Width, 0, bitmap.PixelWidth);
-        var bottom = Math.Clamp((long)bounds.Y + bounds.Height, 0, bitmap.PixelHeight);
-        if (right <= left || bottom <= top)
-        {
-            result = default;
-            return false;
-        }
-        result = new Int32Rect(left, top, checked((int)(right - left)), checked((int)(bottom - top)));
-        return true;
-    }
-
     private static double IntersectionOverUnion(RectI first, RectI second)
     {
         var width = Math.Max(0,
@@ -4668,22 +4531,7 @@ ToolTip = mode,
         return union <= 0 ? 0 : intersection / (double)union;
     }
 
-    private static Brush ResolveBlueprintFill(
-        UiMapControlView control,
-        UiMapSurfaceView surface,
-        UiUnderstandingLevel level,
-        double opacity)
-    {
-        if (opacity <= 0 || UiMapPresentation.IsLargeStructuralControl(control, surface)) return Brushes.Transparent;
-        var color = level switch
-        {
-            UiUnderstandingLevel.RawWorld => Color.FromRgb(0xF5, 0xF0, 0xFF),
-            UiUnderstandingLevel.SemanticWorld => Color.FromRgb(0xEC, 0xFD, 0xF5),
-            _ => Color.FromRgb(0xEF, 0xF6, 0xFF)
-        };
-        var alpha = checked((byte)Math.Clamp((int)Math.Round(opacity * 255), 0, 255));
-        return new SolidColorBrush(Color.FromArgb(alpha, color.R, color.G, color.B));
-    }
+
 
     private void ShowProperties(GraphNode node, int controlCount, int variantCount)
     {
@@ -5464,52 +5312,8 @@ ToolTip = mode,
         },("BorderBrush", "LineBrush"),("Background", "PanelBrush"));
     }
 
-    private static ControlTemplate RoundedButtonTemplate(double radius)
-    {
-        var border = new FrameworkElementFactory(typeof(Border));
-        border.SetBinding(Border.BackgroundProperty, new System.Windows.Data.Binding(nameof(Control.Background))
-        {
-            RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent)
-        });
-        border.SetBinding(Border.BorderBrushProperty, new System.Windows.Data.Binding(nameof(Control.BorderBrush))
-        {
-            RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent)
-        });
-        border.SetBinding(Border.BorderThicknessProperty, new System.Windows.Data.Binding(nameof(Control.BorderThickness))
-        {
-            RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent)
-        });
-        border.SetBinding(Border.PaddingProperty, new System.Windows.Data.Binding(nameof(Control.Padding))
-        {
-            RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent)
-        });
-        border.SetValue(Border.CornerRadiusProperty, new CornerRadius(radius));
-        border.SetValue(UIElement.SnapsToDevicePixelsProperty, true);
-
-        var presenter = new FrameworkElementFactory(typeof(ContentPresenter));
-        presenter.SetBinding(ContentPresenter.ContentProperty, new System.Windows.Data.Binding(nameof(ContentControl.Content))
-        {
-            RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent)
-        });
-        presenter.SetBinding(ContentPresenter.HorizontalAlignmentProperty, new System.Windows.Data.Binding(nameof(Control.HorizontalContentAlignment))
-        {
-            RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent)
-        });
-        presenter.SetBinding(ContentPresenter.VerticalAlignmentProperty, new System.Windows.Data.Binding(nameof(Control.VerticalContentAlignment))
-        {
-            RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent)
-        });
-        border.AppendChild(presenter);
-
-        var template = new ControlTemplate(typeof(Button)) { VisualTree = border };
-        var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-        hover.Setters.Add(new Setter(UIElement.OpacityProperty, 0.86));
-        template.Triggers.Add(hover);
-        var pressed = new Trigger { Property = Button.IsPressedProperty, Value = true };
-        pressed.Setters.Add(new Setter(UIElement.OpacityProperty, 0.72));
-        template.Triggers.Add(pressed);
-        return template;
-    }
+    private static ControlTemplate RoundedButtonTemplate(double radius) =>
+        global::UiAtlas.Presentation.MapProjectionButton.RoundedTemplate(radius);
 
     private static ControlTemplate RoundedToggleButtonTemplate(
         double radius,
