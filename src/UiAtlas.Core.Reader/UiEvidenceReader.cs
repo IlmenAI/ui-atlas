@@ -143,6 +143,17 @@ public sealed class UiEvidenceReader : IDisposable
             frame.InteractionSource ?? interaction?.SourceControl, interaction, frame, screenshotFrame.Sequence, screenshotFrame.TimestampUtc);
     }
 
+    private readonly Dictionary<(string Bundle, long Frame), SurfaceFrameVisibility> visibility = [];
+
+    public string? SurfaceExclusion(UiMapVariantView variant)
+    {
+        var key = (variant.BundleId, variant.FrameSequence);
+        if (!_bundles.TryGetValue(key.BundleId, out var bundle)) return SurfaceFrameVisibility.Unknown;
+        if (!visibility.TryGetValue(key, out var observation))
+            visibility[key] = observation = SurfaceFrameVisibility.Read(bundle, key.FrameSequence);
+        return observation.Exclusion(variant.NativeWindowHwnd, variant.Evidence?.Bounds);
+    }
+
     public FrameObservation ReadObservation(string bundleId, long frameSequence)
     {
         if (!_bundles.TryGetValue(bundleId, out var bundle) || frameSequence <= 0)

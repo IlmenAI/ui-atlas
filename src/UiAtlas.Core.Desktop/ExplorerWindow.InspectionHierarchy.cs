@@ -146,7 +146,8 @@ public sealed partial class ExplorerWindow
         var horizontal = scroll?.HorizontalOffset ?? 0;
         var vertical = scroll?.VerticalOffset ?? 0;
         SelectHierarchyVariant(new(selection.SurfaceId, selection.GroupId));
-        if (selection.ControlId is not null) SelectControlById(selection.ControlId);
+        if (selection.ControlId is not null && _inspectionUnavailableVariant is null)
+            SelectControlById(selection.ControlId);
         _synchronizing = true;
         item.IsSelected = true;
         _synchronizing = false;

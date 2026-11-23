@@ -3284,6 +3284,8 @@ public sealed partial class ExplorerWindow : Window
             variants = RawVariantPresentation.Filter(variants, _showExcludedRaw.IsChecked != true,
                 _showSupplementaryRaw.IsChecked == true, variant => _rawExclusionReasons.GetValueOrDefault(variant.Id));
         }
+        var groups = UiInspectionPresentation.FrameGroups(variants).Select(PreviewGroup).ToArray();
+        if (InspectingWorld) variants = groups.SelectMany(group => group.Frames).ToArray();
         _visibleVariants = variants;
         var requestedFrame = _selectedVariant?.FrameSequence;
         var requestedBundle = _selectedVariant?.BundleId;
@@ -3297,18 +3299,22 @@ public sealed partial class ExplorerWindow : Window
                 .FirstOrDefault();
         _selectedSurface = ResolveSurfaceForVariant(_selectedVariant) ?? _selectedSurface ?? surface;
 
-        BuildVariantCards(variants);
+        BuildVariantCards(groups);
         UpdateVariantNavigatorState();
         BringVariantIntoView(_selectedVariant);
     }
 
-    private void BuildVariantCards(IReadOnlyList<UiMapVariantView> variants)
+    private void BuildVariantCards(IReadOnlyList<UiInspectionFrameGroup> groups)
     {
-        var groups = UiInspectionPresentation.FrameGroups(variants);
         _updatingInspectionVariants = true;
         _inspectionVariantSelector.ItemsSource = groups;
         var selected = groups.FirstOrDefault(group => group.Frames.Any(frame => frame.Id == _selectedVariant?.Id))
-            ?? groups.FirstOrDefault();
+            ?? groups.FirstOrDefault(group => group.Id == _inspectionUnavailableGroupId) ?? groups.FirstOrDefault();
+        if (_selectedVariant is null && selected?.Unavailable is { } reason)
+        {
+            _inspectionUnavailableVariant = reason;
+            _inspectionUnavailableGroupId = selected.Id;
+        }
         _inspectionVariantSelector.SelectedItem = selected;
         _inspectionVariantSelector.IsEnabled = groups.Count > 0;
         _inspectionVariantSelector.ToolTip = selected is null ? "No eligible recorded observations"
@@ -3503,9 +3509,12 @@ public sealed partial class ExplorerWindow : Window
                 return;
             }
         }
-        if (_inspectionUnavailableVariant is not null)
+        var unavailable = _inspectionUnavailableVariant ?? (InspectingWorld
+            ? _selectedVariant is null ? "No clear capture for this selection." : SurfaceExclusion(_selectedVariant)
+            : null);
+        if (unavailable is not null)
         {
-            _traceBannerHost.Content = Text(_inspectionUnavailableVariant, 12, FontWeights.Normal, Muted, textWrapping: TextWrapping.Wrap);
+            _traceBannerHost.Content = Text(unavailable, 12, FontWeights.Normal, Muted, textWrapping: TextWrapping.Wrap);
             _traceBannerHost.Visibility = Visibility.Visible;
             return;
         }
@@ -3520,6 +3529,7 @@ public sealed partial class ExplorerWindow : Window
         var scopedControls = _model.LayerFor(_inspectionLevel).Controls
             .Where(control => activeSurfaceIds.Any(id => RawWorldPresentation.IsAvailableOnSurface(control, id)))
             .Where(control => _selectedVariant is null || _selectedVariant.ControlIds.Contains(control.Id))
+            .Where(control => !InspectingWorld || SurfaceFrameVisibility.ObservedControl(control, _selectedVariant!))
             .Select(control => UiMapPresentation.ForVariant(control, _selectedVariant))
             .Where(control => !isRaw || RawVariantPresentation.IsAccessibilitySource(PropertyValue(control.Source, "rawStreamSource")))
             .ToArray();
@@ -3565,7 +3575,7 @@ public sealed partial class ExplorerWindow : Window
                 _showRawUia.IsChecked == true, _showRawMsaa.IsChecked == true) && (selectedStreamId is null ||
                 (PropertyValue(control.Source, "rawStreamId") ?? "legacy") == selectedStreamId)).ToList();
 
-        var evidence = ResolveSelectedEvidence();
+        var evidence = InspectingWorld ? _selectedVariant?.Evidence : ResolveSelectedEvidence();
         UiEvidenceImage? evidenceImage = null;
         FrameObservation? rawFrame = null;
         BitmapSource? bitmap = null;
@@ -3580,12 +3590,7 @@ public sealed partial class ExplorerWindow : Window
                 var nativeWindow = isRaw && hwndText is not null && long.TryParse(hwndText.Replace("0x", ""),
                     System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out _);
                 if (isRaw) rawFrame = _evidence.ReadObservation(evidence.BundleId, evidence.FrameSequence);
-                // Raw World uses the physical window from this observation, not the
-                // overview's first HWND or the composite screen image used by raw streams.
-                var worldHwnd = _selectedVariant?.NativeWindowHwnd ?? RawWorldPresentation.WindowHandle(_selectedSurface.Source);
-                if (isWorld && worldHwnd is null)
-                    throw new InvalidDataException("This observation has no window identity for isolated surface pixels.");
-                var frame = isWorld ? _evidence.ReadWindow(evidence, worldHwnd!.Value) : nativeWindow
+                var frame = InspectingWorld ? _evidence.Read(evidence) : nativeWindow
                     ? _evidence.ReadRawSurface(evidence, Convert.ToInt64(hwndText, 16))
                     : _evidence.Read(evidence, allowInheritedPixels: !isRaw && !isWorld);
                 if (frame is not null)
@@ -3607,9 +3612,10 @@ public sealed partial class ExplorerWindow : Window
                         contentOriginX = displayBounds.X;
                         contentOriginY = displayBounds.Y;
                     }
-                    else if (isWorld && evidence.Bounds is { } worldBounds)
+                    else if (InspectingWorld && evidence.Bounds is { } worldBounds)
                     {
                         bitmap = RenderRawWindowImage(sourceBitmap, worldBounds, frame.ScreenshotBounds, frame.OccludedRegions);
+                        _renderedImageSourceOffset = new Point(worldBounds.X - frame.ScreenshotBounds.X, worldBounds.Y - frame.ScreenshotBounds.Y);
                         contentOriginX = worldBounds.X;
                         contentOriginY = worldBounds.Y;
                     }
@@ -3635,6 +3641,12 @@ public sealed partial class ExplorerWindow : Window
                                            FileFormatException or System.Runtime.InteropServices.COMException or ArgumentException)
             { evidenceError = _evidence.SessionIds.Contains(evidence.BundleId) ? $"Evidence could not be read: {ex.Message}" :
                 $"Recording evidence is not attached for session {evidence.BundleId}. The screenshot may exist in that bundle."; }
+        }
+        if (InspectingWorld && bitmap is null)
+        {
+            _traceBannerHost.Content = Text(evidenceError ?? "The screenshot for this capture is unavailable.", 12, FontWeights.Normal, Muted);
+            _traceBannerHost.Visibility = Visibility.Visible;
+            return;
         }
         var projectionMode = ParseProjectionMode(_viewMode);
         var rawCoordinates = RawOfficeCoordinates.Resolve(isRaw && _showRawReportedCoordinates.IsChecked != true ? rawFrame : null, selectedHwnd);

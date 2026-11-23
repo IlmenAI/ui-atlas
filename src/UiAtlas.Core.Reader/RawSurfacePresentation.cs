@@ -102,10 +102,28 @@ public static class RawVariantPresentation
         var windows = frame.ScopedWindows ?? [frame.Window];
         var window = windows.FirstOrDefault(item => item.Hwnd == hwnd);
         if (window is null) return "Window is not present in this frame.";
+        var foreground = ForegroundExclusion(windows, window);
+        if (foreground is not null) return foreground;
+        // Acquisition timing qualifies alignment, not whether a successful
+        // provider response exists. Keep foreground evidence inspectable even
+        // when another attempt was interrupted.
+        // Image-only menus/tooltips are still valid raw surfaces. Normal windows
+        // and dialogs need a usable native response, not just a root rectangle.
+        if (Standalone(window) && !StreamsForWindow(frame, hwnd).Any(stream =>
+                stream.Status is "ok" or "partial" && AutomationObservationVisibility.FilterEffectivelyVisible(stream.Controls)
+                    .Any(control => control.WindowHwnd == hwnd && control.ScopeStatus is not ("outside-target" or "unverified") &&
+                        !string.IsNullOrEmpty(control.ParentRuntimeId) && RawObservationSemantics.Intersection(control.Bounds, window.Bounds) is not null)))
+            return "No visible native control records were returned for this window.";
+        return null;
+    }
+
+    private static bool Standalone(WindowObservation item) => RawObservationSemantics.NativeKind(item)
+        is "normal-window" or "dialog-window" or "tool-window";
+
+    internal static string? ForegroundExclusion(IReadOnlyList<WindowObservation> windows, WindowObservation window)
+    {
         if (!window.IsVisible || window.IsMinimized || window.IsCloaked)
             return "Window was not visible.";
-        static bool Standalone(WindowObservation item) => RawObservationSemantics.NativeKind(item)
-            is "normal-window" or "dialog-window" or "tool-window";
         var front = windows.Where(item => item.ProcessId == window.ProcessId && item.IsVisible &&
             !item.IsMinimized && !item.IsCloaked && Standalone(item))
             .OrderBy(item => item.ZOrder).FirstOrDefault();
@@ -118,16 +136,6 @@ public static class RawVariantPresentation
             owner = parent;
         if (front is not null && owner.Hwnd != front.Hwnd && front.ZOrder < owner.ZOrder)
             return $"Background window; {(string.IsNullOrEmpty(front.Title) ? front.ClassName : front.Title)} (0x{front.Hwnd:X}) is in front.";
-        // Acquisition timing qualifies alignment, not whether a successful
-        // provider response exists. Keep foreground evidence inspectable even
-        // when another attempt was interrupted.
-        // Image-only menus/tooltips are still valid raw surfaces. Normal windows
-        // and dialogs need a usable native response, not just a root rectangle.
-        if (Standalone(window) && !StreamsForWindow(frame, hwnd).Any(stream =>
-                stream.Status is "ok" or "partial" && AutomationObservationVisibility.FilterEffectivelyVisible(stream.Controls)
-                    .Any(control => control.WindowHwnd == hwnd && control.ScopeStatus is not ("outside-target" or "unverified") &&
-                        !string.IsNullOrEmpty(control.ParentRuntimeId) && RawObservationSemantics.Intersection(control.Bounds, window.Bounds) is not null)))
-            return "No visible native control records were returned for this window.";
         return null;
     }
 

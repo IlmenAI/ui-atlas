@@ -110,6 +110,7 @@ public sealed class InspectionPresentationTests
             var viewer = new ExplorerWindow(null) { Width = 1500, Height = 950 };
             try
             {
+                Set("_evidence", UiEvidenceReader.Open(InspectionEvidence(temp.Path)));
                 Set("_model", new UiMappingReadModel(Graph())); Set("_parameterProposals", new[] { proposal });
                 viewer.Show(); Call("RefreshAll"); Call("SelectSurfaceById", "surface"); Pump(30);
                 var pipeline = Get<Canvas>("_topologyCanvas");
@@ -248,12 +249,40 @@ public sealed class InspectionPresentationTests
         "Collection", "Mapped grid", "Contents", true, new(0, 0, 300, 100), [], "fingerprint",
         new("schema", false, null, [new("a", 0, "Name", 0, 100), new("b", 1, "Name", 100, 200), new("c", 2, "", 200, 300)], 24, 30));
 
+    private static string InspectionEvidence(string directory)
+    {
+        var original = SyntheticBundleFactory.Create(directory, includeScreenshot: true, sessionId: "recording");
+        using var bundle = UiAtlas.Core.Recording.RecordingBundle.Open(original);
+        using var writer = new UiAtlas.Core.Recording.RecordingBundleWriter(Path.Combine(directory, "inspection-staging"));
+        foreach (var entry in bundle.Entries.Where(e => e is not ("manifest.json" or "hashes.sha256") &&
+            !e.StartsWith("raw/observations/") && !e.StartsWith("raw/frames/")))
+            writer.WriteBytes(entry, bundle.ReadBytes(entry));
+        var frame = bundle.ReadJson<FrameObservation>("raw/observations/frame-000001.json");
+        var window = frame.Window with { Bounds = new(0, 0, 800, 600) };
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(BitmapSource.Create(800, 600, 96, 96, PixelFormats.Bgr24, null, new byte[800 * 600 * 3], 2400)));
+        using var png = new MemoryStream(); encoder.Save(png);
+        for (int i = 1; i <= 3; ++i)
+        {
+            var entry = $"raw/frames/frame-{i:D6}.png";
+            writer.WriteBytes(entry, png.ToArray());
+            writer.WriteJson($"raw/observations/frame-{i:D6}.json", frame with {
+                Sequence = i, FrameEntry = entry, Window = window, ScopedWindows = [window], ScreenshotBounds = window.Bounds,
+                Acquisition = new("raw-observation/2", $"observation:{i}", frame.TimestampUtc, frame.TimestampUtc,
+                    "ok", "fixture", "stable", WindowCoverage: [new(window.Hwnd, window.Bounds, "full")]) });
+        }
+        writer.WriteJson("manifest.json", bundle.ReadJson<RecordingManifest>("manifest.json") with { FrameCount = 3, Files = writer.DescribeEntries() });
+        var output = Path.Combine(directory, "inspection.mlrec");
+        writer.Complete(output);
+        return output;
+    }
+
     private static UiKnowledgeGraph Graph()
     {
         var evidence = new EvidenceRef("recording", 1, "frame.json", new(0, 0, 800, 600));
-        EvidenceRef[] Frames(params long[] values) => values.Select(value => evidence with { FrameSequence = value }).ToArray();
+        EvidenceRef[] Frames(params long[] values) => values.Select(value => evidence with { FrameSequence = value, ObservationEntry = $"raw/observations/frame-{value:D6}.json" }).ToArray();
         GraphNode Surface(string id, string layer) => new(id, GraphNodeKind.Surface, "app", id, "Same window title",
-            [new("layer", layer), new("semanticProjection", "recorded"), new("sourceRawSurfaceId", "raw")], Frames(1, 2, 3));
+            [new("layer", layer), new("semanticProjection", "recorded"), new("sourceRawSurfaceId", "raw"), new("hwnd", "1")], Frames(1, 2, 3));
         GraphNode Control(string id, string parent, string name, string kind, string surface, string layer, string variant) =>
             new(id, GraphNodeKind.Control, parent, id, name, [new("layer", layer), new("controlType", kind),
                 new(layer == "raw-world" ? "rawSurfaceId" : "semanticSurfaceId", surface), new("className", "ProFrame"),

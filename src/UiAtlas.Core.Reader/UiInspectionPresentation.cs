@@ -2,7 +2,7 @@ using UiAtlas.Core.Contracts;
 
 namespace UiAtlas.Core.Reader;
 
-public sealed record UiInspectionFrameGroup(string Id, string Label, IReadOnlyList<UiMapVariantView> Frames)
+public sealed record UiInspectionFrameGroup(string Id, string Label, IReadOnlyList<UiMapVariantView> Frames, string? Unavailable = null)
 {
     public override string ToString() => Label;
 }

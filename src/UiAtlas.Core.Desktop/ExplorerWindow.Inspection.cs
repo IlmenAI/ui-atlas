@@ -41,6 +41,26 @@ public sealed partial class ExplorerWindow
         };
     }
 
+    private bool InspectingWorld => _inspectionLevel is UiUnderstandingLevel.RawWorld or UiUnderstandingLevel.SemanticWorld;
+
+    private string? SurfaceExclusion(UiMapVariantView variant)
+    {
+        if (!InspectingWorld) return null;
+        if (_evidence is null) return SurfaceFrameVisibility.Unknown;
+        try { return _evidence.SurfaceExclusion(variant); }
+        catch (Exception ex) when (ex is System.IO.IOException or System.IO.InvalidDataException or System.Text.Json.JsonException)
+        { return SurfaceFrameVisibility.Unknown; }
+    }
+
+    private UiInspectionFrameGroup PreviewGroup(UiInspectionFrameGroup group)
+    {
+        if (!InspectingWorld) return group;
+        var frames = group.Frames.Where(f => SurfaceExclusion(f) is null).ToArray();
+        if (frames.Length > 0) return group with { Frames = frames };
+        var reason = group.Frames.Select(SurfaceExclusion).FirstOrDefault() ?? "No frame is attached to this state.";
+        return group with { Label = group.Label + " · no clear capture", Frames = [], Unavailable = "No clear capture of this state. " + reason };
+    }
+
     private sealed record InspectionVariantSelection(string SurfaceId, string GroupId);
     private void SelectHierarchyVariant(InspectionVariantSelection selection)
     {
@@ -51,27 +71,21 @@ public sealed partial class ExplorerWindow
         if (group is null) return;
         var current = _selectedSurface?.Id == surface.Id ? _selectedVariant : null;
         if (_selectedSurface?.Id != surface.Id || _selectedControl is not null) SelectSurface(surface);
-        var eligible = UiInspectionPresentation.IncludeEquivalentFrames(_model.VariantsFor([surface]), surface.Variants);
-        var frameIds = group.Frames.Select(f => f.Id).ToHashSet(StringComparer.Ordinal);
-        _visibleVariants = eligible;
-        var frame = eligible.FirstOrDefault(f => f.Id == current?.Id && frameIds.Contains(f.Id))
-            ?? eligible.FirstOrDefault(f => frameIds.Contains(f.Id));
-        BuildVariantCards(eligible);
+        var candidates = UiInspectionPresentation.IncludeEquivalentFrames(_model.VariantsFor([surface]), surface.Variants);
+        var groups = UiInspectionPresentation.FrameGroups(candidates).Select(PreviewGroup).ToList();
+        var selectedGroup = groups.FirstOrDefault(g => g.Id == selection.GroupId);
+        if (selectedGroup is null)
+        {
+            selectedGroup = group with { Label = group.Label + " · no eligible frames", Frames = [], Unavailable = $"{group.Label}: no eligible recorded frames for this state." };
+            groups.Add(selectedGroup);
+        }
+        _visibleVariants = groups.SelectMany(g => g.Frames).ToArray();
+        var frame = selectedGroup.Frames.FirstOrDefault(f => f.Id == current?.Id) ?? selectedGroup.Frames.FirstOrDefault();
+        _selectedVariant = frame;
+        _inspectionUnavailableGroupId = frame is null ? selectedGroup.Id : null;
+        _inspectionUnavailableVariant = frame is null ? selectedGroup.Unavailable : null;
+        BuildVariantCards(groups);
         if (frame is not null) { SelectVariant(frame); return; }
-        var label = group.Label;
-        var reasons = group.Frames
-            .Select(f => f.Reason).Distinct(StringComparer.Ordinal).ToArray();
-        _selectedVariant = null;
-        _inspectionUnavailableGroupId = group.Id;
-        _inspectionUnavailableVariant = $"{label}: no eligible recorded frames for normal preview." +
-            (reasons.Length > 0 ? " Recorded status: " + string.Join(", ", reasons) + "." : " No frame observation is attached.") +
-            " Its control hierarchy remains available for inspection.";
-        var unavailable = new UiInspectionFrameGroup(group.Id, label + " · no eligible frames", []);
-        _updatingInspectionVariants = true;
-        _inspectionVariantSelector.ItemsSource = UiInspectionPresentation.FrameGroups(_visibleVariants).Append(unavailable).ToArray();
-        _inspectionVariantSelector.SelectedItem = unavailable;
-        _inspectionVariantSelector.IsEnabled = _visibleVariants.Count > 0;
-        _updatingInspectionVariants = false;
         BuildInspectionFrameButtons([]);
         UpdateVariantNavigatorState();
         RenderAppMap();
