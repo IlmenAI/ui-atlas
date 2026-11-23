@@ -30,7 +30,13 @@ public sealed class AtlasMapsLibrarySource(AtlasCatalogClient client) : IMapsLib
             map.Draft is null ? null : UiMapDraft.Parser.ParseFrom(Convert.FromBase64String(map.Draft)),
             map.Revision is null ? null : UiMapRevision.Parser.ParseFrom(Convert.FromBase64String(map.Revision)))
         { LocalPath = map.Path, CatalogMapId = map.Id, CatalogGeneration = map.Generation, DisplayApplicationRef = map.ApplicationGroup,
-            IsSummary = map.SummaryOnly, ApplicationInfo = map.Application };
+            IsSummary = map.SummaryOnly, ApplicationInfo = map.Application, FriendlyName = map.FriendlyName };
+    public bool CanRenameApplications => true;
+    public async Task RenameApplicationAsync(MapsLibraryRecord record, string name, CancellationToken token)
+    {
+        await client.RequestAsync(new("application-rename", client.Root, MapId: record.CatalogMapId, Generation: record.CatalogGeneration,
+            Entry: Convert.ToBase64String(record.Entry.ToByteArray()), FriendlyName: name, ExpectedFriendlyName: record.FriendlyName), token);
+    }
     public async Task<byte[]?> LoadPreviewAsync(MapsLibraryRecord record, CancellationToken token)
     {
         var reply = await client.RequestAsync(new("map-preview", client.Root, MapId: record.CatalogMapId,

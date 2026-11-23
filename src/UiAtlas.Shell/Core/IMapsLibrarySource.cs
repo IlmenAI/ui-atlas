@@ -12,6 +12,7 @@ public sealed record MapsLibraryRecord(
     public string? CatalogMapId { get; init; }
     public string? CatalogGeneration { get; init; }
     public string? DisplayApplicationRef { get; init; }
+    public string? FriendlyName { get; init; }
     public bool IsSummary { get; init; }
     public UiAtlas.Catalog.CatalogApplicationInfo? ApplicationInfo { get; init; }
     public string ApplicationGroupRef => DisplayApplicationRef ?? Entry.ApplicationRef;
@@ -21,6 +22,9 @@ public sealed record MapsLibraryRecord(
 public interface IMapsLibrarySource
 {
     Task<IReadOnlyList<MapsLibraryRecord>> LoadAsync(CancellationToken cancellationToken);
+    bool CanRenameApplications => false;
+    Task RenameApplicationAsync(MapsLibraryRecord record, string name, CancellationToken token) =>
+        throw new NotSupportedException("This library cannot rename applications.");
     Task<byte[]?> LoadPreviewAsync(MapsLibraryRecord record, CancellationToken token) => Task.FromResult<byte[]?>(null);
     Task<UiMapRevision> PublishAsync(MapsLibraryRecord record, CancellationToken cancellationToken) =>
         throw new NotSupportedException("This Map Library source does not support publishing.");

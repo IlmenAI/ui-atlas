@@ -29,6 +29,7 @@ public partial class MapsView : UserControl, UiAtlas.Shell.IShellBackNavigation
     private readonly IRecordableApplicationDiscovery _applicationDiscovery;
     private CancellationTokenSource? _load;
     private bool _loaded;
+    private MapsLibraryRecord? _renamingApplication;
     private MapApplicationPresentation? _completedRecording;
     private string? _selectedApplicationRef;
     private bool _detailsShowArchived;
@@ -277,6 +278,7 @@ public partial class MapsView : UserControl, UiAtlas.Shell.IShellBackNavigation
 
     private void ShowApplicationDetails(MapApplicationPresentation application)
     {
+        CloseNameEditor();
         _selectedApplicationRef = application.ApplicationRef;
         _detailsShowArchived = application.IsArchived;
         DetailsStatusFilter.SelectedIndex = _detailsShowArchived ? 1 : 0;
@@ -292,6 +294,54 @@ public partial class MapsView : UserControl, UiAtlas.Shell.IShellBackNavigation
         if (_detailsShowArchived == archived) return;
         _detailsShowArchived = archived;
         RefreshSelectedApplication();
+    }
+
+    private void RenameApplication_Click(object sender, RoutedEventArgs e)
+    {
+        if (ApplicationDetailsPanel.DataContext is not MapApplicationPresentation app) return;
+        _renamingApplication = app.CurrentRecord;
+        ApplicationNameInput.Text = app.DisplayName;
+        NameError.Text = "";
+        RenameApplicationButton.Visibility = Visibility.Collapsed;
+        NameEditor.Visibility = Visibility.Visible;
+        ApplicationNameInput.Focus();
+        ApplicationNameInput.SelectAll();
+    }
+
+    private void CloseNameEditor()
+    {
+        _renamingApplication = null;
+        NameEditor.Visibility = Visibility.Collapsed;
+        RenameApplicationButton.Visibility = ViewModel.CanRenameApplications ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void CancelApplicationName_Click(object sender, RoutedEventArgs e)
+    {
+        CloseNameEditor();
+        RenameApplicationButton.Focus();
+    }
+
+    private async void ApplicationName_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Escape) { e.Handled = true; CancelApplicationName_Click(sender, e); }
+        else if (e.Key == System.Windows.Input.Key.Enter) { e.Handled = true; await SaveNameAsync(); }
+    }
+
+    private async void SaveApplicationName_Click(object sender, RoutedEventArgs e) => await SaveNameAsync();
+
+    private async Task SaveNameAsync()
+    {
+        if (_renamingApplication == null || !NameEditor.IsEnabled) return;
+        ApplicationDetailsPanel.IsEnabled = false;
+        try
+        {
+            await ViewModel.RenameApplicationAsync(_renamingApplication, ApplicationNameInput.Text, _load?.Token ?? CancellationToken.None);
+            CloseNameEditor();
+            RefreshSelectedApplication();
+        }
+        catch (OperationCanceledException) when (_load == null || _load.IsCancellationRequested) { }
+        catch (Exception error) { NameError.Text = error.GetBaseException().Message; }
+        finally { ApplicationDetailsPanel.IsEnabled = true; }
     }
 
     private void PrepareApplicationRecordingAction(MapApplicationPresentation application)
@@ -442,6 +492,8 @@ public partial class MapsView : UserControl, UiAtlas.Shell.IShellBackNavigation
 
     private void ShowSelectedApplicationProjection(MapApplicationPresentation application)
     {
+        if (_renamingApplication != null && _renamingApplication.ApplicationGroupRef != application.ApplicationRef) CloseNameEditor();
+        RenameApplicationButton.Visibility = ViewModel.CanRenameApplications && _renamingApplication == null ? Visibility.Visible : Visibility.Collapsed;
         ApplicationDetailsPanel.DataContext = application;
         VersionsItemsControl.ItemsSource = application.Versions;
         DetailsEmptyState.Visibility = application.Maps.Count == 0 ? Visibility.Visible : Visibility.Collapsed;

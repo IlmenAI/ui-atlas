@@ -19,7 +19,8 @@ internal static class AtlasCatalogIndex
     {
         var paths = catalog.ListMapPaths().Order(StringComparer.Ordinal).ToArray();
         var stamps = paths.Select(path => (Path: path, Stamp: Stamp(path))).ToArray();
-        var version = Version(catalog.Root, stamps);
+        var names = AtlasApplicationNames.Read(catalog.Root);
+        var version = Version(catalog.Root, stamps, names);
         token.ThrowIfCancellationRequested();
         if (knownVersion == version)
             return new() { Root = catalog.Root, CatalogVersion = version, NotModified = true };
@@ -47,12 +48,12 @@ internal static class AtlasCatalogIndex
         }
         if (changed) WriteCache(catalog, new(4, entries.ToArray()));
         // Use the stamps associated with the actual rows, not newer state observed after reading them.
-        version = Version(catalog.Root, entries.Select(entry => (Path: catalog.MapPath(entry.Id), entry.Stamp)));
-        return new() { Root = catalog.Root, CatalogVersion = version, Maps = entries.SelectMany(entry => entry.Maps).ToArray() };
+        version = Version(catalog.Root, entries.Select(entry => (Path: catalog.MapPath(entry.Id), entry.Stamp)), names);
+        return new() { Root = catalog.Root, CatalogVersion = version, Maps = names.Apply(entries.SelectMany(entry => entry.Maps)) };
     }
 
-    private static string Version(string root, IEnumerable<(string Path, string Stamp)> values) =>
-        Hash("map-list-v4\n" + root + "\n" + string.Join("\n", values.Select(value => value.Path + "|" + value.Stamp)));
+    private static string Version(string root, IEnumerable<(string Path, string Stamp)> values, AtlasApplicationNames names) =>
+        Hash("map-list-v4\n" + names.Version + "\n" + root + "\n" + string.Join("\n", values.Select(value => value.Path + "|" + value.Stamp)));
 
     private static string Stamp(string path)
     {

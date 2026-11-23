@@ -96,7 +96,7 @@ internal static class AtlasCatalogCommand
                 catch (UiAtlas.Core.Recording.Windows.AzureHeaderException) { }
                 return new() { Root = catalog.Root, HeaderSettings = new(headerSettings.Enabled, headerSettings.Endpoint, headerSettings.Deployment, hasHeaderKey,
                     headerSettings.Enabled ? headerSettings.Provider : "local", headerSettings.AutoAnalyze), Message = "Header reading settings saved for the next read." };
-            case "maps": return new() { Root = catalog.Root, Maps = LoadMaps(catalog, token) };
+            case "maps": return new() { Root = catalog.Root, Maps = AtlasApplicationNames.Read(catalog.Root).Apply(LoadMaps(catalog, token)) };
             case "maps-summary": return AtlasCatalogIndex.Read(catalog, request.KnownCatalogVersion, token);
             case "simulation-evidence":
             case "revision-read": case "revision-eligibility": case "semantic-source-read": case "semantic-reference-retain": case "semantic-field-inspect": return ReadRevision(catalog, request, token);
@@ -109,17 +109,23 @@ internal static class AtlasCatalogCommand
                 policy.RequestedCatalogVersion = profiles.CatalogVersion;
                 policy.RequestedProfileVersion = profiles.Profiles.Single(value => value.ProfileId == "fast").ProfileVersion;
                 return new() { Root = catalog.Root, CaptureRequest = Encode(policy) };
+            case "application-rename":
             case "map-detail":
             case "map-preview":
-                var details = LoadMap(catalog, request.MapId ?? throw new ArgumentException("Select a map."), false, token);
+                var details = LoadMap(catalog, request.MapId ?? throw new ArgumentException("Select a map."), request.Operation == "application-rename", token);
                 var selected = details.SingleOrDefault(map => map.Entry == request.Entry && map.Generation == request.Generation)
                     ?? throw new IOException("The selected map changed. Refresh Maps and retry.");
+                if (request.Operation == "application-rename")
+                {
+                    AtlasApplicationNames.Save(catalog.Root, selected.ApplicationGroup, request.FriendlyName, request.ExpectedFriendlyName);
+                    return new() { Root = catalog.Root, Success = true };
+                }
                 if (request.Operation == "map-preview")
                 {
                     var preview = AtlasMapWorkspace.Exists(selected.Path) ? AtlasCatalogPresentation.Preview(AtlasMapWorkspace.Open(selected.Path)) : null;
                     return new() { Root = catalog.Root, PreviewPng = preview is null ? null : Convert.ToBase64String(preview) };
                 }
-                return new() { Root = catalog.Root, Maps = [selected] };
+                return new() { Root = catalog.Root, Maps = AtlasApplicationNames.Read(catalog.Root).Apply([selected]) };
             case "recordings":
                 var links = RecordingMapLinks(catalog, token);
                 return new() { Root = catalog.Root, Recordings = catalog.ListRecordings().Select(item => new CatalogRecording(item.Id,

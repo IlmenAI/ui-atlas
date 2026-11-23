@@ -132,6 +132,16 @@
                     </Border>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock FontFamily="{DynamicResource HeadingFontFamily}" Text="{Binding DisplayName}" FontSize="32" FontWeight="Light" TextTrimming="CharacterEllipsis"/>
+                        <Button x:Name="RenameApplicationButton" Content="Rename application" HorizontalAlignment="Left"
+                                Margin="0,5,0,0" Click="RenameApplication_Click" Visibility="Collapsed"/>
+                        <StackPanel x:Name="NameEditor" Visibility="Collapsed" Margin="0,5,0,0">
+                            <Label Content="Friendly name" Target="{Binding ElementName=ApplicationNameInput}" Padding="0,0,0,3"/>
+                            <TextBox x:Name="ApplicationNameInput" MaxLength="100" MinWidth="140" AutomationProperties.Name="Friendly application name" KeyDown="ApplicationName_KeyDown"/>
+                            <TextBlock Text="Leave blank to use the detected name." Foreground="{DynamicResource MutedInkBrush}" TextWrapping="Wrap"/>
+                            <WrapPanel Margin="0,5,0,0"><Button x:Name="SaveNameButton" Content="Save name" Click="SaveApplicationName_Click"/>
+                                <Button Content="Cancel" Margin="6,0,0,0" Click="CancelApplicationName_Click"/></WrapPanel>
+                            <TextBlock x:Name="NameError" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+                        </StackPanel>
                         <WrapPanel Margin="0,7,0,0">
                             <TextBlock Text="{Binding ExecutableName}" Foreground="{DynamicResource MutedInkBrush}"/>
                             <TextBlock Text="  ·  " Foreground="{DynamicResource MutedInkBrush}"/><TextBlock Text="{Binding VersionSummary}" Foreground="{DynamicResource MutedInkBrush}"/>

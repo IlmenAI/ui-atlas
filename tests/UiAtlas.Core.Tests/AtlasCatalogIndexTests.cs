@@ -39,6 +39,30 @@ public sealed class AtlasCatalogIndexTests
     }
 
     [Fact]
+    public async Task Application_names_follow_the_group_and_invalidate_summary_clients_without_revising_the_map()
+    {
+        using var temp = new TempDirectory();
+        var (root, map) = await Build(temp.Path);
+        var original = await AtlasCatalogCommand.ExecuteAsync(new("maps-summary", root));
+        var rename = new CatalogRequest("application-rename", root, MapId: map.Id, Generation: map.Generation, Entry: map.Entry, FriendlyName: " Front Desk ");
+        await AtlasCatalogCommand.ExecuteAsync(rename);
+        var refreshed = await AtlasCatalogCommand.ExecuteAsync(new("maps-summary", root, KnownCatalogVersion: original.CatalogVersion));
+        Assert.False(refreshed.NotModified);
+        Assert.Equal("Front Desk", Assert.Single(refreshed.Maps).FriendlyName);
+        var detail = Assert.Single((await AtlasCatalogCommand.ExecuteAsync(rename with { Operation = "map-detail" })).Maps);
+        Assert.Equal(map with { FriendlyName = "Front Desk" }, detail);
+        var siblings = AtlasApplicationNames.Read(root).Apply([map with { Id = "sibling" }, map with { ApplicationGroup = "unrelated" }]);
+        Assert.Equal("Front Desk", siblings[0].FriendlyName);
+        Assert.Null(siblings[1].FriendlyName);
+        await Assert.ThrowsAsync<IOException>(() => AtlasCatalogCommand.ExecuteAsync(rename with { FriendlyName = "Stale edit" }));
+        await Assert.ThrowsAsync<ArgumentException>(() => AtlasCatalogCommand.ExecuteAsync(rename with { FriendlyName = new string('A', 101) }));
+        await AtlasCatalogCommand.ExecuteAsync(rename with { FriendlyName = "", ExpectedFriendlyName = "Front Desk" });
+        var reset = await AtlasCatalogCommand.ExecuteAsync(new("maps-summary", root, KnownCatalogVersion: refreshed.CatalogVersion));
+        Assert.False(reset.NotModified);
+        Assert.Null(Assert.Single(reset.Maps).FriendlyName);
+    }
+
+    [Fact]
     public async Task SharedSummaryCachePreservesDisplayKnowledgeAndSkipsUnchangedResponses()
     {
         using var temp = new TempDirectory();

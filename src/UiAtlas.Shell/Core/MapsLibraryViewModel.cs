@@ -146,6 +146,12 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
     public ObservableCollection<MapApplicationPresentation> Groups { get; } = [];
     public IReadOnlyList<MapLibraryFilterOption> Filters { get; }
     public IReadOnlyList<MapLibrarySortOption> SortOptions { get; }
+    public bool CanRenameApplications => _source.CanRenameApplications;
+    public async Task RenameApplicationAsync(MapsLibraryRecord record, string name, CancellationToken token)
+    {
+        await _source.RenameApplicationAsync(record, name, token);
+        await RefreshAsync(token, waitForPending: true);
+    }
     public int ApplicationCount => Groups.Count;
     public int MapCount => Groups.Sum(group => group.Maps.Count);
     public int AttentionCount => _allGroups.Count(value => value.NeedsReview || value.HasWarnings);
@@ -404,7 +410,8 @@ public sealed class MapsLibraryViewModel : INotifyPropertyChanged
 
         var info = records.OrderByDescending(r => r.ApplicationInfo?.LastRecorded).Select(r => r.ApplicationInfo).FirstOrDefault(i => i is not null);
         executable = string.IsNullOrWhiteSpace(info?.Executable) ? executable : info.Executable;
-        displayName = ApplicationMapIdentity.Name(executable, displayName, info);
+        displayName = records.Select(r => r.FriendlyName).FirstOrDefault(name => !string.IsNullOrWhiteSpace(name))
+            ?? ApplicationMapIdentity.Name(executable, displayName, info);
         var recordingIds = records.SelectMany(r => r.ApplicationInfo?.RecordingIds ?? []).Distinct(StringComparer.Ordinal).ToArray();
         foreach (var record in records)
         {

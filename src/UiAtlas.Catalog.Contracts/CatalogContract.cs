@@ -10,7 +10,7 @@ public sealed record CatalogRequest(string Operation, string Root, string? Recor
     CatalogHeaderSettingsUpdate? HeaderSettingsUpdate = null, CatalogSimulationCaptureRequest? SimulationCapture = null,
     string? SemanticAfter = null, int SemanticLimit = 30, string? ExternalConsumerId = null, string? SemanticFieldId = null,
     CatalogSimulationCaptureRequest? SurfaceCapture = null, string? SurfaceCaptureId = null,
-    CatalogMapBuildSettings? BuildSettings = null, bool AllowRetainedForReplay = false);
+    CatalogMapBuildSettings? BuildSettings = null, bool AllowRetainedForReplay = false, string? FriendlyName = null, string? ExpectedFriendlyName = null);
 public sealed record CatalogMapBuildSettings(int MaxNodes, int MaxEdges, bool ExperimentalControlIdentity);
 public sealed record CatalogRecordingBuild(string RecordingId, string MapId, string IdentityPolicy,
     int LogicalGroups, string[] PublishedRevisions, string PublicationProblem);
@@ -29,7 +29,10 @@ public sealed record CatalogHeaderSettingsUpdate(bool Enabled, string Endpoint, 
 public sealed record CatalogRecording(string Id, DateTimeOffset StartedUtc, string Outcome,
     string ProcessName, int FrameCount, string? MapId, bool Archived = false, string? Stamp = null);
 public sealed record CatalogMap(string Id, string Path, string ApplicationGroup, string Generation,
-    string Entry, string? Session, string? Draft, string? Revision, bool SummaryOnly = false, CatalogApplicationInfo? Application = null);
+    string Entry, string? Session, string? Draft, string? Revision, bool SummaryOnly = false, CatalogApplicationInfo? Application = null)
+{
+    public string? FriendlyName { get; init; }
+}
 public sealed record CatalogApplicationInfo(string ProductName, string Executable, string ApplicationVersion,
     string WindowTitle, string[] RecordingIds, DateTimeOffset? LastRecorded)
 {
