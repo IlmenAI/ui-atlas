@@ -40,6 +40,10 @@
     <PathGeometry Figures="M2 8h20"/>
     <PathGeometry Figures="M6 4v4"/>
   </GeometryGroup>
+  <GeometryGroup x:Key="WorkspaceIcon.shield-check">
+    <PathGeometry Figures="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/>
+    <PathGeometry Figures="m8.5 11.5 2.5 2.5 4.5-4.5"/>
+  </GeometryGroup>
   <GeometryGroup x:Key="WorkspaceIcon.book-open">
     <PathGeometry Figures="M12 7v14"/>
     <PathGeometry Figures="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>
