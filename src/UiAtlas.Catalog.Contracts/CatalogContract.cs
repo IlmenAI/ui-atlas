@@ -73,8 +73,12 @@ public sealed record CatalogParameterReview(string MapId, string Generation, Cat
     CatalogParameterPolicy Preview, CatalogParameterCandidate[] Candidates, int ReusedParameterCount = 0);
 public sealed record CatalogIdentityCandidate(string Fingerprint, string CanonicalRef, string[] Members, string Label, string Evidence);
 public sealed record CatalogIdentityReview(string MapId, string Generation, string RevisionRef, string DraftRef, string DraftEtag, CatalogIdentityCandidate[] Candidates);
+public sealed record CatalogFieldCapability(string Control, string Access, string Caption);
+public sealed record CatalogFieldCapabilities(string MapId, string Generation, string Revision, CatalogFieldCapability[] Fields);
+
 public sealed record CatalogReply
 {
+    public CatalogFieldCapabilities? FieldCapabilities { get; init; }
     public CatalogSurfaceObservations? SurfaceObservations { get; init; }
     public CatalogLearnedSurface? LearnedSurface { get; init; }
     public CatalogSemanticPage? SemanticSource { get; init; }

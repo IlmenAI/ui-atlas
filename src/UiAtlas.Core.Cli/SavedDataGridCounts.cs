@@ -32,9 +32,10 @@ internal sealed record SavedDataGridCounts(int UiaNative, int NonUiaNative)
         !Has(node, "controlType", "StatusBar") &&
         !Has(node, "tableRow") && !Has(node, "tableColumn") &&
         !Has(node, "controlType", "DataItem") && !Has(node, "controlType", "HeaderItem") &&
-        node.Properties.Any(p => p.Name == "supportedPattern" && p.Value is
-            "Grid" or "Table" or "GridPattern" or "TablePattern" or
-            "GridPatternIdentifiers.Pattern" or "TablePatternIdentifiers.Pattern");
+        node.Properties.Any(p => p.Name == "supportedPattern" && IsGridPattern(p.Value));
+
+    internal static bool IsGridPattern(string value) => value is "Grid" or "Table" or "GridPattern" or "TablePattern" or
+        "GridPatternIdentifiers.Pattern" or "TablePatternIdentifiers.Pattern";
 
     private static bool MatchesReview(GraphNode node, IReadOnlyDictionary<string, GraphNode> surfaces,
         DataGridReviewContext context)

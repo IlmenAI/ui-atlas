@@ -42,7 +42,10 @@ public sealed record ExperienceCommand(
     string Label,
     string Glyph,
     bool IsAvailable = true,
-    string Status = "");
+    string Status = "")
+{
+    public Action<System.Windows.Window>? Run { get; init; }
+}
 
 public sealed record ExperienceProfileDefinition(
     ExperienceProfileOption Option,
@@ -55,7 +58,8 @@ public sealed class ExperienceProfileCatalog
 {
     private readonly IReadOnlyDictionary<ExperienceProfileId, ExperienceProfileDefinition> _definitions;
 
-    public ExperienceProfileCatalog(bool diagnosticsAvailable, bool workSessionsAvailable = false, bool skillsAvailable = false)
+    public ExperienceProfileCatalog(bool diagnosticsAvailable, bool workSessionsAvailable = false, bool skillsAvailable = false,
+        ExperienceCommand? additionalHudCommand = null)
     {
         var work = new ExperienceProfileOption(ExperienceProfileId.Work, "Work", workSessionsAvailable ? ExperienceAvailability.Available : ExperienceAvailability.InDevelopment);
         var maps = new ExperienceProfileOption(ExperienceProfileId.Maps, "Maps", ExperienceAvailability.Available);
@@ -91,7 +95,7 @@ public sealed class ExperienceProfileCatalog
             new ExperienceCommand("hud.record-map", "Record UI Map", "\uE81E"),
             new ExperienceCommand("hud.record-work-session", "Record Task", "\uE7C3", workSessionsAvailable, workSessionsAvailable ? "" : "In development"),
             new ExperienceCommand("hud.run-workflow", "Run Task", "\uE768", workSessionsAvailable, workSessionsAvailable ? "" : "Not available"),
-        });
+        }.Concat(additionalHudCommand is null ? [] : new[] { additionalHudCommand }).ToArray());
         var diagnosticsNew = Array.AsReadOnly(new[]
         {
             new ExperienceCommand("new.work-session", "Task", "\uE7C3", workSessionsAvailable, workSessionsAvailable ? "" : "In development"),

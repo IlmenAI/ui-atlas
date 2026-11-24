@@ -58,6 +58,11 @@ public partial class MicroHudWindow : Window
     {
         if (sender is not Button { Tag: string commandId })
             return;
+        if (sender is Button { DataContext: ExperienceCommand { Run: { } run, IsAvailable: true } })
+        {
+            run(this);
+            return;
+        }
 
         if (commandId == "hud.record-map")
         {
