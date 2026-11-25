@@ -79,6 +79,16 @@ message RetrieveDataGridRequest {
   int32 maximum_scroll_mutations = 5; // 0 = use the service default; explicit grants range from 1 to 10000.
 }
 
+// A frozen crop from the already-grounded grid. This read has no navigation or input capability.
+message ReadGridViewportRequest {
+  string data_grid_ref = 1;
+  string expected_map_revision_ref = 2;
+  string expected_map_data_grid_ref = 3;
+  bytes png = 4;
+  string pixel_sha256 = 5;
+  repeated string required_columns = 6;
+}
+
 message GetDataGridAcquisitionRequest { string acquisition_ref = 1; }
 message ExtractCapturedGridRequest {
   string acquisition_ref = 1;
