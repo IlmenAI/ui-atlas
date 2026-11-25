@@ -10,7 +10,10 @@ public sealed record CatalogRequest(string Operation, string Root, string? Recor
     CatalogHeaderSettingsUpdate? HeaderSettingsUpdate = null, CatalogSimulationCaptureRequest? SimulationCapture = null,
     string? SemanticAfter = null, int SemanticLimit = 30, string? ExternalConsumerId = null, string? SemanticFieldId = null,
     CatalogSimulationCaptureRequest? SurfaceCapture = null, string? SurfaceCaptureId = null,
-    CatalogMapBuildSettings? BuildSettings = null, bool AllowRetainedForReplay = false, string? FriendlyName = null, string? ExpectedFriendlyName = null);
+    CatalogMapBuildSettings? BuildSettings = null, bool AllowRetainedForReplay = false, string? FriendlyName = null, string? ExpectedFriendlyName = null)
+{
+    public string[]? RecordedEntryControls { get; init; }
+}
 public sealed record CatalogMapBuildSettings(int MaxNodes, int MaxEdges, bool ExperimentalControlIdentity);
 public sealed record CatalogRecordingBuild(string RecordingId, string MapId, string IdentityPolicy,
     int LogicalGroups, string[] PublishedRevisions, string PublicationProblem);
@@ -73,7 +76,12 @@ public sealed record CatalogParameterReview(string MapId, string Generation, Cat
     CatalogParameterPolicy Preview, CatalogParameterCandidate[] Candidates, int ReusedParameterCount = 0);
 public sealed record CatalogIdentityCandidate(string Fingerprint, string CanonicalRef, string[] Members, string Label, string Evidence);
 public sealed record CatalogIdentityReview(string MapId, string Generation, string RevisionRef, string DraftRef, string DraftEtag, CatalogIdentityCandidate[] Candidates);
-public sealed record CatalogFieldCapability(string Control, string Access, string Caption);
+public sealed record CatalogFieldCapability(string Control, string Access, string Caption)
+{
+    public string[]? EnabledSources { get; init; }
+    // A visible, enabled occurrence of a recorded field. This is not a writable capability.
+    public string[]? EntryLocationSources { get; init; }
+}
 public sealed record CatalogFieldCapabilities(string MapId, string Generation, string Revision, CatalogFieldCapability[] Fields);
 
 public sealed record CatalogReply

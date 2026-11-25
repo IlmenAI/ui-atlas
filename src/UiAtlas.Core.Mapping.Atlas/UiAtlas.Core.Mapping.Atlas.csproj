@@ -3,6 +3,7 @@
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="ui-atlas" />
     <ProjectReference Include="../UiAtlas.Core.Mapping/UiAtlas.Core.Mapping.csproj" />
     <ProjectReference Include="../UiAtlas.Core.Storage/UiAtlas.Core.Storage.csproj" />
   </ItemGroup>

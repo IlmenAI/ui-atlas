@@ -58,15 +58,23 @@ internal sealed class AtlasSurfaceInventory
     private static bool Usable(ReviewState state) =>
         state is not (ReviewState.ReviewRejected or ReviewState.ReviewConflicting or ReviewState.ReviewDeferred);
 
+    internal static bool IsSelectionItem(string type) => type.ToLowerInvariant() is
+        "listitem" or "list item" or "tabitem" or "tab item" or "radiobutton" or "radio button";
+
     private static string Matcher(MapEntity entity, string key) => entity.Matchers.Where(m => m.Key == key && !m.VolatileValue && Usable(m.ReviewState))
         .Select(m => m.ExpectedValue).Distinct(StringComparer.Ordinal).ToArray() is [var value] && value.Length <= 256 ? value : "";
 
-    private static IEnumerable<AtlasGesture> Gestures(MapEntity entity, IEnumerable<ObservedMapInteraction> interactions)
+    internal static AtlasGesture GestureFor(MapEntity entity, string verb)
     {
         var type = Matcher(entity, "controlType");
         if (type.StartsWith("ControlType.", StringComparison.OrdinalIgnoreCase)) type = type[12..];
-        var role = (string.IsNullOrWhiteSpace(type) ? entity.Role : type).ToLowerInvariant();
-        var id = Matcher(entity, "automationId");
+        return new(entity, verb, type, Matcher(entity, "automationId"), null);
+    }
+
+    private static IEnumerable<AtlasGesture> Gestures(MapEntity entity, IEnumerable<ObservedMapInteraction> interactions)
+    {
+        var target = GestureFor(entity, "");
+        var role = (string.IsNullOrWhiteSpace(target.ControlType) ? entity.Role : target.ControlType).ToLowerInvariant();
         var verbs = new Dictionary<string, ObservedMapInteraction?>();
         foreach (var interaction in interactions)
         {
@@ -76,16 +84,17 @@ internal sealed class AtlasSurfaceInventory
                 MapInteractionKind.MapInteractionPointerDoubleClick => "double-click",
                 _ => ""
             };
-            if (verb.Length > 0) verbs.TryAdd(verb, interaction);
+            if (verb.Length > 0 && (!verbs.TryGetValue(verb, out var prior) ||
+                interaction.UserPerformed && prior?.UserPerformed != true)) verbs[verb] = interaction;
         }
         var inferred = role switch
         {
             "button" or "push button" or "menuitem" or "menu item" or "hyperlink" => "invoke",
             "edit" or "textbox" or "text box" => "type",
-            "listitem" or "tabitem" => "select",
+            _ when IsSelectionItem(role) => "select",
             _ => ""
         };
         if (inferred.Length > 0) verbs.TryAdd(inferred, null);
-        return verbs.Select(v => new AtlasGesture(entity, v.Key, type, id, v.Value));
+        return verbs.Select(v => target with { Verb = v.Key, Observation = v.Value });
     }
 }

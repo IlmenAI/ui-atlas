@@ -260,7 +260,7 @@ internal static class AtlasCatalogCommand
                 if (request.MapId != Path.GetFileNameWithoutExtension(path) || request.Generation != Path.GetFileName(workspace.DirectoryPath))
                     throw new InvalidDataException("The selected map generation changed. Reopen the editor to refresh its evidence.");
                 if (request.Operation == "permission-field-capabilities")
-                    return new() { FieldCapabilities = AtlasPermissionFields.Read(workspace, revision, request.MapId, token) };
+                    return new() { FieldCapabilities = AtlasPermissionFields.Read(workspace, revision, request.MapId, token, request.RecordedEntryControls) };
                 return new() { SurfaceObservations = AtlasSurfaceObservations.Read(workspace, revision, request.MapId, token) };
             }
             if (request.Operation == "simulation-evidence")

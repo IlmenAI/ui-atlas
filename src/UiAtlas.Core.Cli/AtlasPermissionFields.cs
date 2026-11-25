@@ -14,14 +14,19 @@ internal static class AtlasPermissionFields
     private static readonly HashSet<string> Captions = new(StringComparer.OrdinalIgnoreCase)
         { "Name", "Guest", "Guest name", "Guest card", "From", "To", "Arrival", "Departure", "Adults", "Children", "Room", "Search" };
 
-    internal static CatalogFieldCapabilities Read(AtlasMapWorkspace workspace, UiMapRevision revision, string map, CancellationToken token)
+    internal static CatalogFieldCapabilities Read(AtlasMapWorkspace workspace, UiMapRevision revision, string map, CancellationToken token,
+        string[]? recordedEntryControls = null)
     {
+        var recordedEntries = (recordedEntryControls ?? []).ToHashSet(StringComparer.Ordinal);
+        var entryLocations = revision.LogicalControlGroups.Where(g => g.SupportingEntityRefs.Any(recordedEntries.Contains))
+            .SelectMany(g => g.SupportingEntityRefs).Concat(recordedEntries).ToHashSet(StringComparer.Ordinal);
+        var locations = new HashSet<(string Id, string Source)>();
+        var restricted = new HashSet<(string Id, string Source)>();
         var hosts = revision.Entities.Where(g => g.HostedDataGrid != null).Select(g => g.HostedDataGrid.HostControlRef).ToHashSet();
         var fields = revision.Entities.Where(e => e.Applicable && e.EntityKind == MapEntityKind.MapControl &&
-                (e.Matchers.Any(m => m.Key == "className" && m.ExpectedValue == "ProBrowser") ||
+                (entryLocations.Contains(e.MapEntityRef) || e.Matchers.Any(m => m.Key == "className" && m.ExpectedValue == "ProBrowser") ||
                  hosts.Contains(e.MapEntityRef) ||
-                 e.Role.ToLowerInvariant() is "edit" or "datagrid" or "data grid" or "table" or "list" ||
-                 e.Matchers.Any(m => m.Key == "controlType" && m.ExpectedValue.Replace("ControlType.", "") is "Edit" or "DataGrid" or "Table" or "List")))
+                 CanInspect(e.Role) || e.Matchers.Any(m => m.Key == "controlType" && CanInspect(m.ExpectedValue.Replace("ControlType.", "")))))
             .SelectMany(e => e.EvidenceLinks.Select(l => (Id: e.MapEntityRef, Link: l))).ToLookup(x => x.Link.SourceObservationSetRef);
         var pins = revision.Sources.ToDictionary(s => s.SourceObservationSetRef);
         var sources = workspace.Index.Sources.Where(s => pins.ContainsKey(s.SourceRef) && fields.Contains(s.SourceRef)).ToArray();
@@ -56,6 +61,31 @@ internal static class AtlasPermissionFields
                     foreach (var member in UIMaps.Protocol.RawWorldControlFusion.Members(obj).Prepend(obj))
                     foreach (var node in byEvidence[SurfaceSceneReconstructor.Property(member, "sourceAccessibilityEvidenceId")])
                     {
+                        if (entryLocations.Contains(id))
+                        {
+                            if (node.IsEnabled && !node.IsOffscreen && !node.IsPassword && !node.IsReadOnly)
+                                locations.Add((id, source.SourceRef));
+                            else restricted.Add((id, source.SourceRef));
+                        }
+                        if (entryLocations.Contains(id) && (node.IsPassword || node.HasIsReadOnly && node.IsReadOnly))
+                        {
+                            matched.Add((id, link.SourceObjectRef));
+                            found.Add(new(id, "read-only", ""));
+                            continue;
+                        }
+                        var selectionItem = AtlasSurfaceInventory.IsSelectionItem(node.ControlType);
+                        if (selectionItem || node.ControlType is "Button" or "MenuItem" or "Hyperlink")
+                        {
+                            var patterns = node.SupportedPatterns;
+                            var gesture = selectionItem ?
+                                (patterns.Contains("SelectionItemPatternIdentifiers.Pattern") ? "select" : null) :
+                                (patterns.Contains("InvokePatternIdentifiers.Pattern") || node.ControlType == "MenuItem" &&
+                                    patterns.Contains("ExpandCollapsePatternIdentifiers.Pattern") ? "invoke" : null);
+                            matched.Add((id, link.SourceObjectRef));
+                            if (gesture != null && node.IsEnabled && !node.IsOffscreen)
+                                found.Add(new(id, gesture, "") { EnabledSources = [source.SourceRef] });
+                            continue;
+                        }
                         if (node.ControlType != "Edit")
                         {
                             if (node.ControlType is "Pane" or "DataGrid" or "List" or "Table")
@@ -65,7 +95,8 @@ internal static class AtlasPermissionFields
                                         (n.ControlType is "DataItem" or "ListItem") && n.SupportedPatterns.Contains("SelectionItemPatternIdentifiers.Pattern"));
                                 matched.Add((id, link.SourceObjectRef));
                                 var grid = (node.ControlType is "DataGrid" or "Table") && node.SupportedPatterns.Any(SavedDataGridCounts.IsGridPattern);
-                                found.Add(new(id, selectable ? "row-selection" : grid ? "grid-host" : "unknown", ""));
+                                found.Add(new(id, selectable ? "row-selection" : grid ? "grid-host" : "unknown", "")
+                                    { EnabledSources = selectable || grid ? [source.SourceRef] : null });
                             }
                             continue;
                         }
@@ -77,20 +108,28 @@ internal static class AtlasPermissionFields
                             box.X - n.BoundsPx.X - n.BoundsPx.Width is >= 0 and <= 12)
                             .Select(n => n.Name.Trim().TrimEnd(':').Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
                         matched.Add((id, link.SourceObjectRef));
-                        found.Add(new(id, access, captions is [var caption] ? caption : ""));
+                        found.Add(new(id, access, captions is [var caption] ? caption : "") { EnabledSources = access == "writable" ? [source.SourceRef] : null });
                     }
                 }
             }
             foreach (var (id, link) in fields[source.SourceRef])
                 if (!matched.Contains((id, link.SourceObjectRef))) found.Add(new(id, "unknown", ""));
         }
+        locations.ExceptWith(restricted);
+        var locationSources = locations.ToLookup(x => x.Id, x => x.Source);
         var facts = found.GroupBy(x => x.Control).Select(g =>
         {
             var states = g.Select(x => x.Access).Distinct().ToArray();
             var captions = g.Select(x => x.Caption).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            var positive = states.Where(s => s != "unknown").ToArray();
             return new CatalogFieldCapability(g.Key, states.Contains("read-only") ? "read-only" :
-                states is [var state] ? state : states.All(s => s is "grid-host" or "row-selection") ? "grid-host" : "unknown", captions is [var caption] ? caption : "");
+                positive is [var state] ? state : positive.Length > 0 && positive.All(s => s is "grid-host" or "row-selection") ? "grid-host" : "unknown", captions is [var caption] ? caption : "")
+                { EnabledSources = g.SelectMany(f => f.EnabledSources ?? []).Distinct().Order(StringComparer.Ordinal).ToArray(),
+                  EntryLocationSources = locationSources.Contains(g.Key) ? locationSources[g.Key].Order(StringComparer.Ordinal).ToArray() : null };
         }).ToArray();
         return new(map, Path.GetFileName(workspace.DirectoryPath), revision.MapRevisionRef, facts);
     }
+
+    private static bool CanInspect(string type) => AtlasSurfaceInventory.IsSelectionItem(type) || type.ToLowerInvariant() is
+        "edit" or "datagrid" or "data grid" or "table" or "list" or "button" or "push button" or "menu item" or "menuitem" or "hyperlink";
 }
