@@ -150,6 +150,11 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button x:Name="AssistantCompanionButton" Visibility="Collapsed" Style="{StaticResource TitleBarButtonStyle}"
+                            Click="AssistantCompanionButton_Click" ToolTip="Show or hide Assistant"
+                            AutomationProperties.Name="Show or hide Assistant" AutomationProperties.AutomationId="ToggleAssistantCompanion">
+                        <TextBlock Text="&#xE8F2;" FontFamily="Segoe Fluent Icons" FontSize="16" Foreground="{DynamicResource AccentBrush}" />
+                    </Button>
                     <Button x:Name="MicroHudButton" Style="{StaticResource TitleBarButtonStyle}" Click="MicroHudButton_Click"
                             ToolTip="Open Micro HUD" AutomationProperties.Name="Open Micro HUD">
                         <TextBlock Text="&#xE7F4;" FontFamily="Segoe Fluent Icons" FontSize="16" Foreground="{DynamicResource AccentBrush}" />

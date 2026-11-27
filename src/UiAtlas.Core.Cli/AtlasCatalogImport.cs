@@ -64,7 +64,7 @@ internal static class AtlasCatalogImport
         }
         finally { if (Directory.Exists(staging)) Directory.Delete(staging, true); }
     }
-    private static LogicalMapSessionRecording ImportRecording(LocalArtifactCatalog catalog, string source, CancellationToken token)
+    internal static LogicalMapSessionRecording ImportRecording(LocalArtifactCatalog catalog, string source, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         var validation = RecordingBundleValidator.Validate(source);

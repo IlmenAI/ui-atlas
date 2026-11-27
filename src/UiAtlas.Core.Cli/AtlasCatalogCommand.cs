@@ -49,6 +49,8 @@ internal static class AtlasCatalogCommand
             case "map-build-settings":
                 var buildOptions = new MapBuildSettingsStore().Load();
                 return new() { Root = catalog.Root, BuildSettings = new(buildOptions.MaxNodes, buildOptions.MaxEdges, buildOptions.ExperimentalControlIdentity) };
+            case "window-map":
+                return await AtlasRecordingBuild.FromWindowAsync(catalog, request, token);
             case "recording-build":
                 return await AtlasRecordingBuild.ExecuteAsync(catalog, request, token);
             case "recording-append":

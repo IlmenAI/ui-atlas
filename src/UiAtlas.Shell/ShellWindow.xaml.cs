@@ -54,6 +54,7 @@ public partial class ShellWindow : Window
         _profiles = host.Profiles;
         _activeRoute = host.StartupRoute;
         InitializeComponent();
+        if (host is IShellAssistantCompanionHost) AssistantCompanionButton.Visibility = Visibility.Visible;
         if (host is IShellWorkspaceNavigationHost workspace)
         {
             MinHeight = 480;
@@ -158,6 +159,16 @@ public partial class ShellWindow : Window
 
     public ExperienceProfileId ActiveProfileId => _activeProfile.Option.Id;
     public string ActiveRoute => _activeRoute;
+    public string CurrentPageTrail => string.Join(" › ", BreadcrumbItems.Children.Cast<UIElement>()
+        .Select(item => item switch { Button b => b.Content as string, TextBlock t => t.Text, _ => null })
+        .Where(label => !string.IsNullOrWhiteSpace(label) && label != "›"));
+
+    private async void AssistantCompanionButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_host is not IShellAssistantCompanionHost companion) return;
+        try { await companion.ToggleAssistantCompanionAsync(this); }
+        catch (Exception error) { MessageBox.Show(this, error.Message, "MapLock Assistant", MessageBoxButton.OK, MessageBoxImage.Error); }
+    }
     public event EventHandler? PageChanged;
     public void OpenWorkspaceDiagnostics()
     {
@@ -251,7 +262,7 @@ public partial class ShellWindow : Window
             items.Add(new("platform-unit", "Home", "\uE80F", StartsNewSection: true));
             items.Add(new("skills", "Skills", "\uE945"));
             items.Add(new("organization-maps", "Applications", "\uE81E"));
-            items.Add(new("organization-permissions", "Permissions", "\uE72E"));
+            items.Add(new("organization-permissions", "Roles & Policies", "\uE72E"));
             items.Add(new("organization-knowledge", "Knowledge", "\uE8F1"));
             items.Add(new("platform-unit-ontology", "Ontology", "\uE8F1"));
             items.Add(new("platform-unit-data", "Data Explorer", "\uE9D9"));

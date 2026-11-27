@@ -9,6 +9,32 @@ namespace UiAtlas.Core.Cli;
 
 internal static class AtlasRecordingBuild
 {
+    internal static async Task<CatalogReply> FromWindowAsync(LocalArtifactCatalog catalog, CatalogRequest request, CancellationToken token)
+    {
+        var window = request.SurfaceCapture ?? throw new ArgumentException("Choose a window to map.");
+        var target = UiAtlas.Core.Recording.Windows.WindowCatalog.Resolve(window.RootWindow);
+        if (target.ProcessId != window.ProcessId || target.ProcessStartedUtc.UtcTicks != window.ProcessCreatedUtcTicks)
+            throw new InvalidOperationException("The attached window changed before mapping.");
+        catalog.EnsureSafe();
+        var capture = Path.Combine(catalog.Root, "window-" + Guid.NewGuid().ToString("N") + ".mlrec");
+        try
+        {
+            await using (var session = new UiAtlas.Core.Recording.Windows.ManualRecordingSession(target, capture))
+            {
+                session.FullRawObservations = true;
+                session.Start(explicitConsent: true);
+                await session.CaptureFullObservationAsync("assistant-window-map", token);
+                session.Complete();
+            }
+            var retained = AtlasCatalogImport.ImportRecording(catalog, capture, token);
+            var settings = new MapBuildSettingsStore().Load();
+            return await AtlasRecordingBuild.ExecuteAsync(catalog, request with {
+                RecordingId = retained.SessionId, ExpectedArtifactStamp = catalog.RecordingStamp(retained.SessionId),
+                BuildSettings = new(settings.MaxNodes, settings.MaxEdges, settings.ExperimentalControlIdentity) }, token);
+        }
+        finally { if (File.Exists(capture)) File.Delete(capture); }
+    }
+
     internal static async Task<CatalogReply> ExecuteAsync(LocalArtifactCatalog catalog, CatalogRequest request, CancellationToken token)
     {
         var id = request.RecordingId ?? throw new ArgumentException("Select a recording.");

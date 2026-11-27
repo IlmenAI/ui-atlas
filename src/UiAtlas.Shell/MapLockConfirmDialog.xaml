@@ -59,10 +59,10 @@
             <Border Grid.Row="2" Padding="22,16" Background="{DynamicResource SoftBrush}"
                     BorderBrush="{DynamicResource LineBrush}" BorderThickness="0,1,0,0" CornerRadius="0,0,10,10">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="Cancel" MinWidth="108" Height="42" Margin="0,0,10,0"
-                            Style="{StaticResource RecorderSecondaryButtonStyle}" IsCancel="True" />
+                    <Button x:Name="CancelButton" Content="Cancel" MinWidth="108" Height="42" Margin="0,0,10,0"
+                            Style="{DynamicResource RecorderSecondaryButtonStyle}" IsCancel="True" />
                     <Button x:Name="ConfirmButton" MinWidth="152" Height="42"
-                            Style="{StaticResource PrimaryActionButtonStyle}"
+                            Style="{DynamicResource PrimaryActionButtonStyle}"
                             IsDefault="True" Click="Confirm_Click" />
                 </StackPanel>
             </Border>

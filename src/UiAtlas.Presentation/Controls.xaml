@@ -119,8 +119,33 @@
           </ControlTemplate.Triggers>
         </ControlTemplate></Setter.Value></Setter>
       </Style>
+      <Style x:Key="VerticalPaneScrollViewer" TargetType="ScrollViewer">
+        <Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
+        <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="Template"><Setter.Value>
+          <ControlTemplate TargetType="ScrollViewer">
+            <Grid Background="{TemplateBinding Background}">
+              <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+              <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" ContentSource="Content"
+                                      Margin="{TemplateBinding Padding}" CanContentScroll="{TemplateBinding CanContentScroll}"/>
+              <ScrollBar x:Name="PART_VerticalScrollBar" Grid.Column="1" Orientation="Vertical" Focusable="False"
+                         Width="{DynamicResource {x:Static SystemParameters.VerticalScrollBarWidthKey}}"
+                         Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" Maximum="{TemplateBinding ScrollableHeight}"
+                         ViewportSize="{TemplateBinding ViewportHeight}" Value="{TemplateBinding VerticalOffset}"/>
+            </Grid>
+          </ControlTemplate>
+        </Setter.Value></Setter>
+      </Style>
       <Style x:Key="AtlasScrollThumb" TargetType="Thumb">
-        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Thumb"><Border x:Name="Handle" Background="{DynamicResource LineBrush}" CornerRadius="4" Margin="3"/><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Handle" Property="Background" Value="{DynamicResource AccentBrush}"/></Trigger><Trigger Property="IsDragging" Value="True"><Setter TargetName="Handle" Property="Background" Value="{DynamicResource AccentBrush}"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Thumb">
+          <Border Background="Transparent" Padding="3">
+            <Border x:Name="Handle" Background="{DynamicResource LineBrush}" CornerRadius="4"/>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Handle" Property="Background" Value="{DynamicResource AccentBrush}"/></Trigger>
+            <Trigger Property="IsDragging" Value="True"><Setter TargetName="Handle" Property="Background" Value="{DynamicResource AccentBrush}"/></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value></Setter>
       </Style>
       <Style TargetType="ScrollBar">
         <Setter Property="Width" Value="12"/><Setter Property="MinHeight" Value="20"/><Setter Property="Background" Value="Transparent"/>

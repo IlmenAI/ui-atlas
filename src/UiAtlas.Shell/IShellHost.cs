@@ -23,6 +23,11 @@ public interface IShellWorkspaceNavigationHost
     FrameworkElement CreateWorkspaceSidebar(ShellWindow window);
 }
 
+public interface IShellAssistantCompanionHost
+{
+    Task ToggleAssistantCompanionAsync(ShellWindow owner);
+}
+
 public interface IShellSettingsSectionNavigation
 {
     void ShowRecordingSettings();
