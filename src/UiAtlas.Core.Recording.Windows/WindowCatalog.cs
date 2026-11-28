@@ -239,6 +239,28 @@ public static class WindowCatalog
         return root == 0 ? hwnd : root;
     }
 
+    internal static WindowTarget? HostedContent(WindowTarget frame)
+    {
+        if (!frame.ProcessName.Equals("ApplicationFrameHost", StringComparison.OrdinalIgnoreCase) ||
+            frame.ClassName != "ApplicationFrameWindow") return null;
+        var matches = new List<WindowTarget>();
+        NativeMethods.EnumChildWindows((nint)frame.Hwnd, (hwnd, _) =>
+        {
+            if (NativeMethods.IsWindowVisible(hwnd) && GetClass(hwnd) == "Windows.UI.Core.CoreWindow")
+            {
+                try
+                {
+                    var child = Resolve(hwnd.ToInt64());
+                    if (child.RootOwnerHwnd == frame.RootOwnerHwnd && child.ProcessId != frame.ProcessId)
+                        matches.Add(child);
+                }
+                catch (Exception error) when (error is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception) { }
+            }
+            return matches.Count < 2;
+        }, 0);
+        return matches is [var content] ? content : null;
+    }
+
     internal static string GetClass(nint hwnd)
     {
         var chars = new char[512];

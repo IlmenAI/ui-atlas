@@ -88,7 +88,10 @@ public sealed record TargetScope(
     string ProductVersion = "",
     string OriginalFilename = "",
     string CompanyName = "",
-    string ProductName = "");
+    string ProductName = "")
+{
+    public string? HostedExecutable { get; init; }
+}
 
 public sealed record RetentionPolicy(bool RetainOnCancel = true, string Name = "retain-until-user-deletes/1");
 

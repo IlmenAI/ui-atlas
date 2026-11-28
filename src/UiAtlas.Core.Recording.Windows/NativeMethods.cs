@@ -105,6 +105,7 @@ internal static partial class NativeMethods
     [DllImport("user32.dll")] internal static extern short GetAsyncKeyState(int virtualKey);
     [DllImport("user32.dll")] internal static extern int GetSystemMetrics(int index);
     [DllImport("user32.dll")] internal static extern uint GetWindowThreadProcessId(nint hwnd, out uint processId);
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] internal static extern bool IsChild(nint parent, nint candidate);
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] internal static extern nint GetWindowLongPtr(nint hwnd, int index);
     [DllImport("user32.dll")] internal static extern int GetWindowTextLengthW(nint hwnd);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] internal static extern int GetWindowTextW(nint hwnd, char[] text, int count);

@@ -148,7 +148,14 @@ public sealed partial class NativeRecorderCapture
             Rect(window.BoundsPx), window.IsVisible, !window.HasIsEnabled || window.IsEnabled, window.IsMinimized, window.IsCloakedOrUnavailable,
             checked((int)(window.Dpi > 0 ? window.Dpi : episode.DisplayDescriptor.DpiX)), Handle(window.OwnerChainEvidence.FirstOrDefault()), window.ZOrder,
             Style: window.WindowStyle, ExStyle: window.WindowExStyle, IsToolWindow: window.IsToolWindow, IsTopMost: (window.WindowExStyle & 8) != 0)).ToArray();
-        var selected = observations.Single(window => window.Hwnd == target.Hwnd);
+        var selected = observations.SingleOrDefault(window => window.Hwnd == target.Hwnd);
+        if (selected is null)
+        {
+            var issues = episode.SensorPackets.Where(packet => packet.StreamKind == SensorStreamKind.WindowTopology)
+                .SelectMany(packet => packet.Health?.Issues ?? []).Select(issue => issue.Code).Distinct();
+            throw new InvalidDataException($"The native census did not verify the selected window ({target.Hwnd}). " +
+                string.Join(", ", issues));
+        }
         var frameEntry = $"raw/frames/frame-{sequence:D6}.png";
         var nativeEntry = $"raw/native/frame-{sequence:D6}.episode.pb";
         var streams = new List<RawDataStreamObservation>();

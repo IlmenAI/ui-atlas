@@ -13,6 +13,18 @@ namespace UiAtlas.Core.Mapping.Tests;
 public sealed class NativeParityTests
 {
     [Fact]
+    public void MissingSelectedWindowReportsTheNativeTopologyFailure()
+    {
+        var episode = EpisodeFixture.Create();
+        var packet = episode.SensorPackets.Single(packet => packet.WindowTopology is not null);
+        packet.WindowTopology.Windows.Clear();
+        packet.Health = ProtocolHealth.Single(HealthState.Partial, "RECORDER_TARGET_CHANGED", "Target unavailable.", "window_topology");
+
+        var error = Assert.Throws<InvalidDataException>(() => NativeRecorderCapture.Project(episode, Target, 1, "fixture", new()));
+        Assert.Contains("RECORDER_TARGET_CHANGED", error.Message);
+    }
+
+    [Fact]
     public void ProjectionPreservesSeparateProviderAttemptsAndOriginalParentsBeforeCanonicalization()
     {
         var episode = EpisodeFixture.Create();

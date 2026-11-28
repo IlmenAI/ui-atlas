@@ -34,7 +34,12 @@ internal static class AtlasCatalogPresentation
             catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or System.Text.Json.JsonException) { complete = false; }
         }
         var latest = manifests.OrderByDescending(v => v.Manifest.EndedUtc).FirstOrDefault();
-        return new(latest.Manifest?.Target.ProductName ?? "", latest.Manifest?.Target.ProcessName ?? workspace.Index.ApplicationName,
+        var executable = latest.Manifest?.Target.ProcessName ?? workspace.Index.ApplicationName;
+        if (complete && executable.Equals("ApplicationFrameHost", StringComparison.OrdinalIgnoreCase) &&
+            latest.Manifest?.Target.HostedExecutable is { Length: > 0 } hosted &&
+            manifests.All(m => string.Equals(m.Manifest.Target.HostedExecutable, hosted, StringComparison.OrdinalIgnoreCase)))
+            executable = hosted;
+        return new(latest.Manifest?.Target.ProductName ?? "", executable,
             latest.Manifest?.Target.ProductVersion ?? "", latest.Title ?? "",
             workspace.Index.Sources.Select(s => s.BundleId).Distinct(StringComparer.Ordinal).ToArray(),
             complete && latest.Manifest is not null ? latest.Manifest.EndedUtc : null);

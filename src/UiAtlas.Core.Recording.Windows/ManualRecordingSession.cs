@@ -94,7 +94,7 @@ public sealed partial class ManualRecordingSession : IAsyncDisposable
         RecordingBundleWriter.CleanupOutputTemporaries(_outputPath, TimeSpan.FromDays(1));
         var staging = Path.Combine(Path.GetTempPath(), "ui-atlas-recording-" + Guid.NewGuid().ToString("N"));
         _writer = new RecordingBundleWriter(staging);
-        _input = new LowLevelInputMonitor(target.RootOwnerHwnd, target.ProcessId, target.ProcessStartedUtc);
+        _input = new LowLevelInputMonitor(target);
         _manualInput = new ManualTargetInputWaiter(target);
         _beforeScreenshotCapture = beforeScreenshotCapture;
         _afterScreenshotCapture = afterScreenshotCapture;
@@ -2248,7 +2248,8 @@ public sealed partial class ManualRecordingSession : IAsyncDisposable
             var manifest = new RecordingManifest(FormatVersions.RecordingBundle, FormatVersions.Tool, sessionId, _started, ended, outcome,
                 new(_target.Hwnd, _target.RootOwnerHwnd, _target.ProcessId, _target.ProcessName, _target.ProcessStartedUtc,
                     ProductVersion: _target.ProductVersion, OriginalFilename: _target.OriginalFilename,
-                    CompanyName: _target.CompanyName, ProductName: _target.ProductName),
+                    CompanyName: _target.CompanyName, ProductName: _target.ProductName)
+                    { HostedExecutable = _input.HostedContent?.ProcessName },
                 new(), new(retainOnCancel), true, _events.Count, _frames.Count, Files: _writer.DescribeEntries());
             _writer.WriteJson("manifest.json", manifest);
             if (outcome != RecordingOutcome.Cancelled || retainOnCancel)

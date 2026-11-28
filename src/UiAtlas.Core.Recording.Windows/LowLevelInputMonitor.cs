@@ -12,6 +12,8 @@ public sealed class LowLevelInputMonitor : IDisposable
     private readonly long _rootOwner;
     private readonly int _processId;
     private readonly DateTimeOffset _processStartedUtc;
+    private readonly WindowTarget? _frame;
+    internal WindowTarget? HostedContent { get; }
     private readonly ConcurrentQueue<InputEvent> _events = new();
     private readonly NativeMethods.HookProc _mouseCallback;
     private readonly NativeMethods.HookProc _keyboardCallback;
@@ -32,6 +34,15 @@ public sealed class LowLevelInputMonitor : IDisposable
         _processStartedUtc = processStartedUtc;
         _mouseCallback = MouseCallback;
         _keyboardCallback = KeyboardCallback;
+    }
+
+    internal LowLevelInputMonitor(WindowTarget target) : this(target.RootOwnerHwnd, target.ProcessId, target.ProcessStartedUtc)
+    {
+        if (target.ProcessName.Equals("ApplicationFrameHost", StringComparison.OrdinalIgnoreCase))
+        {
+            _frame = target;
+            HostedContent = WindowCatalog.HostedContent(target);
+        }
     }
 
     public void Start()
@@ -125,11 +136,27 @@ public sealed class LowLevelInputMonitor : IDisposable
     {
         if (window == 0 || !NativeMethods.IsWindow(window)) return false;
         NativeMethods.GetWindowThreadProcessId(window, out var pid);
-        if (pid != _processId) return false;
+        if (_frame != null && WindowCatalog.GetRootOwnerHandle(window).ToInt64() != _rootOwner) return false;
+        if (pid != _processId)
+        {
+            var content = HostedContent;
+            if (_frame == null || content == null || pid != content.ProcessId) return false;
+            var hwnd = (nint)content.Hwnd;
+            NativeMethods.GetWindowThreadProcessId(hwnd, out var contentPid);
+            NativeMethods.GetWindowThreadProcessId((nint)_frame.Hwnd, out var framePid);
+            return (window == hwnd || NativeMethods.IsChild(hwnd, window)) &&
+                contentPid == content.ProcessId && framePid == _processId &&
+                IsRunning(content.ProcessId, content.ProcessStartedUtc) && IsRunning(_processId, _processStartedUtc);
+        }
+        return IsRunning(_processId, _processStartedUtc);
+    }
+
+    private static bool IsRunning(int processId, DateTimeOffset startedUtc)
+    {
         try
         {
-            using var process = Process.GetProcessById(_processId);
-            return !process.HasExited && process.StartTime.ToUniversalTime() == _processStartedUtc;
+            using var process = Process.GetProcessById(processId);
+            return !process.HasExited && process.StartTime.ToUniversalTime() == startedUtc;
         }
         catch { return false; }
     }
