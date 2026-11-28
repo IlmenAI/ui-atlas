@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Automation;
+using Native = Interop.UIAutomationClient;
 using UIMaps.Protocol.V1;
 using UIMaps.Recorder.Windows;
 
@@ -45,10 +47,104 @@ internal static class UiaCachedCapture
     {
         var cache = new CacheRequest { TreeScope = TreeScope.Element, TreeFilter = Automation.RawViewCondition,
             AutomationElementMode = AutomationElementMode.Full };
-        foreach (var property in Metadata.Concat(Patterns.Select(x => x.Availability)).Concat(StateProperties)) cache.Add(property);
+        foreach (var property in CachedProperties) cache.Add(property);
         // ValuePattern.ValueProperty is deliberately absent. Password status must
         // be positively observed before any value is requested from the provider.
         return cache;
+    }
+
+    private static IEnumerable<AutomationProperty> CachedProperties =>
+        Metadata.Concat(Patterns.Select(x => x.Availability)).Concat(StateProperties);
+
+    // Native UIA exposes provider fragments (including LibreOffice toolbars)
+    // that the managed client's RawViewWalker can omit for the same HWND.
+    internal static AccessibilityPacket CaptureNative(ProbeRequest request)
+    {
+        bool HasTime() => request.DeadlineTimestamp == 0 || Stopwatch.GetTimestamp() < request.DeadlineTimestamp;
+        if (!HasTime()) return Unavailable(request, "cooperative_deadline", "Accessibility worker had no acquisition time remaining.", timeLimited: true);
+        Native.IUIAutomation client;
+        Native.IUIAutomationCacheRequest cache;
+        Native.IUIAutomationTreeWalker walker;
+        Native.IUIAutomationElement root;
+        try
+        {
+            client = (Native.IUIAutomation)new Native.CUIAutomation8Class();
+            cache = client.CreateCacheRequest();
+            cache.TreeScope = Native.TreeScope.TreeScope_Element;
+            cache.TreeFilter = client.RawViewCondition;
+            foreach (var property in CachedProperties) cache.AddProperty(property.Id);
+            cache.AddProperty(Native.UIA_PropertyIds.UIA_IsLegacyIAccessiblePatternAvailablePropertyId);
+            walker = client.RawViewWalker;
+            root = client.ElementFromHandleBuildCache(new IntPtr(request.WindowHandle), cache);
+            if (root is null) return Unavailable(request, "root_unavailable", "Native UI Automation returned no root for the selected window.");
+        }
+        catch (COMException) { return Unavailable(request, "root_unavailable", "Native UI Automation could not open the selected window."); }
+
+        return UiaCaptureTraversal.Capture(root, request.WindowEvidenceId, request.MaxNodes, request.MaxDepth,
+            (element, id, parent) => ReadNode(property => NativeProperty(client, element, property),
+                () => NativeValue(element), null, HasTime, id, parent, request.WindowEvidenceId,
+                readSelection: () => NativeSelection(element), cachedLegacyAvailable: () => NativeLegacyAvailable(element)),
+            element => walker.GetFirstChildElementBuildCache(element, cache),
+            element => walker.GetNextSiblingElementBuildCache(element, cache), HasTime);
+    }
+
+    private static bool NativeLegacyAvailable(Native.IUIAutomationElement element) =>
+        element.GetCachedPropertyValueEx(Native.UIA_PropertyIds.UIA_IsLegacyIAccessiblePatternAvailablePropertyId, 1) is true;
+
+    private static object? NativeProperty(Native.IUIAutomation client, Native.IUIAutomationElement element, AutomationProperty property)
+    {
+        var value = element.GetCachedPropertyValueEx(property.Id, 1);
+        if (value is not null && Marshal.IsComObject(value) && client.CheckNotSupported(value) != 0)
+            return AutomationElement.NotSupported;
+        if (property == AutomationElement.BoundingRectangleProperty && value is double[] { Length: 4 } rect)
+            return new Rect(rect[0], rect[1], rect[2], rect[3]);
+        if (value is int number)
+        {
+            if (property == AutomationElement.ControlTypeProperty) return NativeControlTypeName(number);
+            if (property == TogglePattern.ToggleStateProperty) return (ToggleState)number;
+            if (property == ExpandCollapsePattern.ExpandCollapseStateProperty) return (ExpandCollapseState)number;
+        }
+        return value;
+    }
+
+    internal static string NativeControlTypeName(int id)
+    {
+        // A COM capture can be the first UIA call in this worker. WPF registers
+        // its control type IDs when its static fields are initialized.
+        System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ControlType).TypeHandle);
+        return ControlType.LookupById(id)?.ProgrammaticName ?? id.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private static string? NativeValue(Native.IUIAutomationElement element)
+    {
+        if (element.GetCachedPropertyValueEx(AutomationElement.IsValuePatternAvailableProperty.Id, 1) is true
+            && element.GetCurrentPattern(ValuePattern.Pattern.Id) is Native.IUIAutomationValuePattern value)
+            return value.CurrentValue;
+        if (element.GetCachedPropertyValueEx(AutomationElement.IsRangeValuePatternAvailableProperty.Id, 1) is true
+            && element.GetCurrentPattern(RangeValuePattern.Pattern.Id) is Native.IUIAutomationRangeValuePattern range)
+            return range.CurrentValue.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+        if ((element.CachedControlType == ControlType.Edit.Id || element.CachedControlType == ControlType.Document.Id)
+            && element.GetCurrentPattern(TextPattern.Pattern.Id) is Native.IUIAutomationTextPattern text)
+            return text.DocumentRange.GetText(4096);
+        return null;
+    }
+
+    private static string? NativeSelection(Native.IUIAutomationElement element)
+    {
+        if (element.GetCurrentPattern(SelectionPattern.Pattern.Id) is not Native.IUIAutomationSelectionPattern selection)
+            return null;
+        var selected = selection.GetCurrentSelection();
+        var count = selected.Length;
+        if (count > 64) return null;
+        var names = new List<string>(count);
+        for (var i = 0; i < count; i++)
+        {
+            var item = selected.GetElement(i);
+            if (item.GetCurrentPropertyValueEx(AutomationElement.IsPasswordProperty.Id, 1) is not false) return null;
+            if (item.GetCurrentPropertyValueEx(AutomationElement.NameProperty.Id, 1) is not string name) return null;
+            names.Add(name);
+        }
+        return System.Text.Json.JsonSerializer.Serialize(names);
     }
 
     internal static AccessibilityPacket Capture(ProbeRequest request, bool readValues = true, bool probeLegacyPattern = true)
@@ -76,9 +172,9 @@ internal static class UiaCachedCapture
     }
 
     internal static AccessibilityNodeRecord ReadNode(Func<AutomationProperty, object?> cached,
-        Func<string?> readValue, Func<AutomationPattern, bool> legacyPatternSupported, Func<bool> hasTime,
+        Func<string?> readValue, Func<AutomationPattern, bool>? legacyPatternSupported, Func<bool> hasTime,
         string id, string parentId, string windowId, bool readValues = true, bool probeLegacyPattern = true,
-        Func<string?>? readSelection = null)
+        Func<string?>? readSelection = null, Func<bool>? cachedLegacyAvailable = null)
     {
         var coverage = new PropertyCoverage();
         var issues = new List<Health>();
@@ -184,7 +280,13 @@ internal static class UiaCachedCapture
         }
         // The managed UIA API has no registered legacy availability property on
         // all supported runtimes. Preserve its existing optional pattern probe.
-        if (probeLegacyPattern && AutomationPattern.LookupById(10018) is { } legacy && hasTime())
+        if (cachedLegacyAvailable is not null)
+        {
+            coverage.Attempted++;
+            try { if (cachedLegacyAvailable()) node.SupportedPatterns.Add("LegacyIAccessiblePatternIdentifiers.Pattern"); coverage.Read++; }
+            catch { coverage.Failed++; }
+        }
+        else if (probeLegacyPattern && legacyPatternSupported is not null && AutomationPattern.LookupById(10018) is { } legacy && hasTime())
         {
             coverage.Attempted++;
             try { if (legacyPatternSupported(legacy)) node.SupportedPatterns.Add(legacy.ProgrammaticName); coverage.Read++; }

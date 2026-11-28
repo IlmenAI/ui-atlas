@@ -636,6 +636,9 @@ internal sealed partial class RecordingHighlightOverlay
     private void RenderMapperHighlights()
     {
         if (_canvas is null || !_mapperTargetVisible) return;
+        var sharedBounds = _mapperHighlights.Where(h => h.Kind is MapperHighlightKind.Uia or MapperHighlightKind.Msaa &&
+                IsMapperKindVisible(h.Kind)).GroupBy(CurrentBounds)
+            .Where(g => g.Select(h => h.Kind).Distinct().Count() > 1).Select(g => g.Key).ToHashSet();
         foreach (var item in _mapperHighlights)
         {
             if (!IsMapperKindVisible(item.Kind)) continue;
@@ -665,6 +668,11 @@ internal sealed partial class RecordingHighlightOverlay
                     Stroke = brush, StrokeThickness = item.IsGrid ? 2.5 : item.Kind == MapperHighlightKind.Fields ? 2 : 1.25,
                     RadiusX = item.Kind == MapperHighlightKind.Fields ? 3 : 0,
                     RadiusY = item.Kind == MapperHighlightKind.Fields ? 3 : 0, IsHitTestVisible = false };
+                if (item.Kind is MapperHighlightKind.Uia or MapperHighlightKind.Msaa && sharedBounds.Contains(CurrentBounds(item)))
+                {
+                    border.StrokeDashArray = [3, 3];
+                    border.StrokeDashOffset = item.Kind == MapperHighlightKind.Uia ? 0 : 3;
+                }
                 if (item.Kind == MapperHighlightKind.GridCandidate) border.StrokeDashArray = [4, 3];
                 if (item.Kind == MapperHighlightKind.Fields && !item.ChangeObserved) border.StrokeDashArray = [3, 2];
                 Canvas.SetLeft(border, rect.Left); Canvas.SetTop(border, rect.Top);

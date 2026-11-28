@@ -7,6 +7,14 @@ namespace UiAtlas.Core.Windows.Tests;
 public sealed class NativeFieldProjectionTests
 {
     [Fact]
+    public void MissingControlTypeRemainsEmpty()
+    {
+        var node = Node();
+        node.ControlType = "";
+        Assert.Empty(NativeRecorderCapture.ProjectControl(node, 100).ControlType);
+    }
+
+    [Fact]
     public void UnreadValueIsDifferentFromAnObservedEmptyValue()
     {
         var unread = Node();

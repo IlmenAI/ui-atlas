@@ -84,7 +84,7 @@ public sealed class LowLevelInputMonitor : IDisposable
                     TryFocusTargetBeforeClick(root, pointed);
 
                 if (MouseKind(message) is { } kind)
-                    Enqueue(kind, data.Point.X, data.Point.Y, 0, pointed, (nint)_rootOwner);
+                    Enqueue(kind, data.Point.X, data.Point.Y, 0, pointed, (nint)_rootOwner, ButtonFor(message));
             }
         }
         return NativeMethods.CallNextHookEx(_mouseHook, code, wParam, lParam);
@@ -109,7 +109,7 @@ public sealed class LowLevelInputMonitor : IDisposable
         return NativeMethods.CallNextHookEx(_keyboardHook, code, wParam, lParam);
     }
 
-    private void Enqueue(InputEventKind kind, int x, int y, int virtualKey, nint pointed, nint root)
+    private void Enqueue(InputEventKind kind, int x, int y, int virtualKey, nint pointed, nint root, RecordedPointerButton button = RecordedPointerButton.Unknown)
     {
         if (Interlocked.Increment(ref _queuedCount) > MaxQueuedEvents)
         {
@@ -118,7 +118,7 @@ public sealed class LowLevelInputMonitor : IDisposable
             return;
         }
         _events.Enqueue(new(Interlocked.Increment(ref _sequence), DateTimeOffset.UtcNow, kind, x, y, virtualKey, "[redacted]",
-            pointed.ToInt64(), root.ToInt64(), NativeMethods.GetForegroundWindow().ToInt64()));
+            pointed.ToInt64(), root.ToInt64(), NativeMethods.GetForegroundWindow().ToInt64(), button));
     }
 
     private bool IsInScope(nint window)
@@ -133,6 +133,14 @@ public sealed class LowLevelInputMonitor : IDisposable
         }
         catch { return false; }
     }
+
+    internal static RecordedPointerButton ButtonFor(int message) => message switch
+    {
+        NativeMethods.WmLButtonDown or NativeMethods.WmLButtonUp => RecordedPointerButton.Primary,
+        NativeMethods.WmRButtonDown or NativeMethods.WmRButtonUp => RecordedPointerButton.Secondary,
+        NativeMethods.WmMButtonDown or NativeMethods.WmMButtonUp => RecordedPointerButton.Middle,
+        _ => RecordedPointerButton.Unknown
+    };
 
     private static InputEventKind? MouseKind(int message) => message switch
     {

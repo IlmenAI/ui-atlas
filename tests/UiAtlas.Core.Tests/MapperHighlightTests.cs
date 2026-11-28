@@ -18,6 +18,21 @@ public sealed class MapperHighlightTests
     }
 
     [Fact]
+    public void PopupIncludesOnlyVisibleOwnerMenuRowsInsideItsBounds()
+    {
+        var main = new WindowObservation(100, 100, 1, "fixture", "", new(0, 0, 800, 600), true, true, false, false, 96);
+        var popup = main with { Hwnd = 200, Bounds = new(20, 30, 150, 100), OwnerHwnd = 100, IsToolWindow = true };
+        var parent = Control("file", "MenuItem", new(20, 10, 40, 20)) with { WindowHwnd = 100 };
+        var row = Control("open", "MenuItem", new(24, 35, 140, 20)) with { ParentRuntimeId = "file", WindowHwnd = 100 };
+        var wrongRole = row with { RuntimeId = "toolbar", ControlType = "ControlType.Button" };
+        var frame = new FrameObservation(1, DateTimeOffset.UtcNow, "", main,
+            [parent, row, wrongRole, row with { RuntimeId = "hidden", IsOffscreen = true },
+             row with { RuntimeId = "other", WindowHwnd = 300 }, row with { RuntimeId = "outside", Bounds = new(400, 50, 70, 20) }],
+            false, "ok", "manual-action", [main, popup]);
+        Assert.Equal(row, Assert.Single(MapperHighlightModel.FrameControls(frame, popup.Hwnd)));
+    }
+
+    [Fact]
     public void OfficeMsaaClientCoordinatesUseMeasuredDpiSpacesWithoutRescalingChromeOrUia()
     {
         var client = new RectI(2887, 410, 501, 522);
@@ -62,6 +77,27 @@ public sealed class MapperHighlightTests
         Assert.Equal("", control.FrameworkId); // Presentation never rewrites the recording.
         Assert.Contains("UIA timeout", UiAtlas.Core.Cli.Program.IncompleteObservationStatus(frame));
         Assert.Contains("incomplete evidence", UiAtlas.Core.Cli.Program.IncompleteObservationStatus(frame));
+    }
+
+    [Fact]
+    public void CoincidentAccessibilityRowsKeepBothProviderColors()
+    {
+        var uia = Control("row", "Button", new(-120, 180, 160, 24)) with { Name = "Open", ProviderId = "uia" };
+        var msaa = uia with { RuntimeId = "other", ProviderId = "msaa" };
+        var outlines = MapperHighlightModel.Build(Surface, [uia, msaa]);
+        Assert.Equal(new[] { MapperHighlightKind.Uia, MapperHighlightKind.Msaa }, outlines.Select(h => h.Kind));
+        Assert.Equal(2, outlines.Select(h => h.Color).Distinct().Count());
+        Assert.All(outlines, h => Assert.Equal(uia.Bounds, h.Bounds));
+    }
+
+    [Fact]
+    public void PartiallyVisibleAccessibleControlKeepsItsReportedAndVisibleBounds()
+    {
+        var grid = Control("orders", "DataGrid", new(580, 484, 760, 200), patterns: ["Grid"]);
+        var outline = Assert.Single(MapperHighlightModel.Build(new(125, 100, 850, 570), [grid]));
+        Assert.Equal(MapperHighlightKind.NativeGrid, outline.Kind);
+        Assert.Equal(new RectI(580, 484, 395, 186), outline.Bounds);
+        Assert.Equal(grid.Bounds, outline.Control.Bounds);
     }
 
     private static readonly RectI Surface = new(-200, 100, 1000, 800);

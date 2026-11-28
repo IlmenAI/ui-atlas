@@ -136,7 +136,7 @@ public sealed class ProviderProcessRunner(string executablePath) : IProviderProc
 
     internal static ProbeRequest WithCooperativeDeadline(ProbeRequest request, TimeSpan timeout, long startedTimestamp)
     {
-        if (request.Operation is not ("uia" or "uia-cached" or "uia-interaction" or "window-visual") || timeout == Timeout.InfiniteTimeSpan) return request;
+        if (request.Operation is not ("uia" or "uia-cached" or "uia-native" or "uia-interaction" or "window-visual") || timeout == Timeout.InfiniteTimeSpan) return request;
         // Leave time to serialize and return a partial packet before containment's
         // hard deadline. The same monotonic clock is shared by parent and worker.
         var reserveMs = Math.Min(100d, timeout.TotalMilliseconds * .2d);
@@ -315,8 +315,10 @@ public sealed class IsolatedWindowTopologyProvider(IProviderProcessRunner runner
     }
 }
 
-public sealed class IsolatedAccessibilityProbe(IProviderProcessRunner runner) : IAccessibilityProbe
+public sealed class IsolatedAccessibilityProbe(IProviderProcessRunner runner, bool useNativeUia) : IAccessibilityProbe
 {
+    public IsolatedAccessibilityProbe(IProviderProcessRunner runner) : this(runner, useNativeUia: false) { }
+
     public async Task<AccessibilityPacket> CaptureAsync(IReadOnlyList<WindowObservationRecord> windows, RecorderPolicy policy, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -402,13 +404,13 @@ public sealed class IsolatedAccessibilityProbe(IProviderProcessRunner runner) : 
                     var attempt = new ProviderAttemptOutcome
                     {
                         AttemptId = Guid.NewGuid().ToString("N"), CaptureWindowId = captureWindowId, ProviderId = "uia",
-                        WorkerVersion = policy.UseCachedUia ? "cached-uia/1.0.0" : "0.9.0", WorkerArchitecture = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),
+                        WorkerVersion = useNativeUia ? "native-uia/1" : policy.UseCachedUia ? "cached-uia/1.0.0" : "0.9.0", WorkerArchitecture = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),
                         StartedAt = started.ToString("O"),
                     };
                     try
                     {
                         var packet = await runner.RunAsync(
-                            new ProbeRequest(policy.UseCachedUia ? "uia-cached" : "uia", 0, 0, 0, 0, hwnd, window.WindowEvidenceId, reservedNodes, policy.MaxUiaDepth, 0),
+                            new ProbeRequest(useNativeUia ? "uia-native" : policy.UseCachedUia ? "uia-cached" : "uia", 0, 0, 0, 0, hwnd, window.WindowEvidenceId, reservedNodes, policy.MaxUiaDepth, 0),
                             AccessibilityPacket.Parser, policy.UiaPerWindowDeadline, aggregateCts.Token).ConfigureAwait(false);
                         cancellationToken.ThrowIfCancellationRequested();
                         attempt.EndedAt = DateTimeOffset.UtcNow.ToString("O"); attempt.Status = packet.Health.State == HealthState.Complete ? "completed" : "partial";

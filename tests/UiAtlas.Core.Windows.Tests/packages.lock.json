@@ -223,6 +223,7 @@
       "uimaps.recorder.providerprobe": {
         "type": "Project",
         "dependencies": {
+          "Interop.UIAutomationClient": "[10.19041.0, )",
           "UIMaps.Recorder.Windows": "[1.0.0, )"
         }
       },

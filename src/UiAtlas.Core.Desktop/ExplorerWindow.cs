@@ -41,6 +41,13 @@ public sealed partial class ExplorerWindow : Window
     private static readonly Brush Orange = Brush("#FF8B3D");
     private static readonly Brush Violet = Brush("#8B5CF6");
     private static readonly Brush Green = MapProjectionVisual.SemanticStroke;
+    private static Brush SourceBrush(ControlSource source) => source switch
+    {
+        ControlSource.UIA => Blue,
+        ControlSource.MSAA => Green,
+        ControlSource.OCR => Orange,
+        _ => Violet
+    };
     private static readonly Style HierarchyTreeItemStyle = CreateHierarchyTreeItemStyle();
     private static readonly Style ModernComboBoxStyle = CreateModernComboBoxStyle();
     private static readonly Lazy<ImageSource?> ToolbarImportArt = new(() => LoadToolbarAssetImage("explorer-icon-import.png"));
@@ -62,9 +69,15 @@ public sealed partial class ExplorerWindow : Window
     private bool _updatingRawStreams;
     private bool _rawDetailsExpanded;
     private string? _rawStreamSurfaceId;
-    private readonly StackPanel _rawSources = new() { Orientation = Orientation.Horizontal, Margin = new Thickness(10, 0, 0, 0) };
+    private readonly WrapPanel _rawSources = new() { Margin = new Thickness(3, 4, 3, 4) };
     private readonly ToggleButton _showRawUia = new() { Content = "UIA", IsChecked = true };
-    private readonly ToggleButton _showRawMsaa = new() { Content = "MSAA", IsChecked = false };
+    private readonly ToggleButton _showRawMsaa = new() { Content = "MSAA", IsChecked = true };
+    private readonly Dictionary<ControlSource, ToggleButton> _worldSources =
+        new[] { ControlSource.UIA, ControlSource.MSAA, ControlSource.OCR, ControlSource.Other }
+            .ToDictionary(source => source, source => new ToggleButton { Content = source.ToString(), IsChecked = true });
+    private readonly CheckBox _includeLimitedFrames = new() { Content = "All observations",
+        Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center,
+        ToolTip = "Include observations with limited or unavailable image evidence." };
     private readonly Button _frameStreamsButton = new() { Content = "Frame streams", Margin = new Thickness(8, 0, 0, 0) };
     private readonly ComboBox _rawStreamFilter = new() { MinWidth = 150, MaxWidth = 280,
         Margin = new Thickness(6, 0, 0, 0), Visibility = Visibility.Collapsed };
@@ -672,19 +685,29 @@ public sealed partial class ExplorerWindow : Window
         _rawStreamFilter.ToolTip = "Inspect one recorded attempt within the enabled sources, or show all without merging.";
         _rawSources.Children.Add(Text("Sources", 11, FontWeights.SemiBold, Muted,
             verticalAlignment: VerticalAlignment.Center));
-        foreach (var source in new[] { _showRawUia, _showRawMsaa })
+        foreach (var source in new[] { _showRawUia, _showRawMsaa }.Concat(_worldSources.Values))
         {
             source.Padding = new Thickness(10, 4, 10, 4);
             source.Margin = new Thickness(4, 0, 0, 0);
-            source.Template = RoundedToggleButtonTemplate(8);
+            source.Template = RoundedToggleButtonTemplate(8, checkedBorder: SourceBrush(Enum.Parse<ControlSource>(source.Content.ToString()!)));
             source.ToolTip = source == _showRawUia ? "Show UI Automation records for this surface." :
-                "Show Microsoft Active Accessibility records for this surface.";
+                source == _showRawMsaa ? "Show Microsoft Active Accessibility records for this surface." :
+                $"Show controls with {source.Content} evidence in this observation.";
             System.Windows.Automation.AutomationProperties.SetName(source, source.Content.ToString());
             source.Checked += (_, _) => RawSourceSelectionChanged();
             source.Unchecked += (_, _) => RawSourceSelectionChanged();
             _rawSources.Children.Add(source);
         }
-        modes.Children.Add(_rawSources);
+        _rawSources.Children.Add(_includeLimitedFrames);
+        _includeLimitedFrames.Click += (_, _) =>
+        {
+            DrawTopology();
+            BuildHierarchy(_search.Text.Trim());
+            if (_selectedSurface is null) return;
+            BuildVariants(_selectedSurface);
+            RenderAppMap();
+            ShowProperties(_selectedControl?.Source ?? _selectedSurface.Source, _selectedSurface.ControlCount, _visibleVariants.Count);
+        };
         _frameStreamsButton.Click += (_, _) =>
         {
             if (_model is not null)
@@ -731,6 +754,7 @@ public sealed partial class ExplorerWindow : Window
             VerticalScrollBarVisibility = ScrollBarVisibility.Disabled
         };
         header.Children.Add(modeScroller);
+        header.Children.Add(_rawSources);
         DockPanel.SetDock(header, Dock.Top);
         panel.Children.Add(header);
 
@@ -2051,6 +2075,12 @@ public sealed partial class ExplorerWindow : Window
             _evidence?.Dispose();
             _evidence = evidence;
             _attachedEvidencePaths = resolvedPaths;
+            if (_selectedSurface is not null && InspectingWorld)
+            {
+                _selectedVariant = null;
+                BuildVariants(_selectedSurface);
+                BuildHierarchy(_search.Text.Trim());
+            }
             _status.Text = evidence.SessionIds.Count == 1
                 ? $"Evidence attached: {IOPath.GetFileName(resolvedPaths[0])}"
                 : $"Evidence attached: {evidence.SessionIds.Count} bundles";
@@ -2834,14 +2864,23 @@ public sealed partial class ExplorerWindow : Window
                 _hierarchy.Items.Add(group);
                 continue;
             }
-            foreach (var surface in _model.LayerFor(level).Surfaces.Where(surface =>
+            var matchingSurfaces = _model.LayerFor(level).Surfaces.Where(BrowseSurface).Where(surface =>
                          (revealedControl is not null && revealedControl.Level == level &&
                           surface.Id == revealedControl.OwnerSurfaceId) ||
                          Matches(surface, query,
-                             level == _level ? _surfaceKindFilter.SelectedItem as string : null)))
+                             level == _level ? _surfaceKindFilter.SelectedItem as string : null)).ToArray();
+            var familyParents = new Dictionary<string, TreeViewItem>(StringComparer.Ordinal);
+            foreach (var family in matchingSurfaces.GroupBy(UiMappingReadModel.SurfaceNavigationFamily).Where(f => f.Count() > 1))
+                familyParents[family.Key] = TreeItem($"{family.First().DisplayName} · {family.Count()} instances", null,
+                    query.Length > 0, LevelBrush(level), FontWeights.SemiBold);
+            foreach (var surface in matchingSurfaces)
             {
                 var expandControls = !string.IsNullOrWhiteSpace(query) || revealedControl?.OwnerSurfaceId == surface.Id;
-                var item = TreeItem(surface.DisplayName, new SelectionRef(surface.Id, null), expandControls, LevelBrush(level), FontWeights.SemiBold);
+                var parent = familyParents.GetValueOrDefault(UiMappingReadModel.SurfaceNavigationFamily(surface)) ?? group;
+                if (parent != group && parent.Parent is null) group.Items.Add(parent);
+                var label = parent == group ? UiMappingReadModel.SurfaceNavigationLabel(surface) :
+                    $"{surface.DisplayName} · HWND 0x{RawWorldPresentation.WindowHandle(surface.Source):X}";
+                var item = TreeItem(label, new SelectionRef(surface.Id, null), expandControls, LevelBrush(level), FontWeights.SemiBold);
                 var semanticVariantCount = surface.Variants.Select(frame => frame.SemanticVariantId)
                     .Where(id => id.Length > 0).Distinct(StringComparer.Ordinal).Count();
                 item.ToolTip = $"{surface.SurfaceKind} | {surface.ControlCount} controls | {surface.Variants.Count} recorded frames" +
@@ -2856,7 +2895,7 @@ public sealed partial class ExplorerWindow : Window
                     expand = (_, args) => { if (args.OriginalSource != item) return; item.Expanded -= expand; PopulateControls(); };
                     item.Expanded += expand;
                 }
-                group.Items.Add(item);
+                parent.Items.Add(item);
             }
             _hierarchy.Items.Add(group);
         }
@@ -2956,8 +2995,13 @@ public sealed partial class ExplorerWindow : Window
             Canvas.SetLeft(header, 28 + column * columnWidth);
             Canvas.SetTop(header, 12);
             _topologyCanvas.Children.Add(header);
-            foreach (var node in topology.Nodes.Where(node => node.Column == column))
-                positions[node.Id] = new Point(28 + column * columnWidth, 52 + node.Row * 76);
+            var row = 0;
+            foreach (var node in topology.Nodes.Where(node => node.Column == column).OrderBy(node => node.Row))
+            {
+                if (node.Kind is UiPipelineNodeKind.RawSurface or UiPipelineNodeKind.SemanticSurface &&
+                    !_model.ResolvePipelineSurfaces(node).Any(BrowseSurface)) continue;
+                positions[node.Id] = new Point(28 + column * columnWidth, 52 + row++ * 76);
+            }
         }
         foreach (var edge in topology.Edges)
         {
@@ -2983,6 +3027,8 @@ public sealed partial class ExplorerWindow : Window
             border.Child = text;
             if (node.InspectionLevel is not null) border.MouseLeftButtonDown += (_, _) => SelectPipelineNode(node);
             _topologyShapes[node.SurfaceId ?? node.Id] = border;
+            if (node.Kind == UiPipelineNodeKind.RawSurface)
+                foreach (var instance in node.SourceIds) _topologyShapes[instance] = border;
             Canvas.SetLeft(border, point.X);
             Canvas.SetTop(border, point.Y);
             _topologyCanvas.Children.Add(border);
@@ -3002,7 +3048,7 @@ public sealed partial class ExplorerWindow : Window
     private void SelectPipelineNode(UiPipelineNodeView node)
     {
         if (_model is null || node.InspectionLevel is null) return;
-        var surfaces = _model.ResolvePipelineSurfaces(node);
+        var surfaces = _model.ResolvePipelineSurfaces(node).Where(BrowseSurface).ToArray();
         var surface = surfaces.FirstOrDefault(candidate => candidate.Id == node.SurfaceId) ?? surfaces.FirstOrDefault();
         if (surface is not null) SelectSurface(surface, surfaces);
     }
@@ -3249,7 +3295,7 @@ public sealed partial class ExplorerWindow : Window
         if (_model is null) return;
         var variants = _model.VariantsFor(_selectedSurfaceScope, _selectedControl);
         if (_inspectionLevel != UiUnderstandingLevel.RawDataStreams)
-            variants = UiInspectionPresentation.IncludeEquivalentFrames(variants, _selectedSurfaceScope.SelectMany(s => s.Variants));
+            variants = WorldFrames(variants, _selectedSurfaceScope.SelectMany(s => s.Variants));
         _rawExclusionReasons.Clear();
         _rawCaptureWarnings.Clear();
         if (_inspectionLevel == UiUnderstandingLevel.RawDataStreams)
@@ -3292,7 +3338,8 @@ public sealed partial class ExplorerWindow : Window
                 variant.FrameSequence == requestedFrame &&
                 string.Equals(variant.BundleId, requestedBundle, StringComparison.Ordinal))
             ?? variants
-                .OrderByDescending(variant => variant.ControlCount > 0)
+                .OrderBy(variant => InspectingWorld ? PreviewEvidence(variant).Preference : 0)
+                .ThenByDescending(variant => variant.ControlCount > 0)
                 .ThenByDescending(variant => variant.ControlCount)
                 .FirstOrDefault();
         _selectedSurface = ResolveSurfaceForVariant(_selectedVariant) ?? _selectedSurface ?? surface;
@@ -3479,10 +3526,12 @@ public sealed partial class ExplorerWindow : Window
             if (_viewModeButtons.TryGetValue(mode, out var button)) button.Visibility = isRaw ? Visibility.Collapsed : Visibility.Visible;
         _includeRetainedControls.Visibility = isRaw ? Visibility.Collapsed : Visibility.Visible;
         _rawStreamFilter.Visibility = isRaw ? Visibility.Visible : Visibility.Collapsed;
-        _rawSources.Visibility = isRaw ? Visibility.Visible : Visibility.Collapsed;
-        foreach (var source in new[] { _showRawUia, _showRawMsaa })
+        _includeLimitedFrames.Visibility = InspectingWorld ? Visibility.Visible : Visibility.Collapsed;
+        foreach (var source in new[] { _showRawUia, _showRawMsaa }.Concat(_worldSources.Values))
         {
-            var color = source == _showRawUia ? Blue : Green;
+            var rawToggle = source == _showRawUia || source == _showRawMsaa;
+            source.Visibility = rawToggle == isRaw ? Visibility.Visible : Visibility.Collapsed;
+            var color = SourceBrush(Enum.Parse<ControlSource>(source.Content.ToString()!));
             source.SetResourceReference(Control.BackgroundProperty, source.IsChecked == true ? "AccentBrush" : "PanelBrush");
             global::UiAtlas.Presentation.Appearance.Bind(source, ("Foreground", (source.IsChecked == true ? "AccentTextBrush" : "InkBrush")));
             source.BorderBrush = color;
@@ -3499,17 +3548,27 @@ public sealed partial class ExplorerWindow : Window
                 return;
             }
         }
-        var unavailable = InspectingWorld
-            ? _selectedVariant is null ? "No clear capture for this selection." : SurfaceExclusion(_selectedVariant)
-            : null;
-        if (unavailable is not null)
+        var projectionMode = ParseProjectionMode(_viewMode);
+        if (projectionMode == UiMapProjectionMode.Routes)
         {
-            _traceBannerHost.Content = Text(unavailable, 12, FontWeights.Normal, Muted, textWrapping: TextWrapping.Wrap);
+            // The route topology spans the recording and does not require a clear frame on the selected surface.
+            _appMapImage.Visibility = Visibility.Collapsed;
+            global::UiAtlas.Presentation.Appearance.Bind(_appMapViewport, ("Background", "SoftBrush"));
+            RenderRoutes();
+            QueueAppMapZoomBoundsUpdate(resetToFit: _resetAppMapZoomOnNextRender);
+            _resetAppMapZoomOnNextRender = false;
+            return;
+        }
+        if (InspectingWorld && _selectedVariant is null)
+        {
+            _traceBannerHost.Content = Text("No recorded observation for this selection.", 12, FontWeights.Normal, Muted, textWrapping: TextWrapping.Wrap);
             _traceBannerHost.Visibility = Visibility.Visible;
             return;
         }
         var frameSequence = _selectedVariant?.FrameSequence;
         var frameBundleId = _selectedVariant?.BundleId;
+        var preview = InspectingWorld && _selectedVariant is not null ? PreviewEvidence(_selectedVariant) : null;
+        var frameControlIds = _selectedVariant?.ControlIds.ToHashSet(StringComparer.Ordinal);
         var activeSurfaceIds = _selectedVariant is not null
             ? new[] { _selectedSurface.Id }.ToHashSet(StringComparer.Ordinal)
             : _selectedSurfaceScope.Select(surface => surface.Id).ToHashSet(StringComparer.Ordinal);
@@ -3518,7 +3577,7 @@ public sealed partial class ExplorerWindow : Window
             .ToDictionary(surface => surface.Id, StringComparer.Ordinal);
         var scopedControls = _model.LayerFor(_inspectionLevel).Controls
             .Where(control => activeSurfaceIds.Any(id => RawWorldPresentation.IsAvailableOnSurface(control, id)))
-            .Where(control => _selectedVariant is null || _selectedVariant.ControlIds.Contains(control.Id))
+            .Where(control => frameControlIds is null || frameControlIds.Contains(control.Id))
             .Where(control => !InspectingWorld || SurfaceFrameVisibility.ObservedControl(control, _selectedVariant!))
             .Select(control => UiMapPresentation.ForVariant(control, _selectedVariant))
             .Where(control => !isRaw || RawVariantPresentation.IsAccessibilitySource(PropertyValue(control.Source, "rawStreamSource")))
@@ -3560,7 +3619,12 @@ public sealed partial class ExplorerWindow : Window
         }
         var rawStream = _rawStreamFilter.SelectedItem as string;
         var selectedStreamId = rawStream is null ? null : streamChoices.GetValueOrDefault(rawStream);
+        var enabledSources = _worldSources.Where(pair => pair.Value.IsChecked == true)
+            .Aggregate(ControlSource.None, (mask, pair) => mask | pair.Key);
+        var provenance = isRaw ? null : scopedControls.ToDictionary(control => control.Id,
+            control => _model.SourcesFor(control, _selectedVariant), StringComparer.Ordinal);
         var selectedControls = scopedControls
+            .Where(control => provenance is null || (provenance[control.Id].Sources & enabledSources) != 0)
             .Where(control => !isRaw || RawVariantPresentation.IsSourceEnabled(PropertyValue(control.Source, "rawStreamSource"),
                 _showRawUia.IsChecked == true, _showRawMsaa.IsChecked == true) && (selectedStreamId is null ||
                 (PropertyValue(control.Source, "rawStreamId") ?? "legacy") == selectedStreamId)).ToList();
@@ -3580,7 +3644,9 @@ public sealed partial class ExplorerWindow : Window
                 var nativeWindow = isRaw && hwndText is not null && long.TryParse(hwndText.Replace("0x", ""),
                     System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out _);
                 if (isRaw) rawFrame = _evidence.ReadObservation(evidence.BundleId, evidence.FrameSequence);
-                var frame = InspectingWorld ? _evidence.Read(evidence) : nativeWindow
+                var frame = preview is { HasWindowImage: true } ? _evidence.ReadWindow(evidence, selectedHwnd)
+                    : preview is { CanMaskComposite: true } ? _evidence.ReadWindow(evidence, selectedHwnd, useIndependentImage: false)
+                    : preview?.DesktopExclusion is not null ? null : InspectingWorld ? _evidence.Read(evidence) : nativeWindow
                     ? _evidence.ReadRawSurface(evidence, Convert.ToInt64(hwndText, 16))
                     : _evidence.Read(evidence, allowInheritedPixels: !isRaw && !isWorld);
                 if (frame is not null)
@@ -3592,6 +3658,9 @@ public sealed partial class ExplorerWindow : Window
                     // zero alpha, which made captions and colour swatches vanish
                     // only in this viewer. Dropping alpha repairs those maps too.
                     var sourceBitmap = WindowSnapshotCapture.DecodeOpaquePng(frame.Png);
+                    if (preview?.HasWindowImage == true && (sourceBitmap.PixelWidth != frame.ScreenshotBounds.Width ||
+                        sourceBitmap.PixelHeight != frame.ScreenshotBounds.Height))
+                        throw new InvalidDataException("Window image dimensions differ from its recorded bounds.");
                     bitmap = sourceBitmap;
                     if (_inspectionLevel == UiUnderstandingLevel.RawDataStreams)
                     {
@@ -3634,31 +3703,32 @@ public sealed partial class ExplorerWindow : Window
         }
         if (InspectingWorld && bitmap is null)
         {
-            _traceBannerHost.Content = Text(evidenceError ?? "The screenshot for this capture is unavailable.", 12, FontWeights.Normal, Muted);
+            _renderedEvidencePng = null;
+            _traceBannerHost.Content = Text($"Frame {frameSequence} · {selectedControls.Count} matching observed controls. " +
+                (preview?.DesktopExclusion ?? "") + " " +
+                (evidenceError ?? "No verified image is available for this window.") +
+                " Expand the observation in the hierarchy to inspect its records.", 12, FontWeights.Normal, Muted, textWrapping: TextWrapping.Wrap);
             _traceBannerHost.Visibility = Visibility.Visible;
             return;
         }
-        var projectionMode = ParseProjectionMode(_viewMode);
         var rawCoordinates = RawOfficeCoordinates.Resolve(isRaw && _showRawReportedCoordinates.IsChecked != true ? rawFrame : null, selectedHwnd);
         var registeredStreams = rawCoordinates.Keys.Select(key => key.Stream).ToHashSet(StringComparer.Ordinal);
         var suspectStreams = isRaw ? enabledStreams.Where(stream => !registeredStreams.Contains(stream.StreamId) &&
                 RawVariantPresentation.HasOutOfSurfaceGeometry(rawFrame, selectedHwnd, stream.Source))
             .Select(stream => stream.StreamId).ToHashSet(StringComparer.Ordinal) : [];
         global::UiAtlas.Presentation.Appearance.Bind(_appMapViewport, ("Background", "SoftBrush"));
-        var width = projectionMode == UiMapProjectionMode.Routes
-            ? 900
-            : bitmap?.PixelWidth ?? (ControlGeometry.IsRenderable(_selectedSurface.Bounds) ? _selectedSurface.Bounds.Width : 800);
-        var height = projectionMode == UiMapProjectionMode.Routes
-            ? Math.Max(600, (_model.Routes.Count + _model.Affordances.Count(item => !item.WasObserved)) * 48 + 80)
-            : bitmap?.PixelHeight ?? (ControlGeometry.IsRenderable(_selectedSurface.Bounds) ? _selectedSurface.Bounds.Height : 600);
+        var width = bitmap?.PixelWidth ?? (ControlGeometry.IsRenderable(_selectedSurface.Bounds) ? _selectedSurface.Bounds.Width : 800);
+        var height = bitmap?.PixelHeight ?? (ControlGeometry.IsRenderable(_selectedSurface.Bounds) ? _selectedSurface.Bounds.Height : 600);
         _appMapViewport.Width = width;
         _appMapViewport.Height = height;
         _appMapOverlay.Width = width;
         _appMapOverlay.Height = height;
         var projection = isRaw ? RawVariantPresentation.PolicyFor(projectionMode, rawFrame,
             _showRawLabels.IsChecked == true) : UiMapPresentation.PolicyFor(projectionMode);
-        _appMapImage.Visibility = projection.ShowsScene ? Visibility.Visible : Visibility.Collapsed;
-        _appMapImage.Opacity = projection.SceneOpacity;
+        // An unregistered frame can still show its recorded pixels in a geometry-only mode.
+        var pixelsOnly = preview is { CanAlignControls: false } && bitmap is not null;
+        _appMapImage.Visibility = pixelsOnly || projection.ShowsScene ? Visibility.Visible : Visibility.Collapsed;
+        _appMapImage.Opacity = pixelsOnly ? 1 : projection.SceneOpacity;
         if (bitmap is null && projection.ShowsScene)
         {
             var empty = Text(_evidence is null
@@ -3697,18 +3767,23 @@ public sealed partial class ExplorerWindow : Window
                 projectionMode,
                 item.Control.Id == _selectedControl?.Id))
             .SelectMany(item => (isWorld ? RawWorldPresentation.VisibleRegions(item.Control) : [item.Bounds])
-                .Select(bounds => new { item.Control, item.Surface, Bounds = bounds }))
+                .SelectMany(bounds => isRaw
+                    ? [(PropertyValue(item.Control.Source, "rawStreamSource")?.StartsWith("msaa", StringComparison.Ordinal) == true ? ControlSource.MSAA : ControlSource.UIA, bounds)]
+                    : provenance![item.Control.Id].Outlines(bounds, enabledSources).Distinct())
+                .Select(outline => new { item.Control, item.Surface, Bounds = outline.Item2, Source = outline.Item1 }))
             .OrderBy(item => item.Control.Id == _selectedControl?.Id ? 1 : 0)
             .ThenBy(item => UiMapPresentation.ControlRenderPriority(item.Control, item.Surface!))
             .ThenByDescending(item => (long)item.Bounds.Width * item.Bounds.Height)
             .ThenBy(item => item.Control.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ThenBy(item => item.Control.Id, StringComparer.Ordinal)
             .ToArray();
+        var coincident = controls.GroupBy(item => item.Bounds).ToDictionary(g => g.Key,
+            g => g.Select(item => item.Source).Distinct().Order().ToArray());
         var viewportBounds = new RectI(contentOriginX, contentOriginY, width, height);
         _renderedViewportBounds = viewportBounds;
         // Register only qualified coordinates to this frame's pixels. Membership,
         // raw records, and provider identities remain those of the selected query.
-        if (projection.ShowsControlGeometry)
+        if (projection.ShowsControlGeometry && preview?.CanAlignControls != false)
         {
             foreach (var item in controls)
             {
@@ -3734,16 +3809,23 @@ public sealed partial class ExplorerWindow : Window
                               _inspectionLevel == UiUnderstandingLevel.SemanticWorld;
                 var rectangle = MapProjectionVisual.AddControl(_appMapOverlay, control, ownerSurface, local, projection,
                     controlCrop, isSelected, _inspectionLevel,
-                    isRaw && PropertyValue(control.Source, "rawStreamSource")?.StartsWith("msaa", StringComparison.Ordinal) == true
-                        ? Green : LevelBrush(_inspectionLevel), isUnverified, isButtonCandidate, isCompactPopupAction,
+                    SourceBrush(item.Source), isUnverified, isButtonCandidate, isCompactPopupAction,
                     showMissingCropLabel: !isRaw && !isWorld);
+                var shared = coincident[item.Bounds];
+                if (shared.Length > 1)
+                {
+                    // Alternate source colors along coincident edges without displacing their geometry.
+                    rectangle.StrokeThickness = isSelected ? 4 : 2;
+                    rectangle.StrokeDashArray = [3, 3 * (shared.Length - 1)];
+                    rectangle.StrokeDashOffset = 3 * Array.IndexOf(shared, item.Source);
+                }
                 if (canMove) rectangle.Cursor = Cursors.SizeAll;
                 rectangle.ToolTip = canMove ? "Drag to move button" : isRaw
                         ? $"{control.DisplayName} • {PropertyValue(control.Source, "rawStreamSource")} [{PropertyValue(control.Source, "rawStreamId")}] • query window {PropertyValue(ownerSurface.Source, "hwnd")} • frame {frameSequence}" +
                             (RawOfficeCoordinates.ForControl(rawCoordinates, control) is { } registration
                                 ? $" • Reported: {registration.Reported} • Display: {registration.Display} • Scale: {registration.Scale:0.###} • {registration.Evidence}" : "")
                         :
-                        $"{control.DisplayName} • {PropertyValue(control.Source, "sceneStatus")} from frame {PropertyValue(control.Source, "sourceFrame")}";
+                        $"{control.DisplayName} • {provenance![control.Id].Sources} • Outline: {item.Source} • frame {frameSequence}";
                 rectangle.MouseLeftButtonDown += (_, args) =>
                 {
                     if (canMove)
@@ -3771,7 +3853,7 @@ public sealed partial class ExplorerWindow : Window
             }
 
         }
-        if (projectionMode is not (UiMapProjectionMode.Trace or UiMapProjectionMode.Routes))
+        if (projectionMode != UiMapProjectionMode.Trace)
         {
             var pixelStatus = evidenceImage is null ? "No screenshot for this observation" : evidenceImage.InheritedPixels
                 ? $"Pixels inherited from frame {evidenceImage.ScreenshotFrameSequence} ({evidenceImage.ScreenshotTimestampUtc:HH:mm:ss.fff})"
@@ -3781,7 +3863,7 @@ public sealed partial class ExplorerWindow : Window
                 : _selectedVariant?.ObservationScope ?? "unknown coverage";
             var retainedCount = controls.Count(item => PropertyValue(item.Control.Source, "sceneStatus") == "retained");
             var candidates = controls.Count(item => GraphControlConfirmation.IsConfirmableButtonCandidate(item.Control.Source));
-            var legend = candidates > 0 ? $" Orange dashes: {candidates} unverified candidates." : "";
+            var legend = candidates > 0 ? $" Unverified candidates: {candidates}." : "";
             var unavailableGeometry = controls.Count(item => !ControlGeometry.IsRenderable(item.Bounds));
             var selectedAttempts = enabledStreams.Where(stream => selectedStreamId is null || stream.StreamId == selectedStreamId).ToArray();
             var summary = isSemanticScene
@@ -3812,9 +3894,33 @@ public sealed partial class ExplorerWindow : Window
                     "Inspect control properties for source ownership and reconstruction evidence."
                 : $"{coverage} • {controls.Length - retainedCount} current + {retainedCount} retained controls • {pixelStatus}.{legend}";
             var banner = new StackPanel();
+            if (preview?.DesktopExclusion is { } reason)
+                banner.Children.Add(Text(reason + (preview.CanAlignControls
+                    ? " Showing the independent window image. Rectangles use window-relative geometry. Desktop visibility could not be verified."
+                    : preview.HasWindowImage ? " Showing the independent window image. Timing is uncertain. Control rectangles are withheld."
+                    : " Showing the recorded image with covering windows masked. Control rectangles are withheld."),
+                    12, FontWeights.SemiBold, Muted, textWrapping: TextWrapping.Wrap));
             if (isRaw)
+            {
                 banner.Children.Add(Text($"Selected surface query 0x{selectedHwnd:X} · UIA: blue · MSAA: green",
                     11, FontWeights.SemiBold, Muted));
+                if (_selectedVariant is { } rawObservation &&
+                    _model.PopupMenuForObservation(rawObservation.BundleId, rawObservation.FrameSequence, selectedHwnd) is { } menu)
+                {
+                    var inspect = new Button { Content = $"Inspect menu in Raw World · {menu.Direct} entries reported here · {menu.FromOtherWindows} reported by another window",
+                        HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(7, 3, 7, 3) };
+                    inspect.Click += (_, _) =>
+                    {
+                        if (!SurfacePreviewGroups(menu.Surface).Any(g => g.Frames.Any(f => f.Id == menu.Frame.Id)))
+                            _includeLimitedFrames.IsChecked = true;
+                        SetLevel(UiUnderstandingLevel.RawWorld);
+                        SelectSurface(menu.Surface);
+                        SetViewMode("Overlay");
+                        SelectVariant(menu.Frame);
+                    };
+                    banner.Children.Add(inspect);
+                }
+            }
             if (isRaw || isWorld)
             {
                 banner.Children.Add(Text(RawVariantPresentation.ProviderSummary(recordedStreams),
@@ -3863,12 +3969,15 @@ public sealed partial class ExplorerWindow : Window
             _traceBannerHost.Content = banner;
             _traceBannerHost.Visibility = Visibility.Visible;
         }
-        if (projectionMode == UiMapProjectionMode.Trace)
+        if (projectionMode == UiMapProjectionMode.Trace && preview?.CanAlignControls != false)
             RenderInteractionTrace(evidenceImage, viewportBounds);
-        else if (projectionMode == UiMapProjectionMode.Routes)
-            RenderRoutes();
+        else if (projectionMode == UiMapProjectionMode.Trace && preview?.DesktopExclusion is { } reasonForTrace)
+        {
+            _traceBannerHost.Content = Text(reasonForTrace + " Trace alignment is unavailable.", 12, FontWeights.Normal, Muted);
+            _traceBannerHost.Visibility = Visibility.Visible;
+        }
 
-        RenderParameterOverlays();
+        if (preview?.CanAlignControls != false) RenderParameterOverlays();
         QueueAppMapZoomBoundsUpdate(resetToFit: _resetAppMapZoomOnNextRender);
         _resetAppMapZoomOnNextRender = false;
     }
@@ -4158,7 +4267,7 @@ public sealed partial class ExplorerWindow : Window
                 action.Cursor = Cursors.Hand;
                 action.MouseLeftButtonDown += (_, args) =>
                 {
-                    SelectInteractionById(interactionId);
+                    SelectInteractionById(interactionId, route.TargetStateId);
                     args.Handled = true;
                 };
                 AddRouteConnector(actionX + actionWidth, y + cardCenterOffset, targetX, y + cardCenterOffset,
@@ -4459,14 +4568,17 @@ public sealed partial class ExplorerWindow : Window
         SelectInteractionById(visibleSteps[target].Id);
     }
 
-    private void SelectInteractionById(string id)
+    private void SelectInteractionById(string id, string? targetStateId = null)
     {
         if (_model is null) return;
         var step = _model.InteractionSteps.FirstOrDefault(item => item.Id == id);
         if (step?.Evidence is null) return;
         var layer = _model.LayerFor(UiUnderstandingLevel.RawWorld);
-        var surface = layer.Surfaces.FirstOrDefault(candidate => candidate.Evidence.Any(evidence =>
-            evidence.BundleId == step.Evidence.BundleId && evidence.FrameSequence == step.Evidence.FrameSequence));
+        var target = _model.Graph.Nodes.FirstOrDefault(node => node.Id == (targetStateId ?? step.TargetStateId));
+        var surface = layer.Surfaces.FirstOrDefault(candidate => candidate.Id == target?.ParentId &&
+            candidate.Variants.Any(v => v.BundleId == step.BundleId && step.ResultFrameSequences.Contains(v.FrameSequence)))
+            ?? layer.Surfaces.FirstOrDefault(candidate => candidate.Evidence.Any(evidence =>
+                evidence.BundleId == step.Evidence.BundleId && evidence.FrameSequence == step.Evidence.FrameSequence));
         if (surface is null) return;
         _level = UiUnderstandingLevel.RawWorld;
         SelectSurface(surface);
@@ -4520,6 +4632,21 @@ public sealed partial class ExplorerWindow : Window
             _model?.LayerFor(_inspectionLevel).Controls.FirstOrDefault(c => c.Id == node.Id) is { } semanticControl)
             node = UiMapPresentation.ForVariant(semanticControl, _selectedVariant).Source;
         _properties.Children.Clear();
+        if (InspectingWorld && _selectedControl is { } clicked && clicked.Id == node.Id &&
+            _model is not null && _selectedVariant is { } selectedFrame)
+        {
+            var provenance = _model.SourcesFor(UiMapPresentation.ForVariant(clicked, selectedFrame), selectedFrame);
+            _properties.Children.Add(PropertyLabel("Bounds source", provenance.BoundsSource));
+            var contributors = new StackPanel();
+            foreach (var item in provenance.Contributors)
+            {
+                var query = PropertyValue(item.Record, "queryWindowHwnd");
+                contributors.Children.Add(PropertyLabel(item.Provider + (string.IsNullOrEmpty(query) ? "" : $" · query HWND 0x{query}"),
+                    $"{item.Record.Label} · {PropertyValue(item.Record, "controlType")}\n{item.Record.Id}\nRecorded bounds: {item.Bounds}"));
+            }
+            _properties.Children.Add(new Expander { Header = $"Source records for frame {selectedFrame.FrameSequence} ({provenance.Contributors.Count})",
+                IsExpanded = true, Content = contributors });
+        }
         if (_inspectionLevel == UiUnderstandingLevel.SemanticWorld && PropertyValue(node, "semanticProjection") is not null)
         {
             var surface = _selectedSurface;

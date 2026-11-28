@@ -27,6 +27,7 @@ try
         "target-window" => await new NativeWindowTopologyProvider().CaptureWindowAsync(
             ToDisplay(request), request.WindowHandle, RecorderPolicy.Default, CancellationToken.None),
         "native-accessibility" => CaptureNativeAccessibility(request),
+        "uia-native" => UiaCachedCapture.CaptureNative(request),
         "uia" => CaptureAccessibility(request),
         "uia-cached" => UiaCachedCapture.Capture(request),
         "msaa" => NativeMsaaProvider.Capture(request.WindowHandle, request.WindowEvidenceId, request.MaxNodes, request.MaxDepth),

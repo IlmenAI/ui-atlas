@@ -360,7 +360,8 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
         AdaptiveCaptureCheckpoint checkpoint,
         CancellationToken cancellationToken,
         long clickWindowHwnd = 0,
-        AdaptiveDialogCaptureCheckpoint? dialogCheckpoint = null)
+        AdaptiveDialogCaptureCheckpoint? dialogCheckpoint = null,
+        RecordedPointerButton button = RecordedPointerButton.Unknown)
     {
         if (Volatile.Read(ref _draining) != 0 || Volatile.Read(ref _suspended) != 0)
         {
@@ -376,7 +377,7 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
         try
         {
             return await CaptureClickCoreAsync(point, checkpoint, cancellationToken,
-                clickScopeHwnd, dialogCheckpoint).ConfigureAwait(false);
+                clickScopeHwnd, dialogCheckpoint, button).ConfigureAwait(false);
         }
         catch (Exception ex) when (
             (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception) &&
@@ -402,12 +403,29 @@ public sealed class AdaptiveCaptureCoordinator : IAsyncDisposable
         AdaptiveCaptureCheckpoint checkpoint,
         CancellationToken cancellationToken,
         long clickScopeHwnd,
-        AdaptiveDialogCaptureCheckpoint? dialogCheckpoint)
+        AdaptiveDialogCaptureCheckpoint? dialogCheckpoint,
+        RecordedPointerButton button)
     {
         if (_session.FullRawObservations || _session.UsesNativeRecorder)
         {
             if (_latestFullFrame is not null)
-                SetLastManualHighlight(ResolveManualHighlightTarget(_target, _latestFullFrame.Automation, point));
+            {
+                var controls = _latestFullFrame.Automation;
+                var source = ResolveManualHighlightTarget(_target, controls, point);
+                // A worksheet or document may expose only its container at this point.
+                if (button == RecordedPointerButton.Secondary && (source is null || source.ControlType == "ControlType.Document"))
+                {
+                    var hit = AutomationObservationVisibility.FilterEffectivelyVisible(controls)
+                        .Where(c => c.IsEnabled && c.ProviderId is "uia" or "msaa" && Contains(c.Bounds, point.X, point.Y) &&
+                            c.ControlType is "ControlType.DataItem" or "ControlType.Table" or "ControlType.DataGrid" or
+                                "ControlType.Document" or "ControlType.Header" or "ControlType.Pane")
+                        .OrderBy(c => (long)c.Bounds.Width * c.Bounds.Height)
+                        .ThenBy(c => c.ControlType is "ControlType.Pane" or "ControlType.Document")
+                        .FirstOrDefault();
+                    source = hit ?? source;
+                }
+                SetLastManualHighlight(source);
+            }
             _session.RawCaptureProgress = _status;
             var observed = await _session.CaptureFullObservationAsync("manual-action", cancellationToken,
                 checkpoint.InteractionId, _lastManualHighlightControl).ConfigureAwait(false);

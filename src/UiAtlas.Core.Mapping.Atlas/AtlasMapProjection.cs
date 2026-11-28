@@ -26,7 +26,7 @@ public static class AtlasMapProjection
             throw new InvalidDataException("A recording for this map version is missing.");
         var draft = new UiMapDraft { MapDraftRef = revision.MapRevisionRef, Entities = { revision.Entities },
             Sources = { revision.Sources }, ControlIdentityPolicy = revision.ControlIdentityPolicy,
-            LogicalControlGroups = { revision.LogicalControlGroups } };
+            LogicalControlGroups = { revision.LogicalControlGroups }, Interactions = { revision.Interactions } };
         return Create(workspace, workspace.Index with { Sources = sources, BundleFiles = files }, [draft], null, retained, token);
     }
 
@@ -35,6 +35,7 @@ public static class AtlasMapProjection
     {
         var nodes = new Dictionary<string, GraphNode>(StringComparer.Ordinal);
         var observedTransitions = new List<GraphEdge>();
+        var recordedActions = new Dictionary<string, InteractionObservation>(StringComparer.Ordinal);
         var appId = "atlas-app:" + AtlasEpisodeAdapter.Hash(System.Text.Encoding.UTF8.GetBytes(index.LogicalMapId))[..32];
         nodes.Add(appId, new(appId, GraphNodeKind.Application, "", appId, index.ApplicationName,
             [new("layer", "shared"), new("mappingEngine", "UIMaps"), new("workspaceFormat", AtlasMapWorkspace.Format)], []));
@@ -167,6 +168,9 @@ public static class AtlasMapProjection
         {
             using var bundle = RecordingBundle.Open(workspace.Resolve(bundleFile));
             var manifest = bundle.ReadJson<RecordingManifest>("manifest.json");
+            var bundleHash = Path.GetFileNameWithoutExtension(bundleFile);
+            foreach (var action in AtlasInteractionAdapter.ReadInteractions(bundle))
+                recordedActions.Add($"atlas-action:{bundleHash}:{action.Sequence}", action);
             foreach (var source in index.Sources.Where(value => value.BundleId == manifest.SessionId))
             {
                 var frame = bundle.ReadJson<FrameObservation>($"raw/observations/frame-{source.Frame:D6}.json");
@@ -318,6 +322,17 @@ public static class AtlasMapProjection
                     parent, entity.MapEntityRef, Limit(entity.DisplayName), properties, evidence));
             }
             SemanticMapProjection.AddVariants(draft, nodes);
+            var interactionEdges = InteractionEdges(draft, entities, nodes, evidenceBySource, worldBySource, recordedActions).ToArray();
+            observedTransitions.AddRange(interactionEdges.Where(edge => edge.Kind != "opens-popup"));
+            foreach (var group in interactionEdges.Where(edge => edge.Kind == "opens-popup").GroupBy(edge => edge.Id))
+            {
+                var edge = group.First();
+                observedTransitions.Add(edge with { Evidence = group.SelectMany(e => e.Evidence).Distinct().ToArray() });
+                var popup = nodes[edge.ToId];
+                if (popup.Properties.Any(p => p.Name == "semanticAnchorStatus"))
+                    nodes[popup.Id] = popup with { Properties = popup.Properties.Where(p => p.Name != "semanticAnchorStatus")
+                        .Append(new GraphProperty("semanticAnchorStatus", "observed opener")).ToArray() };
+            }
         }
         // Map variants are represented by the editor's observed-frame cards. A
         // missing projected parent cannot be filled by guessed containment.
@@ -349,4 +364,73 @@ public static class AtlasMapProjection
             bundleIds[0], GraphSemantics.ComputeHash(values, edges), FormatVersions.FullEvidenceProfile, bundleIds, index.LogicalMapId), values, edges);
     }
     private static string Limit(string text) => text.Length <= 4096 ? text : text[..4096];
+
+    private static IEnumerable<GraphEdge> InteractionEdges(UiMapDraft draft,
+        IReadOnlyDictionary<string, MapEntity> entities, IReadOnlyDictionary<string, GraphNode> nodes,
+        IReadOnlyDictionary<string, AtlasMapSource> sources,
+        IReadOnlyDictionary<(string Source, string World), string> worldBySource,
+        IReadOnlyDictionary<string, InteractionObservation> actions)
+    {
+        static string PopupEdgeId(string from, string to) => "opens-popup:" +
+            AtlasEpisodeAdapter.Hash(System.Text.Encoding.UTF8.GetBytes(from + "|" + to))[..32];
+        var observations = draft.Sources.ToDictionary(s => s.SourceObservationSetRef, StringComparer.Ordinal);
+        IEnumerable<GraphNode> StatesAt(string variant, AtlasMapSource frame) => nodes[variant].Properties
+            .Where(property => property.Name == "sourceRawStateId").Select(property => nodes[property.Value])
+            .Where(state => state.Evidence.Any(item => item.BundleId == frame.BundleId && item.FrameSequence == frame.Frame));
+        foreach (var interaction in draft.Interactions)
+        {
+            if (interaction.ReviewState == ReviewState.ReviewRejected || !interaction.UserPerformed ||
+                !actions.TryGetValue(interaction.ActionEventRef, out var action) || action.Actor != InteractionActor.User ||
+                action.Outcome != InteractionOutcome.Succeeded ||
+                !sources.TryGetValue(interaction.SourceObservationSetRef, out var before) ||
+                !sources.TryGetValue(interaction.ResultObservationSetRef, out var after) || before.BundleHash != after.BundleHash ||
+                interaction.RecordingSessionRef != "atlas-recording:" + before.BundleHash ||
+                action.SourceFrameSequence != before.Frame || !action.ResultFrameSequences.Contains(after.Frame) ||
+                !observations.TryGetValue(before.SourceRef, out var source) || !observations.TryGetValue(after.SourceRef, out var result) ||
+                !entities.TryGetValue(interaction.SourceMapEntityRef, out var control) || !control.Applicable ||
+                control.ReviewState == ReviewState.ReviewRejected || !nodes.ContainsKey(control.MapEntityRef) ||
+                !worldBySource.TryGetValue((before.SourceRef, interaction.SourceWorldObjectRef), out var rawControl)) continue;
+            var owner = AtlasSurfaceInventory.Owner(entities, control.MapEntityRef);
+            var from = source.SurfaceObservations.Where(o => o.ResultingMapSurfaceRef == owner)
+                .Select(o => o.ResultingMapVariantRef).Distinct().Where(nodes.ContainsKey).ToArray();
+            if (from is not [var origin]) continue;
+            var rawOwner = nodes[rawControl].Properties.FirstOrDefault(p => p.Name == "rawSurfaceId")?.Value;
+            if (StatesAt(origin, before).Where(n => n.ParentId == rawOwner).ToArray() is not [var rawOrigin]) continue;
+            var previous = source.SurfaceObservations.Select(o => o.ResultingMapVariantRef).ToHashSet(StringComparer.Ordinal);
+            var visible = result.SurfaceObservations.Select(o => o.ResultingMapVariantRef).ToHashSet(StringComparer.Ordinal);
+            var targets = interaction.ResultSurfaceVariantRefs.Where(id => visible.Contains(id) && nodes.ContainsKey(id))
+                .Distinct().ToArray();
+            var destinations = targets.Where(id => !previous.Contains(id)).ToArray();
+            if (destinations.Length == 0 && visible.Count == 1 && !visible.Contains(origin)) destinations = targets;
+            foreach (var destination in destinations.Where(id => entities.TryGetValue(id, out var entity) &&
+                         entity.Applicable && entity.ReviewState != ReviewState.ReviewRejected)
+                     .SelectMany(id => StatesAt(id, after)).DistinctBy(state => state.Id))
+            {
+                var evidence = destination.Evidence.Where(e => e.BundleId == after.BundleId && e.FrameSequence == after.Frame).ToArray();
+                var popupId = destination.ParentId;
+                if (nodes[popupId].Properties.Any(p => p is { Name: "surfaceClass", Value: "RawPopupWindow" }) &&
+                    destination.Properties.Any(p => p is { Name: "sceneVisible", Value: "True" }) &&
+                    !nodes[popupId].Evidence.Any(e => e.BundleId == before.BundleId && e.FrameSequence == before.Frame))
+                {
+                    var semanticPopups = targets.Where(t => nodes[t].Properties.Any(p => p.Name == "sourceRawStateId" && p.Value == destination.Id))
+                        .Select(t => nodes[t].ParentId).Distinct().ToArray();
+                    yield return new GraphEdge(PopupEdgeId(rawControl, popupId), "opens-popup", rawControl, popupId, [], evidence);
+                    if (semanticPopups is [var semanticPopup])
+                        yield return new GraphEdge(PopupEdgeId(control.MapEntityRef, semanticPopup), "opens-popup",
+                            control.MapEntityRef, semanticPopup, [], evidence);
+                }
+                yield return new GraphEdge(interaction.InteractionRef + ":" + destination.Id, "interaction", rawOrigin.Id, destination.Id,
+                    [new("sessionId", before.BundleId), new("interactionId", action.InteractionId),
+                     new("operationId", action.OperationId), new("attempt", action.Attempt.ToString()),
+                     new("sequence", action.Sequence.ToString()), new("actor", action.Actor.ToString()),
+                     new("gesture", action.Gesture.ToString()), new("action", action.Action.ToString()),
+                     new("screenX", interaction.ScreenX.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                     new("screenY", interaction.ScreenY.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                     new("outcome", action.Outcome.ToString()), new("diagnosticCode", action.DiagnosticCode),
+                     new("startedUtc", action.StartedUtc.ToString("O")), new("completedUtc", action.CompletedUtc.ToString("O")),
+                     new("sourceControlId", rawControl), new("sourceFrameSequence", before.Frame.ToString()),
+                     new("resultFrameSequence", after.Frame.ToString())], evidence);
+            }
+        }
+    }
 }

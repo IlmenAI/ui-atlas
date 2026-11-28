@@ -1,7 +1,9 @@
 using Google.Protobuf;
 using UiAtlas.Catalog;
 using UiAtlas.Core.Cli;
+using UiAtlas.Core.Contracts;
 using UiAtlas.Core.Mapping.Atlas;
+using UiAtlas.Core.Recording;
 using UIMaps.Protocol;
 using UIMaps.Protocol.V3;
 
@@ -9,6 +11,33 @@ namespace UiAtlas.Core.Tests;
 
 public sealed class AtlasExactRevisionTests
 {
+    [Fact]
+    public async Task OnlySupplementaryPopupWithProvenNativeBaseCanInheritAcquisitionEvidence()
+    {
+        using var temp = new TempDirectory();
+        var path = Path.Combine(temp.Path, "source.mlrec");
+        Assert.Equal(0, await Program.Main(["synthetic-record", "--out", path]));
+        using var retained = RecordingBundle.Open(path);
+        var manifest = retained.ReadJson<RecordingManifest>("manifest.json");
+        var frame = retained.ReadJson<FrameObservation>("raw/observations/frame-000002.json");
+        var compatibleEpisode = AtlasEpisodeAdapter.Convert(retained, manifest, frame);
+        var knownBase = new Dictionary<long, string?> { [1] = "verified-native-origin" };
+        var popup = frame with { BaseFrameSequence = 1, Trigger = "adaptive-popup", ObservationScope = "popup-delta" };
+        Assert.Null(AtlasRecordingProvenance.NativeOrigin(retained, manifest, frame, compatibleEpisode.EpisodeId, knownBase));
+        Assert.Null(AtlasRecordingProvenance.NativeOrigin(retained, manifest, popup, compatibleEpisode.EpisodeId, new Dictionary<long, string?>()));
+        Assert.Equal("verified-native-origin", AtlasRecordingProvenance.NativeOrigin(retained, manifest, popup, compatibleEpisode.EpisodeId, knownBase));
+        Assert.Throws<InvalidDataException>(() => AtlasRecordingProvenance.NativeOrigin(retained, manifest, popup, "wrong-episode", knownBase));
+
+        const string entry = "raw/native/frame-000002.episode.pb";
+        var wrapped = Path.Combine(temp.Path, "wrapped.mlrec");
+        using var writer = new RecordingBundleWriter(Path.Combine(temp.Path, "wrapped-staging"));
+        writer.WriteBytes(entry, compatibleEpisode.ToByteArray());
+        writer.Complete(wrapped);
+        using var wrapper = RecordingBundle.Open(wrapped);
+        Assert.Null(AtlasRecordingProvenance.NativeOrigin(wrapper, manifest, frame with { NativeEpisodeEntry = entry },
+            compatibleEpisode.EpisodeId, knownBase));
+    }
+
     [Fact]
     public async Task AtlasProducedRevisionMatchesCanonicalHashAndRemainsExactAfterArchivalAndNewPublication()
     {
@@ -31,8 +60,17 @@ public sealed class AtlasExactRevisionTests
         var entry = MapLibraryEntry.Parser.ParseFrom(Convert.FromBase64String(selected.Entry));
         await AtlasCatalogCommand.ExecuteAsync(new("ready", root, MapId: selected.Id, DraftRef: entry.MapDraftRef, Entry: selected.Entry, Generation: selected.Generation));
         var read = new CatalogRequest("revision-read", root, RevisionRef: revision.MapRevisionRef, RequireReady: true);
-        var exact = (await AtlasCatalogCommand.ExecuteAsync(read)).ExactRevision!;
+        var exactReply = await AtlasCatalogCommand.ExecuteAsync(read);
+        var exact = exactReply.ExactRevision!;
+        Assert.Null(exactReply.RecordingSources);
         Assert.True(exact.Ready); Assert.Equal(before, Convert.FromBase64String(exact.Payload));
+        var provenance = (await AtlasCatalogCommand.ExecuteAsync(read with { IncludeRecordingSources = true, MapId = selected.Id })).RecordingSources!;
+        Assert.Equal((selected.Id, revision.MapRevisionRef, selected.Generation), (provenance.MapId, provenance.Revision, provenance.Generation));
+        Assert.Equal(revision.Sources.Select(s => s.SourceObservationSetRef).Order(StringComparer.Ordinal), provenance.Sources.Select(s => s.SourceRef));
+        var originalHash = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(source)));
+        Assert.NotEmpty(provenance.Sources);
+        Assert.All(provenance.Sources, s => { Assert.Equal(recording.Id, s.RecordingId); Assert.Equal(originalHash, s.BundleSha256); });
+        Assert.All(provenance.Sources, s => Assert.Null(s.NativeOriginEpisodeId)); // Compatibility-only .mlrec built by synthetic-record.
         var eligibilityRead = read with { Operation = "revision-eligibility", MapId = selected.Id };
         var eligibilityReply = await AtlasCatalogCommand.ExecuteAsync(eligibilityRead);
         var eligibility = Assert.IsType<CatalogRevisionEligibility>(eligibilityReply.RevisionEligibility);
@@ -82,5 +120,8 @@ public sealed class AtlasExactRevisionTests
         await Assert.ThrowsAsync<FileNotFoundException>(() => AtlasCatalogCommand.ExecuteAsync(read with { RequireReady = false, IncludeRawWorld = true }));
         // Missing source material cannot silently produce a direct-match handoff.
         Assert.Equal(before, Convert.FromBase64String((await AtlasCatalogCommand.ExecuteAsync(read with { RequireReady = false })).ExactRevision!.Payload));
+        var original = workspace.Resolve($"recordings/{originalHash}.mlrec");
+        using (var altered = File.Open(original, FileMode.Append, FileAccess.Write)) altered.WriteByte(0);
+        await Assert.ThrowsAsync<InvalidDataException>(() => AtlasCatalogCommand.ExecuteAsync(read with { RequireReady = false, IncludeRecordingSources = true }));
     }
 }

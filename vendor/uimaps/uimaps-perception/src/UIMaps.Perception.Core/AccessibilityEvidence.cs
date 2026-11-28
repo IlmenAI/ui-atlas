@@ -55,7 +55,7 @@ internal static class AccessibilityEvidence
         return result;
     }
 
-    private static string Key(AccessibilityNodeRecord node) => string.Join("\u001f", node.WindowEvidenceId,
+    private static string Key(AccessibilityNodeRecord node) => string.Join("\u001f", node.WindowEvidenceId, node.ProviderId,
         node.ControlType.Replace("ControlType.", "", StringComparison.Ordinal), node.Name, node.IsOffscreen,
         node.BoundsPx?.X, node.BoundsPx?.Y, node.BoundsPx?.Width, node.BoundsPx?.Height);
 }

@@ -15,6 +15,35 @@ namespace UiAtlas.Core.Tests;
 [Collection("Mapper desktop")]
 public sealed class InspectionPresentationTests
 {
+    [Theory]
+    [InlineData(UiUnderstandingLevel.RawWorld, "raw-grid")]
+    [InlineData(UiUnderstandingLevel.SemanticWorld, "grid")]
+    public void SourceFiltersFollowFusedRecordsOnlyFromTheSelectedObservation(UiUnderstandingLevel level, string id)
+    {
+        var graph = Graph();
+        var raw = graph.Nodes.Single(n => n.Id == "raw-grid");
+        var evidence = raw.Evidence[0];
+        GraphNode Record(string key, string source, EvidenceRef observation) => new(key, GraphNodeKind.Control, "streams", key, key,
+            [new("layer", "raw-data-streams"), new("rawStreamSource", source)], [observation]);
+        GraphNode[] records = [Record("uia", "uia", evidence), Record("msaa", "msaa", evidence),
+            Record("ocr-next-frame", "ocr", raw.Evidence[1]), Record("ocr-other-session", "ocr", evidence with { BundleId = "other" })];
+        var fused = raw with { Properties = [..raw.Properties, new("providerId", "uia"),
+            ..records.Select(n => new GraphProperty("sourceRawDataStreamControlId", n.Id))] };
+        var semantic = graph.Nodes.Single(n => n.Id == "grid");
+        var projected = semantic with { Properties = [..semantic.Properties, new("semanticProjection", "recorded")] };
+        var model = new UiMappingReadModel(graph with { Nodes = [..graph.Nodes.Where(n => n.Id != raw.Id && n.Id != semantic.Id), fused, projected, ..records] });
+        var layer = model.LayerFor(level);
+        var control = layer.Controls.Single(c => c.Id == id);
+        var frame = layer.Surfaces.Single(s => s.Id == control.OwnerSurfaceId).Variants.First(v => v.FrameSequence == 1);
+        var provenance = model.SourcesFor(UiMapPresentation.ForVariant(control, frame), frame);
+        Assert.Equal(ControlSource.UIA | ControlSource.MSAA, provenance.Sources);
+        Assert.Equal("UIA", provenance.BoundsSource);
+        Assert.Equal(new[] { ControlSource.UIA, ControlSource.MSAA }, provenance.Outlines(evidence.Bounds!,
+            ControlSource.UIA | ControlSource.MSAA).Select(o => o.Source).Order());
+        Assert.Equal((ControlSource.MSAA, evidence.Bounds), Assert.Single(provenance.Outlines(evidence.Bounds!, ControlSource.MSAA)));
+        Assert.Equal(new[] { "msaa", "uia" }, provenance.Contributors.Select(c => c.Record.Id).Order());
+    }
+
     [Fact]
     public void UnnamedControlsHaveReadableRolesWithoutInventingObservedNames()
     {
@@ -218,11 +247,11 @@ public sealed class InspectionPresentationTests
                 var attached = Get<UiEvidenceReader>("_evidence");
                 Set("_evidence", null);
                 Call("SelectSurfaceById", "surface");
-                Assert.Empty(variants.Items);
-                Assert.Null(Get<UiMapVariantView?>("_selectedVariant"));
+                Assert.NotEmpty(variants.Items);
+                Assert.NotNull(Get<UiMapVariantView?>("_selectedVariant"));
                 Assert.Null(Get<Image>("_appMapImage").Source);
                 Assert.Empty(Get<Canvas>("_appMapOverlay").Children);
-                Assert.Contains("No clear capture", ((TextBlock)Get<ContentControl>("_traceBannerHost").Content).Text);
+                Assert.Contains("No verified image", ((TextBlock)Get<ContentControl>("_traceBannerHost").Content).Text);
                 Set("_evidence", attached);
                 var streamSurface = graph.Nodes.Single(n => n.Id == "raw") with { Id = "streams", Properties = [new("layer", "raw-data-streams")] };
                 Set("_model", new UiMappingReadModel(graph with { Nodes = graph.Nodes.Append(streamSurface).ToArray() }));

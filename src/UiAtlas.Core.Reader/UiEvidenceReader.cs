@@ -73,7 +73,7 @@ public sealed class UiEvidenceReader : IDisposable
         }
     }
 
-    public UiEvidenceImage? Read(EvidenceRef evidence, bool allowInheritedPixels = false)
+    private (RecordingBundle Bundle, FrameObservation Frame) ResolveEvidence(EvidenceRef evidence)
     {
         ArgumentNullException.ThrowIfNull(evidence);
         if (!_bundles.TryGetValue(evidence.BundleId, out var bundle))
@@ -85,13 +85,25 @@ public sealed class UiEvidenceReader : IDisposable
         if (frame.Sequence != evidence.FrameSequence)
             throw new InvalidDataException("Graph evidence does not match the selected recording frame.");
 
-        var screenshotFrame = frame;
         var screenshotEntry = evidence.ScreenshotEntry;
         if (!string.IsNullOrEmpty(screenshotEntry) &&
             (!string.Equals(screenshotEntry, $"raw/frames/frame-{frame.Sequence:D6}.png", StringComparison.Ordinal) ||
              !string.Equals(frame.FrameEntry, screenshotEntry, StringComparison.Ordinal)))
             throw new InvalidDataException("Graph evidence does not match the selected recording frame.");
 
+        return (bundle, frame);
+    }
+
+    public UiEvidenceImage? Read(EvidenceRef evidence, bool allowInheritedPixels = false)
+    {
+        var (bundle, frame) = ResolveEvidence(evidence);
+        return ReadComposite(bundle, frame, evidence, allowInheritedPixels);
+    }
+
+    private static UiEvidenceImage? ReadComposite(RecordingBundle bundle, FrameObservation frame, EvidenceRef evidence, bool allowInheritedPixels)
+    {
+        var screenshotFrame = frame;
+        var screenshotEntry = evidence.ScreenshotEntry;
         if (string.IsNullOrEmpty(screenshotEntry))
         {
             if (!allowInheritedPixels)
@@ -145,13 +157,15 @@ public sealed class UiEvidenceReader : IDisposable
 
     private readonly Dictionary<(string Bundle, long Frame), SurfaceFrameVisibility> visibility = [];
 
-    public string? SurfaceExclusion(UiMapVariantView variant)
+    public string? SurfaceExclusion(UiMapVariantView variant) => SurfacePreview(variant).DesktopExclusion;
+
+    public SurfacePreviewEvidence SurfacePreview(UiMapVariantView variant)
     {
         var key = (variant.BundleId, variant.FrameSequence);
-        if (!_bundles.TryGetValue(key.BundleId, out var bundle)) return SurfaceFrameVisibility.Unknown;
+        if (!_bundles.TryGetValue(key.BundleId, out var bundle)) return SurfacePreviewEvidence.Unavailable;
         if (!visibility.TryGetValue(key, out var observation))
             visibility[key] = observation = SurfaceFrameVisibility.Read(bundle, key.FrameSequence);
-        return observation.Exclusion(variant.NativeWindowHwnd, variant.Evidence?.Bounds);
+        return observation.Preview(variant.NativeWindowHwnd, variant.Evidence?.Bounds);
     }
 
     public FrameObservation ReadObservation(string bundleId, long frameSequence)
@@ -182,22 +196,22 @@ public sealed class UiEvidenceReader : IDisposable
             : ReadWindow(evidence, hwnd);
     }
 
-    public UiEvidenceImage? ReadWindow(EvidenceRef evidence, long hwnd)
+    public UiEvidenceImage? ReadWindow(EvidenceRef evidence, long hwnd, bool useIndependentImage = true)
     {
         // Validate the canonical frame reference even when a separate HWND image exists.
-        var original = Read(evidence);
-        var frame = ReadObservation(evidence.BundleId, evidence.FrameSequence);
+        var (bundle, frame) = ResolveEvidence(evidence);
         var window = (frame.ScopedWindows ?? [frame.Window]).SingleOrDefault(item => item.Hwnd == hwnd)
             ?? throw new InvalidDataException("Selected HWND is not in this observation.");
         var plane = frame.WindowImages?.SingleOrDefault(item => item.Hwnd == hwnd);
-        if (plane is { Status: "ok", Entry: not null })
+        if (useIndependentImage && plane is { Status: "ok", Entry: not null })
         {
             var canonical = $"raw/frames/frame-{frame.Sequence:D6}-window-{hwnd:X}.png";
             if (plane.Entry != canonical) throw new InvalidDataException("Window image reference is not canonical.");
-            return new(_bundles[evidence.BundleId].ReadBytes(plane.Entry, 16 * 1024 * 1024), null,
+            return new(bundle.ReadBytes(plane.Entry, 16 * 1024 * 1024), null,
                 plane.Entry, plane.Bounds, frame.InteractionSource, null, frame, frame.Sequence,
                 plane.CompletedUtc, "independent HWND image (" + plane.Method + ")");
         }
+        var original = ReadComposite(bundle, frame, evidence, allowInheritedPixels: false);
         if (original is null) return null;
         var occluders = RawSurfaceImageLayout.Occluders(frame, window);
         return original with { PixelProvenance = plane is null

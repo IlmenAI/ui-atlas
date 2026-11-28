@@ -184,7 +184,7 @@ public sealed class AtlasMapWorkspace : IMappingReviewStore
                 Directory.CreateDirectory(Path.Combine(output, "recordings"));
                 if (!File.Exists(Path.Combine(output, bundleFile))) File.Copy(bundlePath, Path.Combine(output, bundleFile));
                 if (!bundles.Contains(bundleFile, StringComparer.Ordinal)) bundles.Add(bundleFile);
-                var interactions = new AtlasInteractionAdapter(bundle, hash);
+                var interactions = new AtlasInteractionAdapter(bundle, hash, output);
                 var identity = AtlasEpisodeAdapter.ProcessIdentity(manifest.Target);
                 var session = sessions.SingleOrDefault(value => value.ProcessIdentity == identity);
                 // Resuming a logical map after an application restart must append

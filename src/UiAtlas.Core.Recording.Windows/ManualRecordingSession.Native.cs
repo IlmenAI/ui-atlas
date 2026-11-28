@@ -33,10 +33,11 @@ public sealed partial class ManualRecordingSession
             DrainInputUnsafe();
             _writer.WriteBytes(observation.NativeEpisodeEntry!, episode.ToByteArray());
             _writer.WriteBytes(observation.FrameEntry, pixels);
-            foreach (var plane in episode.WindowImages.Where(image => !image.Png.IsEmpty))
+            foreach (var reference in observation.WindowImages ?? [])
             {
-                var reference = observation.WindowImages!.Single(image => image.Hwnd.ToString() == plane.WindowHandleEvidence);
-                _writer.WriteBytes(reference.Entry!, plane.Png.ToByteArray());
+                if (reference.Entry is null) continue;
+                var plane = episode.WindowImages.Single(image => reference.Hwnd.ToString(System.Globalization.CultureInfo.InvariantCulture) == image.WindowHandleEvidence);
+                _writer.WriteBytes(reference.Entry, plane.Png.ToByteArray());
             }
             _writer.WriteJson($"raw/observations/frame-{sequence:D6}.json", observation);
             _latestScreenshotPng = pixels; _latestScreenshotSequence = sequence;

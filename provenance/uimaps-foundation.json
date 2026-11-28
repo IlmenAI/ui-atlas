@@ -16,8 +16,8 @@
       "repository": "https://github.com/AI-Successors/uimaps-recorder",
       "commit": "feb951d9f69c3aac11ed4a293802040697f35009",
       "source": "src/UIMaps.Recorder.ProviderProbe/UiaCachedCapture.cs",
-      "sha256": "1379390c47ef52071ffff5f9ca6937086e5fdee6c1c463e288a58c9b15a38399",
-      "disposition": "reviewed-adaptation: manual field evidence presence and safe value acquisition; original import reference retained"
+      "sha256": "9ce29c581dd688775f575bc269700b4ab88c754f857e930fa2f8bcf1aa2128c5",
+      "disposition": "reviewed-adaptation: manual field evidence presence and safe value acquisition; original import reference retained; uses the native Windows UI Automation client for raw-view control discovery"
     },
     {
       "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.ProviderProbe/UiaCaptureTraversal.cs",
@@ -61,20 +61,20 @@
     },
     {
       "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v1/perception.proto",
-      "repository": "https://github.com/AI-Successors/uimaps-protocol",
-      "commit": "7f9e489a3ba8b3d8cd597eb09024449c7bf0421e",
-      "source": "proto/uimaps/v1/perception.proto",
-      "sha256": "68db142b10f822476195de0defdaf0bb361fbd7e47007590c2c74ba129f812c3",
-      "disposition": "reviewed-adaptation: neutral historical-only provenance; private messages excluded",
+      "repository": "https://github.com/IlmenAI/UI-Atlas",
+      "commit": "1518b49df4c29cf1d2b3c394db5d2dd8cdf8e4f2",
+      "source": "vendor/uimaps/uimaps-protocol/proto/uimaps/v1/perception.proto",
+      "sha256": "9d2f05974b7793d5aa579bb10ae408799a3eb48934a72e427fde26b5fd05fa70",
+      "disposition": "baseline synchronization: exact source from the pinned Atlas revision",
       "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
     },
     {
       "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v1/sensor.proto",
       "repository": "https://github.com/IlmenAI/UI-Atlas",
-      "commit": "8d6514273cfcb25f01feac2d492286f6fd88e89a",
+      "commit": "df81baead5e4c5c64d4427c382738debcb614557",
       "source": "vendor/uimaps/uimaps-protocol/proto/uimaps/v1/sensor.proto",
-      "sha256": "e3d85e8062bcc08eb2b2518bbb70db40b9c0a8fc35703d29aa5cabc2125cf917",
-      "disposition": "reviewed-adaptation: manual field evidence presence and safe value acquisition; original import reference retained",
+      "sha256": "01ef75c453ad8ad4f26566cf59037c8629c7b7261c9dc05261de2636de91d890",
+      "disposition": "baseline synchronization: exact source from the pinned Atlas revision",
       "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
     },
     {
@@ -159,11 +159,11 @@
     },
     {
       "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v3/live_grid_service.proto",
-      "repository": "https://github.com/AI-Successors/uimaps-protocol",
-      "commit": "ef9252d18b5a985dd81eaa613d78cf6b38a42898",
-      "source": "proto/uimaps/v3/live_grid_service.proto",
-      "sha256": "0a946a616085bf119bc7142ccd5b759553d61bd99da2e4aadc40cb3bd6dcbd7f",
-      "disposition": "unmodified-source"
+      "repository": "https://github.com/IlmenAI/UI-Atlas",
+      "commit": "5a31ba62d11bedcdada2384d5affa71486a7a366",
+      "source": "vendor/uimaps/uimaps-protocol/proto/uimaps/v3/live_grid_service.proto",
+      "sha256": "81f35f9158d1bb6874f3254db5f70fb3eb273276638ae374744eceb96dd16822",
+      "disposition": "baseline synchronization: exact source from the pinned Atlas revision"
     },
     {
       "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v3/ui_localization.proto",
@@ -176,10 +176,10 @@
     {
       "target": "vendor/uimaps/uimaps-protocol/proto/uimaps/v3/ui_map.proto",
       "repository": "https://github.com/IlmenAI/UI-Atlas",
-      "commit": "8d6514273cfcb25f01feac2d492286f6fd88e89a",
+      "commit": "fc18b40467a5603d51005353e702df54deadb07e",
       "source": "vendor/uimaps/uimaps-protocol/proto/uimaps/v3/ui_map.proto",
-      "sha256": "93772f93416db364e3dd5a547503f37ed8e636e0da4c9856b11726674311c6ec",
-      "disposition": "atlas-integrated-source"
+      "sha256": "be30dd60a170da5ff070b7b6ab11c5861f9e33cc6b288c36c665f2e455b4e2d2",
+      "disposition": "baseline synchronization: exact source from the pinned Atlas revision"
     },
     {
       "target": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/GridColumnHeaderResolver.cs",
@@ -192,10 +192,10 @@
     {
       "target": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/LiveGridCaptureLimits.cs",
       "repository": "https://github.com/IlmenAI/UI-Atlas",
-      "commit": "8d6514273cfcb25f01feac2d492286f6fd88e89a",
+      "commit": "4f4474e19ae9d2804cfb7907bc52aa994ef7bd42",
       "source": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/LiveGridCaptureLimits.cs",
-      "sha256": "5ba9243c9a01486c34c949e5d9762afacf8314d53c0819cba195bc92c1b2b766",
-      "disposition": "atlas-integrated-source"
+      "sha256": "6d48dc5bb4d06509c54d2ce286fc38cbca155c69b956f7a48ccebfcceeaa23b5",
+      "disposition": "baseline synchronization: exact source from the pinned Atlas revision"
     },
     {
       "target": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/ReviewedGridImageSchemaValidation.cs",
@@ -248,10 +248,10 @@
     {
       "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/ObservationNormalizer.cs",
       "repository": "https://github.com/IlmenAI/UI-Atlas",
-      "commit": "8d6514273cfcb25f01feac2d492286f6fd88e89a",
+      "commit": "0a6c73b199a299da9a3693ba73b2b5f7840a9ae8",
       "source": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/ObservationNormalizer.cs",
-      "sha256": "029f745dd2713d1a31e02d0716743c6524426e76f5388bb96f301127981edc3e",
-      "disposition": "atlas-integrated-source",
+      "sha256": "92915ac1f3e4ab23b363157fb45634e726da648e6b4c6685949270d34fb491e1",
+      "disposition": "baseline synchronization: exact source from the pinned Atlas revision",
       "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
     },
     {
@@ -266,10 +266,10 @@
     {
       "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/PerceptionEngine.cs",
       "repository": "https://github.com/IlmenAI/UI-Atlas",
-      "commit": "8d6514273cfcb25f01feac2d492286f6fd88e89a",
+      "commit": "1518b49df4c29cf1d2b3c394db5d2dd8cdf8e4f2",
       "source": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/PerceptionEngine.cs",
-      "sha256": "c72833f6bede688194be86dc839e17b284a577af055af9402e36145b6f112e0b",
-      "disposition": "atlas-integrated-source",
+      "sha256": "dec8ca768f3eff566337d0b14950f3c4fb7a1a267da758b373c0e03e3d056ed8",
+      "disposition": "baseline synchronization: exact source from the pinned Atlas revision",
       "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
     },
     {
@@ -283,26 +283,26 @@
     {
       "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/TrackAssociator.cs",
       "repository": "https://github.com/IlmenAI/UI-Atlas",
-      "commit": "8d6514273cfcb25f01feac2d492286f6fd88e89a",
+      "commit": "5087a44b67a36aba2d0bf6a7b2cc537764891403",
       "source": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/TrackAssociator.cs",
-      "sha256": "3242d8e87c3564bbac4810b633f32e86711add820304cd27402eb325e116a218",
-      "disposition": "atlas-integrated-source"
+      "sha256": "38681b9a6b942debedbe3c2f574b75f8430cca8a18156784454062e04c8e1f9c",
+      "disposition": "baseline synchronization: exact source from the pinned Atlas revision"
     },
     {
       "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/VisualTextObservationProvider.cs",
       "repository": "https://github.com/AI-Successors/uimaps-perception",
       "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
       "source": "src/UIMaps.Perception.Core/VisualTextObservationProvider.cs",
-      "sha256": "bf0bcb5194d79c5547bf9220388612531d43a1090b904111faacac2a751d47c0",
+      "sha256": "0145b75955aea5e1aaff311a67bc602100f276d894771999e2db51659d65bc35",
       "disposition": "unmodified-source"
     },
     {
       "target": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/WorldObjectBuilder.cs",
-      "repository": "https://github.com/AI-Successors/uimaps-perception",
-      "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
-      "source": "src/UIMaps.Perception.Core/WorldObjectBuilder.cs",
-      "sha256": "303eb8547c10b8fe1ec0686b139b90b975c9f023a4aee43603fed151a72a1f38",
-      "disposition": "reviewed-adaptation: cancellation and explicit geometry gaps; preserve Atlas construction",
+      "repository": "https://github.com/IlmenAI/UI-Atlas",
+      "commit": "1518b49df4c29cf1d2b3c394db5d2dd8cdf8e4f2",
+      "source": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/WorldObjectBuilder.cs",
+      "sha256": "e3b4d4639e81740805ad3815d83e5d0d4b8f79f2de7aed73fc770fc7d3f0ba12",
+      "disposition": "baseline synchronization: exact source from the pinned Atlas revision",
       "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
     },
     {
@@ -334,8 +334,8 @@
       "repository": "https://github.com/IlmenAI/UI-Atlas",
       "commit": "57e94811dec3e0b7dada891461b2604a5f736e5a",
       "source": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/UiMapConstructionEngine.cs",
-      "sha256": "118f5a4dfbebf8151c6e87b4a26e3a683b7872b1e95cb776a8a677756b71711a",
-      "disposition": "baseline synchronization: unchanged source from the pinned Atlas revision; correct stale import checksum",
+      "sha256": "70f846e45c3171648ac95bb0a7af0e71a24d0c261959ecd393a0ba2ed4076486",
+      "disposition": "baseline synchronization: unchanged source from the pinned Atlas revision; correct stale import checksum; distinguish popup menus using recorded command signatures",
       "reviewEvidence": "docs/2026-10-23-grid-discovery-repair.md"
     },
     {
@@ -351,16 +351,16 @@
       "repository": "https://github.com/IlmenAI/UI-Atlas",
       "commit": "57e94811dec3e0b7dada891461b2604a5f736e5a",
       "source": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/UiMapService.cs",
-      "sha256": "534ad4b6ac67c7d4bd85b670194cd6a026b5954213279c247e2001bd4bd4b3b8",
-      "disposition": "baseline synchronization: unchanged source from the pinned Atlas revision; correct stale import checksum"
+      "sha256": "9b0a4e0ab7102c9b5e90341ef2776dbeb35604633db46f1cf947bd54ddf620fb",
+      "disposition": "reviewed adaptation of the pinned Atlas source: validate draft relationship endpoints before excluding rejected entities from publication"
     },
     {
       "target": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/UiMapStore.cs",
-      "repository": "https://github.com/AI-Successors/uimaps-map",
-      "commit": "fc005f5fc1787da409f9667c10ef109e25e8d2c8",
-      "source": "src/UIMaps.Map.Core/UiMapStore.cs",
-      "sha256": "3e2549351b72f12c71b4692454254892a13c559662cf5e0c6c2b9ab69451138b",
-      "disposition": "adapted-source: native recorder integration, exact source provenance and explicit workspace snapshot handoff"
+      "repository": "https://github.com/IlmenAI/UI-Atlas",
+      "commit": "5087a44b67a36aba2d0bf6a7b2cc537764891403",
+      "source": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/UiMapStore.cs",
+      "sha256": "2b9e4e0e2f4b8612e403cf166b47ace7772fd38e159257daa8043a353ed8763f",
+      "disposition": "baseline synchronization: exact source from the pinned Atlas revision"
     },
     {
       "target": "vendor/uimaps/uimaps-map/LICENSE.txt",
@@ -477,8 +477,8 @@
       "repository": "https://github.com/AI-Successors/uimaps-recorder",
       "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
       "source": "src/UIMaps.Recorder.Windows/ProviderIsolation.cs",
-      "sha256": "d47c6c384079bad0c7f074c7c939331a6b45571ef9aa31e31e20e5d788ab20d0",
-      "disposition": "reviewed-adaptation: candidate cached UIA and MSAA root reuse; explicit alias diagnostics; bounded visual cooperative deadline; shared-budget exact root/modal topology recovery for general captures; assigned-family recovery requires a full ownership census",
+      "sha256": "8bed13e862d0386b6e22f473faa4fe18890980675002cf836d8e598cb1ec4f83",
+      "disposition": "reviewed-adaptation: candidate cached UIA and MSAA root reuse; explicit alias diagnostics; bounded visual cooperative deadline; shared-budget exact root/modal topology recovery for general captures; assigned-family recovery requires a full ownership census; permit Atlas to select the isolated native UIA worker with the same budget",
       "reviewEvidence": "tests/UiAtlas.Core.Windows.Tests/MsaaRootAliasTests.cs; tests/UiAtlas.Core.Windows.Tests/OptimizedCaptureProfileTests.cs; tests/UiAtlas.Core.Windows.Tests/TargetWindowRecoveryTests.cs"
     },
     {
@@ -511,8 +511,8 @@
       "repository": "https://github.com/AI-Successors/uimaps-recorder",
       "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
       "source": "src/UIMaps.Recorder.ProviderProbe/Program.cs",
-      "sha256": "96e3b91f0b9151e416dd2732e2b9dddc38933a1f9fa7217218988fb3d81fbf3c",
-      "disposition": "reviewed-adaptation: manual field evidence presence and safe value acquisition; dispatch assigned-window census requests with their explicit scope; original import reference retained",
+      "sha256": "119fd27a383b7f59b745f8729b2e5c453925ef3fdab4537479bbe52d458b1963",
+      "disposition": "reviewed-adaptation: manual field evidence presence and safe value acquisition; dispatch assigned-window census requests with their explicit scope; original import reference retained; uses the native Windows UI Automation client for raw-view control discovery",
       "reviewEvidence": "tests/UiAtlas.Core.Windows.Tests/MsaaRootAliasTests.cs; tests/UiAtlas.Core.Windows.Tests/OptimizedCaptureProfileTests.cs"
     },
     {
@@ -537,8 +537,8 @@
       "repository": "https://github.com/AI-Successors/uimaps-recorder",
       "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
       "source": "src/UIMaps.Recorder.ProviderProbe/UIMaps.Recorder.ProviderProbe.csproj",
-      "sha256": "5e763604350e7330076d9cf695796f6e84260e1720099e194c5c99f665bbe9a6",
-      "disposition": "adapted-source: native recorder integration, exact source provenance and explicit workspace snapshot handoff"
+      "sha256": "1375bf13061e54d38ef8b29c8946c118e91f572660c6a872d0218dd7246e409c",
+      "disposition": "adapted-source: native recorder integration, exact source provenance and explicit workspace snapshot handoff; uses the native Windows UI Automation client for raw-view control discovery"
     },
     {
       "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/UIMaps.Recorder.Windows.csproj",
@@ -566,11 +566,11 @@
     },
     {
       "target": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/NativeMsaaProvider.cs",
-      "repository": "https://github.com/AI-Successors/uimaps-recorder",
-      "commit": "7e0c5d6622414595937a749b66b902c79293a4ad",
-      "source": "new shared implementation; not present at base commit",
-      "sha256": "4b0081e67aeaa4ec08724ea7b2991e40da7f108160843f77dc5804beb2930221",
-      "disposition": "reviewed-adaptation: manual field evidence presence and safe value acquisition; original import reference retained",
+      "repository": "https://github.com/IlmenAI/UI-Atlas",
+      "commit": "1518b49df4c29cf1d2b3c394db5d2dd8cdf8e4f2",
+      "source": "vendor/uimaps/uimaps-recorder/src/UIMaps.Recorder.Windows/NativeMsaaProvider.cs",
+      "sha256": "d3dcd437f53b2ea41de3f8f68e64769f5794cf334c38588b100562ff8e51ae5a",
+      "disposition": "baseline synchronization: exact source from the pinned Atlas revision",
       "reviewEvidence": "tests/UiAtlas.Core.Windows.Tests/MsaaRootAliasTests.cs; tests/UiAtlas.Core.Windows.Tests/OptimizedCaptureProfileTests.cs"
     },
     {
@@ -586,8 +586,8 @@
       "repository": "https://github.com/AI-Successors/uimaps-perception",
       "commit": "2d91664253ec6813fcc1a05efe6f3cf5f4c44e0a",
       "source": "new shared implementation; not present at base commit",
-      "sha256": "bdda94f07c8b85113657b587793a41cff226c451c86d68d6111b5d19ee2c7a5d",
-      "disposition": "reviewed-adaptation: review existing Atlas 7b6a049 scene ownership; no new behavior",
+      "sha256": "6ca904bd4e423d3127cf1ba0944f57de47893b94c021bdf2aa8b2bc4b4826047",
+      "disposition": "reviewed-adaptation: review existing Atlas 7b6a049 scene ownership; no new behavior; resolve menu rows exposed under an owner menu item and retain the observed command signature",
       "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
     },
     {
@@ -609,11 +609,11 @@
     },
     {
       "target": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/UiMapRevisionIntegrity.cs",
-      "repository": "https://github.com/AI-Successors/uimaps-protocol",
-      "commit": "e21ff6827bec690fa479d39b41135386c16de360",
-      "source": "src/UIMaps.Protocol/UiMapRevisionIntegrity.cs",
-      "sha256": "05d6c0950d9f084827b769936292d41d404dc99fd38d9361ed38cc78bff2dc0b",
-      "disposition": "reviewed-source: Atlas-produced canonical revision identity",
+      "repository": "https://github.com/IlmenAI/UI-Atlas",
+      "commit": "df81baead5e4c5c64d4427c382738debcb614557",
+      "source": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/UiMapRevisionIntegrity.cs",
+      "sha256": "86764b10d512bbb653afda24d0a86c82eb215c71ff373f60ff5d292c77262ba9",
+      "disposition": "baseline synchronization: exact source from the pinned Atlas revision",
       "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
     },
     {
@@ -630,7 +630,7 @@
       "repository": "https://github.com/IlmenAI/UI-Atlas",
       "commit": "7b6a0493b6a355f510a8d497425309d269023cd9",
       "source": "vendor/uimaps/uimaps-perception/src/UIMaps.Perception.Core/AccessibilityEvidence.cs",
-      "sha256": "74a3750adf5f4440009e637a803bb77676d579d7b8abc45ccc9c1aa934193b1b",
+      "sha256": "61465235b58aebb3296ae41c43fa11b67bc76ac08c72f964fe87247bb5cfb2aa",
       "disposition": "atlas-integrated-source",
       "reviewEvidence": "docs/2026-10-19-workflow-foundation.md"
     },
@@ -650,6 +650,78 @@
       "sha256": "3c8d1a6bd70c62c46442878382d45cb19487035381f103d3122b55b1ae8475cb",
       "disposition": "new-shared-implementation: test assembly visibility only",
       "reviewEvidence": "tests/UiAtlas.Core.Windows.Tests/MsaaRootAliasTests.cs"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/GridSchemaHistory.cs",
+      "repository": "https://github.com/IlmenAI/UI-Atlas",
+      "commit": "fc18b40467a5603d51005353e702df54deadb07e",
+      "source": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/GridSchemaHistory.cs",
+      "sha256": "a4e4086d0100487b14e6f327a5f6868b7564b9d1fca8ada5bb37bf7ed57f1382",
+      "disposition": "baseline synchronization: exact source from the pinned Atlas revision"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/UiMapService.ControlIdentity.cs",
+      "repository": "https://github.com/IlmenAI/UI-Atlas",
+      "commit": "1518b49df4c29cf1d2b3c394db5d2dd8cdf8e4f2",
+      "source": "vendor/uimaps/uimaps-map/src/UIMaps.Map.Core/UiMapService.ControlIdentity.cs",
+      "sha256": "17cfae101a845aba9f78549d2d66ff8855d95781c168c16d936532f02ba997e1",
+      "disposition": "baseline synchronization: exact source from the pinned Atlas revision"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/ControlIdentityKnowledge.cs",
+      "repository": "https://github.com/IlmenAI/UI-Atlas",
+      "commit": "5753677432743b7cb62e95e8750ef30a63a1712c",
+      "source": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/ControlIdentityKnowledge.cs",
+      "sha256": "cfe8559518831ffe35f7f5c8c0753b5428a13c1e16f15baf8ed230e1fa8b1925",
+      "disposition": "baseline synchronization: exact source from the pinned Atlas revision"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/LegacyGridSchemaCompatibility.cs",
+      "repository": "https://github.com/IlmenAI/UI-Atlas",
+      "commit": "7df572bf2dcf879fb440f5b73a46e9c456222dc2",
+      "source": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/LegacyGridSchemaCompatibility.cs",
+      "sha256": "ffafb6cdb454a77538eb915dc01c32742fb6570649e5c386400936c9ccd02a3b",
+      "disposition": "baseline synchronization: exact source from the pinned Atlas revision"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/LogicalControlIdentity.cs",
+      "repository": "https://github.com/IlmenAI/UI-Atlas",
+      "commit": "1518b49df4c29cf1d2b3c394db5d2dd8cdf8e4f2",
+      "source": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/LogicalControlIdentity.cs",
+      "sha256": "d045738f9a7149b206cc2947a092ed5fc7571f45a2ba009398b4842540c9c342",
+      "disposition": "baseline synchronization: exact source from the pinned Atlas revision"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/NativeControlLayout.cs",
+      "repository": "https://github.com/IlmenAI/UI-Atlas",
+      "commit": "5087a44b67a36aba2d0bf6a7b2cc537764891403",
+      "source": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/NativeControlLayout.cs",
+      "sha256": "fc12e18715ae42adb578e5c064c9f42549b64acc404d5e74a36c57287ed179e6",
+      "disposition": "baseline synchronization: exact source from the pinned Atlas revision"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/RawWorldControlFusion.cs",
+      "repository": "https://github.com/IlmenAI/UI-Atlas",
+      "commit": "1518b49df4c29cf1d2b3c394db5d2dd8cdf8e4f2",
+      "source": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/RawWorldControlFusion.cs",
+      "sha256": "e829372c6f98e08d77df7b8d840f9d55790d100af9eaa9afc44f3af0d5afb92a",
+      "disposition": "baseline synchronization: exact source from the pinned Atlas revision"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/SurfaceContextEvidence.cs",
+      "repository": "https://github.com/IlmenAI/UI-Atlas",
+      "commit": "1518b49df4c29cf1d2b3c394db5d2dd8cdf8e4f2",
+      "source": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/SurfaceContextEvidence.cs",
+      "sha256": "87f033fdd052723a41ac29e0bc3189c69a5d60858e13cce1f62466891579c187",
+      "disposition": "baseline synchronization: exact source from the pinned Atlas revision"
+    },
+    {
+      "target": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/WindowsExecutableIdentity.cs",
+      "repository": "https://github.com/IlmenAI/UI-Atlas",
+      "commit": "7df572bf2dcf879fb440f5b73a46e9c456222dc2",
+      "source": "vendor/uimaps/uimaps-protocol/src/UIMaps.Protocol/WindowsExecutableIdentity.cs",
+      "sha256": "85d3d9671c660776c59046da0a0b6e2fe31c1f1a83944fbfd569894e396f21b7",
+      "disposition": "baseline synchronization: exact source from the pinned Atlas revision"
     }
   ]
 }

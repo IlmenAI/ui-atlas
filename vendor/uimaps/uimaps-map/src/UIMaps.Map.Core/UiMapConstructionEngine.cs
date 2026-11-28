@@ -1051,6 +1051,9 @@ public sealed class UiMapConstructionEngine(StableMapRefAllocator? allocator = n
             var windowClass = Property(value, "className");
             var normalizedTitle = string.Join(' ', (value.Name ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
             var owned = Property(value, "isOwnedWindow");
+            var menuSignature = Property(value, "menuCommandSignature");
+            if (menuSignature.Length > 0)
+                return $"menu:{process}:{windowClass}:{normalizedTitle}:{owned}:{menuSignature}".ToUpperInvariant();
             if (!string.IsNullOrWhiteSpace(process) || !string.IsNullOrWhiteSpace(windowClass) || !string.IsNullOrWhiteSpace(normalizedTitle))
                 return $"window:{process}:{windowClass}:{normalizedTitle}:owned:{owned}".ToUpperInvariant();
         }

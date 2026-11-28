@@ -193,7 +193,8 @@ public static class GraphValidator
                 from.Kind != GraphNodeKind.Control || to.Kind != GraphNodeKind.Surface ||
                 LayerOf(layersByNode, from.Id) != LayerOf(layersByNode, to.Id) ||
                 !(to.Properties.Any(property => property.Name == "surfaceClass" && property.Value == "RawPopupWindow") ||
-                  to.Properties.Any(property => property.Name == "semanticSurfaceKind" && property.Value == "PopupVariant")))
+                  to.Properties.Any(property => property.Name == "semanticSurfaceKind" && property.Value == "PopupVariant") ||
+                  to.Properties.Any(property => property.Name == "semanticClass" && property.Value == "SemanticPopupWindow")))
                 issues.Add(new("graph.popup-relationship", "error", edge.Id,
                     "Popup relationship must connect a control to a popup surface in the same world layer."));
         }

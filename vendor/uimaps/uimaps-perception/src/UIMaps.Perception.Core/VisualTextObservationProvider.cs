@@ -16,86 +16,125 @@ public sealed class VisualTextObservationProvider(IGridOcrProvider? ocrProvider 
     {
         var screenshotPacket = bundle.SensorPackets.Single(packet => packet.StreamKind == SensorStreamKind.Screenshot);
         var screenshot = screenshotPacket.Screenshot;
-        if (screenshot.ImageBlob.IsEmpty || screenshot.WidthPx <= 0 || screenshot.HeightPx <= 0) return [];
-        var words = await _ocrProvider.ReadAsync(screenshot.ImageBlob.ToByteArray(), cancellationToken).ConfigureAwait(false);
-        var windows = bundle.SensorPackets
-            .Where(packet => packet.StreamKind == SensorStreamKind.WindowTopology)
-            .SelectMany(packet => packet.WindowTopology.Windows)
-            .Where(window => window.IsVisible && !window.IsMinimized && !window.IsCloakedOrUnavailable
-                && window.BoundsPx is { Width: > 0, Height: > 0 })
-            .GroupBy(window => window.WindowEvidenceId, StringComparer.Ordinal)
-            .Select(group => group.First())
-            .ToList();
-        var accessibility = bundle.SensorPackets
-            .Where(packet => packet.StreamKind == SensorStreamKind.Accessibility)
-            .SelectMany(packet => packet.Accessibility.Nodes)
-            .GroupBy(node => (node.WindowEvidenceId, node.AccessibilityEvidenceId))
-            .Select(group => group.First())
-            .ToList();
-        var display = bundle.DisplayDescriptor;
-        var phrases = GroupWords(words, token => GroupingScope(token, display.BoundsPx, screenshot.WidthPx, screenshot.HeightPx, windows, accessibility));
+        var census = bundle.SensorPackets.Single(packet => packet.WindowTopology is not null).WindowTopology;
+        var windows = census.Windows.Where(window => window.IsVisible && !window.IsMinimized &&
+            !window.IsCloakedOrUnavailable && window.BoundsPx is { Width: > 0, Height: > 0 }).ToArray();
+        var accessibility = bundle.SensorPackets.Where(packet => packet.Accessibility is not null)
+            .SelectMany(packet => AccessibilityEvidence.Nodes(packet.Accessibility)).ToArray();
         var result = new List<Observation>();
-        foreach (var phrase in phrases)
+        var independent = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var plane in bundle.WindowImages.Where(p => p.Status == "ok" && !p.Png.IsEmpty))
         {
-            var bounds = ToScreenBounds(phrase.Bounds, display.BoundsPx, screenshot.WidthPx, screenshot.HeightPx);
-            var window = windows
-                .Where(candidate => Contains(candidate.BoundsPx, bounds))
-                .OrderBy(candidate => Area(candidate.BoundsPx))
-                .ThenBy(candidate => candidate.ZOrder)
-                .FirstOrDefault();
-            if (window is null || DuplicatesAccessibility(phrase.Text, bounds, accessibility, window.WindowEvidenceId)) continue;
-            var parent = accessibility
-                .Where(node => node.WindowEvidenceId == window.WindowEvidenceId && Contains(node.BoundsPx, bounds))
-                .OrderBy(node => Area(node.BoundsPx))
-                .FirstOrDefault();
-            var relative = new RectPx
+            var window = windows.FirstOrDefault(w => w.WindowHandleEvidence == plane.WindowHandleEvidence && w.BoundsPx.Equals(plane.BoundsPx));
+            if (window is null) continue;
+            independent.Add(window.WindowEvidenceId);
+            var interval = screenshotPacket.CaptureInterval.Clone();
+            if (DateTimeOffset.TryParse(interval.EndedAtUtc, out var anchor) && DateTimeOffset.TryParse(plane.StartedAtUtc, out var start)
+                && DateTimeOffset.TryParse(plane.EndedAtUtc, out var end) && end >= start)
             {
-                X = Quantize(bounds.X - window.BoundsPx.X),
-                Y = Quantize(bounds.Y - window.BoundsPx.Y),
-                Width = Math.Max(4, Quantize(bounds.Width)),
-                Height = Math.Max(4, Quantize(bounds.Height)),
-            };
-            var evidenceId = "visual-text:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\u001f',
-                bundle.EpisodeId, phrase.ProviderId, bounds.X, bounds.Y, bounds.Width, bounds.Height, phrase.Text)))).ToLowerInvariant()[..24];
-            var ended = DateTimeOffset.TryParse(screenshotPacket.CaptureInterval.EndedAtUtc, out var parsed) ? parsed : published;
-            var observation = new Observation
+                var frequency = bundle.ClockMetadata.MonotonicFrequencyHz;
+                var anchorTicks = interval.EndedAtMonotonicTicks;
+                interval.StartedAtMonotonicTicks = anchorTicks + (long)((start - anchor).TotalSeconds * frequency);
+                interval.EndedAtMonotonicTicks = anchorTicks + (long)((end - anchor).TotalSeconds * frequency);
+                interval.EndedAtUtc = plane.EndedAtUtc;
+            }
+            await ReadImage(plane.Png, plane.BoundsPx, plane.BoundsPx.Width, plane.BoundsPx.Height, interval,
+                "window", bounds => Contains(window.BoundsPx, bounds) ? window : null).ConfigureAwait(false);
+        }
+        // A process-scoped census omits other applications even if its own traversal completed.
+        // Desktop OCR needs a complete z-order to attribute all the pixels in each word and phrase.
+        if (windows.Any(w => !independent.Contains(w.WindowEvidenceId)) && !census.WindowLimited &&
+            census.Health?.State == HealthState.Complete && census.WindowsObserved == census.Windows.Count &&
+            bundle.ObservationConsistency?.Status == "stable" && !screenshot.ImageBlob.IsEmpty && screenshot.WidthPx > 0 && screenshot.HeightPx > 0)
+        {
+            WindowObservationRecord? VisibleOwner(RectPx bounds)
             {
-                ObservationId = Guid.NewGuid().ToString("N"),
-                EpisodeId = bundle.EpisodeId,
-                FrameCandidateId = bundle.EpisodeId,
-                ObservationKind = ObservationKind.VisualTextObservation,
-                BoundsPx = bounds,
-                Role = "visual text",
-                ObservedName = phrase.Text,
-                Health = new Health { State = HealthState.Complete },
-                Confidence = new Confidence { State = ConfidenceState.Computed, Value = phrase.Confidence, Rationale = "Local Windows OCR direct visual-text observation" },
-                Freshness = new Freshness
-                {
-                    SourceInterval = screenshotPacket.CaptureInterval.Clone(),
-                    SkewFromAnchorMs = 0,
-                    AgeAtPublicationMs = Math.Max(0, (published - ended).TotalMilliseconds),
-                },
-                Lineage = new Lineage { SourcePacketIds = { screenshotPacket.PacketId } },
-                ParentEvidenceId = parent?.AccessibilityEvidenceId ?? window.WindowEvidenceId,
-                SourceEvidenceId = evidenceId,
-                WindowEvidenceId = window.WindowEvidenceId,
-                ProcessInstanceEvidence = window.ProcessInstanceEvidence,
-                SourceInterval = screenshotPacket.CaptureInterval.Clone(),
-            };
-            observation.Properties.Add(new StringProperty { Key = "providerId", Value = phrase.ProviderId });
-            observation.Properties.Add(new StringProperty { Key = "providerVersion", Value = phrase.ProviderVersion });
-            observation.Properties.Add(new StringProperty { Key = "visualTextAnchor", Value = $"{relative.X},{relative.Y},{relative.Width},{relative.Height}" });
-            observation.Properties.Add(new StringProperty { Key = "sourceMethod", Value = "local-ocr" });
-            observation.Properties.Add(new StringProperty { Key = "nonActionable", Value = bool.TrueString });
-            observation.Properties.Add(new StringProperty { Key = "originalText", Value = phrase.Text });
-            observation.Properties.Add(new StringProperty
-            {
-                Key = "windowScopeRef",
-                Value = $"{window.ProcessInstanceEvidence}|hwnd:{window.WindowHandleEvidence}|root:{window.RootOwnerHandleEvidence}|class:{window.ClassName}",
-            });
-            result.Add(observation);
+                if (screenshot.ProtectedOrMissingRegions.Any(r => Intersects(r.BoundsPx, bounds))) return null;
+                var overlapping = windows.Where(w => Intersects(w.BoundsPx, bounds)).OrderBy(w => w.ZOrder).ToArray();
+                return overlapping.FirstOrDefault() is { } front && Contains(front.BoundsPx, bounds) &&
+                    !independent.Contains(front.WindowEvidenceId) && (overlapping.Length == 1 || overlapping[1].ZOrder > front.ZOrder)
+                    ? front : null;
+            }
+            await ReadImage(screenshot.ImageBlob, bundle.DisplayDescriptor.BoundsPx, screenshot.WidthPx, screenshot.HeightPx,
+                screenshotPacket.CaptureInterval, "desktop", VisibleOwner).ConfigureAwait(false);
         }
         return result;
+
+        async Task ReadImage(Google.Protobuf.ByteString png, RectPx imageBounds, int width, int height,
+            CaptureInterval interval, string planeKind, Func<RectPx, WindowObservationRecord?> owner)
+        {
+            var hash = Convert.ToHexString(SHA256.HashData(png.Span)).ToLowerInvariant();
+            var words = await _ocrProvider.ReadAsync(png.ToByteArray(), cancellationToken).ConfigureAwait(false);
+            string Scope(GridOcrToken token)
+            {
+                var bounds = ToScreenBounds(token.Bounds, imageBounds, width, height);
+                var window = owner(bounds);
+                if (window is null) return string.Empty;
+                var element = accessibility.Where(node => node.WindowEvidenceId == window.WindowEvidenceId && Contains(node.BoundsPx, bounds))
+                    .MinBy(node => Area(node.BoundsPx));
+                return element?.AccessibilityEvidenceId ?? window.WindowEvidenceId;
+            }
+            foreach (var phrase in GroupWords(words, Scope))
+            {
+                var bounds = ToScreenBounds(phrase.Bounds, imageBounds, width, height);
+                var window = owner(bounds);
+                if (window is null || DuplicatesAccessibility(phrase.Text, bounds, accessibility, window.WindowEvidenceId)) continue;
+                var parent = accessibility
+                    .Where(node => node.WindowEvidenceId == window.WindowEvidenceId && Contains(node.BoundsPx, bounds))
+                    .OrderBy(node => Area(node.BoundsPx))
+                    .FirstOrDefault();
+                var relative = new RectPx
+                {
+                    X = Quantize(bounds.X - window.BoundsPx.X),
+                    Y = Quantize(bounds.Y - window.BoundsPx.Y),
+                    Width = Math.Max(4, Quantize(bounds.Width)),
+                    Height = Math.Max(4, Quantize(bounds.Height)),
+                };
+                var evidenceId = "visual-text:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\u001f',
+                    bundle.EpisodeId, window.WindowEvidenceId, hash, phrase.ProviderId, bounds.X, bounds.Y, bounds.Width, bounds.Height, phrase.Text)))).ToLowerInvariant()[..24];
+                var ended = DateTimeOffset.TryParse(interval.EndedAtUtc, out var parsed) ? parsed : published;
+                var observation = new Observation
+                {
+                    ObservationId = Guid.NewGuid().ToString("N"),
+                    EpisodeId = bundle.EpisodeId,
+                    FrameCandidateId = bundle.EpisodeId,
+                    ObservationKind = ObservationKind.VisualTextObservation,
+                    BoundsPx = bounds,
+                    Role = "visual text",
+                    ObservedName = phrase.Text,
+                    Health = new Health { State = HealthState.Complete },
+                    Confidence = new Confidence { State = ConfidenceState.Computed, Value = phrase.Confidence, Rationale = "Local Windows OCR direct visual-text observation" },
+                    Freshness = new Freshness
+                    {
+                        SourceInterval = interval.Clone(),
+                        SkewFromAnchorMs = 0,
+                        AgeAtPublicationMs = Math.Max(0, (published - ended).TotalMilliseconds),
+                    },
+                    Lineage = new Lineage { SourcePacketIds = { screenshotPacket.PacketId } },
+                    ParentEvidenceId = parent?.AccessibilityEvidenceId ?? window.WindowEvidenceId,
+                    SourceEvidenceId = evidenceId,
+                    WindowEvidenceId = window.WindowEvidenceId,
+                    ProcessInstanceEvidence = window.ProcessInstanceEvidence,
+                    SourceInterval = interval.Clone(),
+                };
+                observation.Properties.Add(new StringProperty { Key = "providerId", Value = phrase.ProviderId });
+                observation.Properties.Add(new StringProperty { Key = "providerVersion", Value = phrase.ProviderVersion });
+                observation.Properties.Add(new StringProperty { Key = "visualTextAnchor", Value = $"{relative.X},{relative.Y},{relative.Width},{relative.Height}" });
+                observation.Properties.Add(new StringProperty { Key = "sourceMethod", Value = "local-ocr" });
+                observation.Properties.Add(new StringProperty { Key = "nonActionable", Value = bool.TrueString });
+                observation.Properties.Add(new StringProperty { Key = "originalText", Value = phrase.Text });
+                observation.Properties.Add(new StringProperty
+                {
+                    Key = "windowScopeRef",
+                    Value = $"{window.ProcessInstanceEvidence}|hwnd:{window.WindowHandleEvidence}|root:{window.RootOwnerHandleEvidence}|class:{window.ClassName}",
+                });
+                observation.Properties.Add(new StringProperty { Key = "sourceImageKind", Value = planeKind });
+                observation.Properties.Add(new StringProperty { Key = "sourceImageSha256", Value = hash });
+                observation.Properties.Add(new StringProperty { Key = "sourceImageHwnd", Value = window.WindowHandleEvidence });
+                observation.Properties.Add(new StringProperty { Key = "sourceImageScreenBounds", Value = $"{imageBounds.X},{imageBounds.Y},{imageBounds.Width},{imageBounds.Height}" });
+                result.Add(observation);
+            }
+        }
     }
 
     internal static IReadOnlyList<VisualTextPhrase> GroupWords(
@@ -150,25 +189,8 @@ public sealed class VisualTextObservationProvider(IGridOcrProvider? ocrProvider 
         return result.OrderBy(phrase => CenterY(phrase.Bounds)).ThenBy(phrase => phrase.Bounds.X).ToList();
     }
 
-    private static string GroupingScope(
-        GridOcrToken token,
-        RectPx displayBounds,
-        int screenshotWidth,
-        int screenshotHeight,
-        IReadOnlyList<WindowObservationRecord> windows,
-        IReadOnlyList<AccessibilityNodeRecord> accessibility)
-    {
-        var bounds = ToScreenBounds(token.Bounds, displayBounds, screenshotWidth, screenshotHeight);
-        var window = windows.Where(candidate => Contains(candidate.BoundsPx, bounds))
-            .OrderBy(candidate => Area(candidate.BoundsPx))
-            .ThenBy(candidate => candidate.ZOrder)
-            .FirstOrDefault();
-        if (window is null) return "display";
-        var element = accessibility.Where(node => node.WindowEvidenceId == window.WindowEvidenceId && Contains(node.BoundsPx, bounds))
-            .OrderBy(node => Area(node.BoundsPx))
-            .FirstOrDefault();
-        return element is null ? "window:" + window.WindowEvidenceId : "element:" + element.AccessibilityEvidenceId;
-    }
+    private static bool Intersects(RectPx? a, RectPx b) => a is not null && a.X < b.X + (long)b.Width &&
+        b.X < a.X + (long)a.Width && a.Y < b.Y + (long)b.Height && b.Y < a.Y + (long)a.Height;
 
     private static VisualTextPhrase Phrase(IReadOnlyList<GridOcrToken> words)
     {

@@ -7,6 +7,7 @@
     <AssemblyName>UIMaps.Recorder.ProviderProbe</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Interop.UIAutomationClient" />
     <ProjectReference Include="../UIMaps.Recorder.Windows/UIMaps.Recorder.Windows.csproj" />
   </ItemGroup>
   <Target Name="GetNativeRecorderDeploymentFiles" DependsOnTargets="GetTargetPath" Returns="@(_NativeRecorderDeploymentFiles)">

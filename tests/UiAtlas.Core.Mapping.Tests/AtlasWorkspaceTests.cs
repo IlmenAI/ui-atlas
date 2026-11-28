@@ -426,6 +426,75 @@ public sealed class AtlasWorkspaceTests : IDisposable
         Assert.Throws<InvalidDataException>(() => AtlasMapWorkspace.Open(Map));
         Assert.False(File.Exists(database));
     }
+
+    [Theory]
+    [InlineData(false, RecordedPointerButton.Unknown, MapInteractionKind.Unspecified)]
+    [InlineData(true, RecordedPointerButton.Primary, MapInteractionKind.MapInteractionPointerPrimary)]
+    [InlineData(false, RecordedPointerButton.Secondary, MapInteractionKind.MapInteractionPointerSecondary)]
+    public async Task RecordedReleaseResolvesOnlyThePreActionNativeProvider(bool staleSource, RecordedPointerButton button, MapInteractionKind expectedKind)
+    {
+        var initial = await Record();
+        var amended = Path.Combine(_root, "native-click.mlrec");
+        DateTimeOffset clickTime;
+        const string sourceEntry = "raw/observations/frame-000001.json";
+        using (var bundle = UiAtlas.Core.Recording.RecordingBundle.Open(initial))
+        using (var writer = new UiAtlas.Core.Recording.RecordingBundleWriter(Path.Combine(_root, "native-staging")))
+        {
+            foreach (var entry in bundle.Entries.Where(entry => entry is not ("manifest.json" or "hashes.sha256" or sourceEntry or "raw/input-events.jsonl" or "raw/interactions.jsonl")))
+                writer.WriteBytes(entry, bundle.ReadBytes(entry));
+            var manifest = bundle.ReadJson<RecordingManifest>("manifest.json");
+            var frame = bundle.ReadJson<FrameObservation>(sourceEntry);
+            var episode = AtlasEpisodeAdapter.Convert(bundle, manifest, frame);
+            var target = new UiAtlas.Core.Recording.Windows.WindowTarget(frame.Window.Hwnd, frame.Window.RootOwnerHwnd,
+                frame.Window.ProcessId, manifest.Target.ProcessName, manifest.Target.ProcessStartedUtc,
+                frame.Window.Title, frame.Window.ClassName, frame.Window.Bounds);
+            var native = UiAtlas.Core.Recording.Windows.NativeRecorderCapture.Project(episode, target, 1, "initial", new());
+            writer.WriteBytes(native.NativeEpisodeEntry!, episode.ToByteArray());
+            writer.WriteJson(sourceEntry, frame with { NativeEpisodeEntry = native.NativeEpisodeEntry,
+                RawStreams = native.RawStreams, Automation = native.Automation });
+            var selected = native.Automation.Single(control => control.AutomationId == "primary");
+            var clicked = new InputEvent(1, frame.TimestampUtc.AddSeconds(1), InputEventKind.PointerUp,
+                selected.Bounds.X + 1, selected.Bounds.Y + 1, 0, Button: button);
+            clickTime = clicked.TimestampUtc;
+            var action = new InteractionObservation("click-1", "click", 1, 1, InteractionActor.User, InteractionGestureKind.Click,
+                InteractionActionKind.Invoke, 1, staleSource ? selected with { ProviderId = "unrelated-provider" } : selected,
+                [1], [2], clicked.TimestampUtc.AddMilliseconds(-500), clicked.TimestampUtc.AddSeconds(1), InteractionOutcome.Succeeded);
+            var json = new System.Text.Json.JsonSerializerOptions(UiAtlas.Core.Recording.JsonDefaults.Options) { WriteIndented = false };
+            writer.WriteText("raw/input-events.jsonl", System.Text.Json.JsonSerializer.Serialize(clicked, json) + "\n");
+            writer.WriteText("raw/interactions.jsonl", System.Text.Json.JsonSerializer.Serialize(action, json) + "\n");
+            writer.WriteJson("manifest.json", manifest with { Files = writer.DescribeEntries() });
+            writer.Complete(amended);
+        }
+        await AtlasMapWorkspace.BuildAsync([amended], Map);
+        var workspace = AtlasMapWorkspace.Open(Map);
+        var draft = Assert.Single(workspace.Drafts);
+        var observed = Assert.Single(draft.Interactions);
+        Assert.Equal(clickTime.ToString("O"), observed.OccurredAt);
+        Assert.Equal(expectedKind, observed.Kind);
+        var graph = workspace.Project();
+        var steps = new UiMappingReadModel(graph).InteractionSteps;
+        if (staleSource)
+        {
+            Assert.Empty(observed.SourceWorldObjectRef);
+            Assert.Empty(observed.SourceMapEntityRef);
+            Assert.Empty(steps);
+        }
+        else
+        {
+            Assert.NotEmpty(observed.SourceWorldObjectRef);
+            Assert.Contains(draft.Entities, item => item.MapEntityRef == observed.SourceMapEntityRef &&
+                item.DisplayName == "Primary action");
+            var step = Assert.Single(steps);
+            Assert.Contains(graph.Nodes.Single(n => n.Id == observed.SourceMapEntityRef).Properties,
+                p => p.Name == "sourceRawControlId" && p.Value == step.SourceControlId);
+            Assert.Equal(1L, step.SourceFrameSequence);
+            Assert.Contains(2L, step.ResultFrameSequences);
+            workspace.Review(Command(draft, ReviewCommandKind.ReviewAcceptAllBlocking));
+            var revision = Assert.Single(workspace.Publish("reviewer"));
+            var published = new UiMappingReadModel(AtlasMapProjection.ForRevision(workspace, revision, default));
+            Assert.Equal(step.SourceControlId, Assert.Single(published.InteractionSteps).SourceControlId);
+        }
+    }
     [Fact]
     public async Task WorkspaceArchiveRoundTripsEvidenceReviewAndProjectionWithoutReplacingDestination()
     {

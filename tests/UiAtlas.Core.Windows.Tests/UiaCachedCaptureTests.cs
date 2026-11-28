@@ -7,6 +7,13 @@ namespace UiAtlas.Core.Windows.Tests;
 
 public sealed class UiaCachedCaptureTests
 {
+    [Theory]
+    [InlineData(50031, "ControlType.SplitButton")]
+    [InlineData(50003, "ControlType.ComboBox")]
+    [InlineData(50000, "ControlType.Button")]
+    public void NativeControlTypeIdsKeepTheirProgrammaticNames(int id, string name) =>
+        Assert.Equal(name, UiaCachedCapture.NativeControlTypeName(id));
+
     [Fact]
     public void PeriodicCensusRetainsCachedCapabilitiesWithoutLiveLegacyOrValueQueries()
     {
@@ -322,6 +329,8 @@ public sealed class UiaCachedCaptureTests
             [ValuePattern.IsReadOnlyProperty] = AutomationElement.NotSupported,
             [RangeValuePattern.IsReadOnlyProperty] = AutomationElement.NotSupported,
             [AutomationElement.HasKeyboardFocusProperty] = false,
+            [AutomationElement.IsContentElementProperty] = true,
+            [AutomationElement.IsControlElementProperty] = true,
             [AutomationElement.AutomationIdProperty] = "fixture-id",
             [AutomationElement.ControlTypeProperty] = ControlType.Edit,
             [AutomationElement.LocalizedControlTypeProperty] = "edit",

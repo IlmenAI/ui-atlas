@@ -3,7 +3,7 @@ using UiAtlas.Core.Recording;
 
 namespace UiAtlas.Core.Cli;
 
-internal enum MapperHighlightKind { Uia, ComputerVision, NativeGrid, GridCandidate, Fields }
+internal enum MapperHighlightKind { Uia, Msaa, ComputerVision, NativeGrid, GridCandidate, Fields }
 
 internal sealed record MapperHighlight(
     string Id, RectI Bounds, MapperHighlightKind Kind, string Name, string Source,
@@ -12,7 +12,8 @@ internal sealed record MapperHighlight(
     public bool IsGrid => Kind is MapperHighlightKind.NativeGrid or MapperHighlightKind.GridCandidate;
     public string Color => Kind switch
     {
-        MapperHighlightKind.Uia => "#0A84FF",
+        MapperHighlightKind.Uia => "#4F7EF7",
+        MapperHighlightKind.Msaa => "#2DCE91",
         MapperHighlightKind.ComputerVision => "#8B5CF6",
         MapperHighlightKind.NativeGrid => "#008F83",
         MapperHighlightKind.Fields => "#0A84FF",
@@ -82,7 +83,29 @@ internal static class MapperHighlightModel
         var providers = (frame.RawStreams ?? []).SelectMany(stream => stream.Controls
             .Select(control => (Key: (control.WindowHwnd, control.RuntimeId), stream.Source)))
             .GroupBy(item => item.Key).ToDictionary(group => group.Key, group => group.First().Source);
-        return frame.Automation.Where(control => control.WindowHwnd == hwnd ||
+        var popup = frame.ScopedWindows?.FirstOrDefault(w => w.Hwnd == hwnd && w.IsVisible &&
+            !w.IsMinimized && !w.IsCloaked && w.OwnerHwnd != 0 && (w.Style & 0x00C40000) == 0 &&
+            (w.IsToolWindow || (w.Style & 0x80000000) != 0));
+        // Some providers attach open menu commands to their menu-bar item under the owner HWND.
+        var ownerRows = new HashSet<AutomationObservation>();
+        if (popup is not null)
+        {
+            var ownerControls = frame.Automation.Where(c => c.WindowHwnd == popup.OwnerHwnd ||
+                c.WindowHwnd == popup.RootOwnerHwnd && c.WindowHwnd != hwnd).ToArray();
+            var parents = ownerControls.Where(c => c.RuntimeId.Length > 0)
+                .ToLookup(c => (c.WindowHwnd, c.RuntimeId));
+            foreach (var row in AutomationObservationVisibility.FilterEffectivelyVisible(ownerControls))
+                if ((Type(row) == "MenuItem" || Type(row) is "" or "Unknown" or "Pane" or "Custom" &&
+                     !string.IsNullOrWhiteSpace(row.Name) && row.Bounds.Width >= popup.Bounds.Width * .75 &&
+                     row.Bounds.Width >= 2L * row.Bounds.Height && row.Bounds.Height < popup.Bounds.Height &&
+                     frame.ScopedWindows!.Count(other => other.IsVisible && !other.IsCloaked && !other.IsMinimized &&
+                         other.OwnerHwnd != 0 && other.ProcessId == popup.ProcessId && (other.Style & 0x00C40000) == 0 &&
+                         (other.IsToolWindow || (other.Style & 0x80000000) != 0) && Contains(other.Bounds, row.Bounds)) == 1) &&
+                    Contains(popup.Bounds, row.Bounds) &&
+                    parents[(row.WindowHwnd, row.ParentRuntimeId)].Any(p => Type(p) is "MenuItem" or "Menu"))
+                    ownerRows.Add(row);
+        }
+        return frame.Automation.Where(control => ownerRows.Contains(control) || control.WindowHwnd == hwnd ||
                 control.WindowHwnd == 0 && hwnd == frame.Window.Hwnd ||
                 control.WindowHwnd != 0 && isLiveChildOfSurface?.Invoke(control.WindowHwnd) == true)
             .Select(control => providers.TryGetValue((control.WindowHwnd, control.RuntimeId), out var provider)
@@ -95,7 +118,7 @@ internal static class MapperHighlightModel
     }
 
     internal static bool IsMsaa(AutomationObservation control) =>
-        control.FrameworkId == "UiAtlas.Msaa" || control.RuntimeId.StartsWith("msaa:", StringComparison.OrdinalIgnoreCase);
+        control.ProviderId == "msaa" || control.FrameworkId == "UiAtlas.Msaa" || control.RuntimeId.StartsWith("msaa:", StringComparison.OrdinalIgnoreCase);
 
     internal static bool IsVisual(AutomationObservation control) =>
         control.FrameworkId.StartsWith("UiAtlas.Visual", StringComparison.OrdinalIgnoreCase) ||
@@ -109,8 +132,8 @@ internal static class MapperHighlightModel
         var byIdentity = controls.Where(c => !string.IsNullOrWhiteSpace(c.RuntimeId))
             .GroupBy(c => (c.WindowHwnd, c.RuntimeId)).ToDictionary(group => group.Key, group => group.First());
         var eligible = controls.Where(c => IsVisual(c) || visibleNative.Contains((c.WindowHwnd, c.RuntimeId)))
-            .Select(c => (Control: c, Bounds: VisibleBounds(c, byIdentity)))
-            .Where(item => item.Bounds is { Width: > 0, Height: > 0 } && Contains(surface, item.Bounds)).ToArray();
+            .Select(c => (Control: c, Bounds: RawObservationSemantics.Intersection(surface, VisibleBounds(c, byIdentity))))
+            .Where(item => item.Bounds is { Width: > 0, Height: > 0 }).ToArray();
         var grids = eligible.Select(item => ClassifyGrid(item.Control, item.Bounds!)).OfType<MapperHighlight>()
             .Concat((visualGrids ?? []).Where(g => Contains(surface, g.Bounds)))
             .OrderBy(g => g.Kind == MapperHighlightKind.NativeGrid ? 0 :
@@ -131,12 +154,12 @@ internal static class MapperHighlightModel
             .Where(item => IsVisual(item.Control) || IsAccessibility(item.Control))
             .Where(item => Area(item.Bounds!) < Area(surface) / 3)
             .Select(item => new MapperHighlight(item.Control.RuntimeId, item.Bounds!,
-                IsVisual(item.Control) ? MapperHighlightKind.ComputerVision : MapperHighlightKind.Uia,
+                IsVisual(item.Control) ? MapperHighlightKind.ComputerVision : IsMsaa(item.Control) ? MapperHighlightKind.Msaa : MapperHighlightKind.Uia,
                 DisplayName(item.Control), IsVisual(item.Control) ? "Computer vision" : IsMsaa(item.Control) ? "MSAA" : "UI Automation", item.Control))
-            .OrderBy(c => c.Kind).ToArray();
-        foreach (var control in ordinary)
-            if (!distinct.Any(c => Equivalent(c.Bounds, control.Bounds))) distinct.Add(control);
-        return distinct.Take(500).ToArray();
+            .DistinctBy(c => (c.Kind, c.Name, c.Bounds))
+            .OrderBy(c => c.Kind);
+        distinct.AddRange(ordinary.ToArray());
+        return distinct;
     }
 
     private static bool IsOrdinaryControl(AutomationObservation control,
@@ -147,7 +170,7 @@ internal static class MapperHighlightModel
             "TabItem" or "MenuItem" or "ListItem" or "Slider" or "Hyperlink" or "SplitButton") return true;
         // Legacy providers often expose real buttons as named Pane/Custom leaves (e.g. Delphi).
         // Preserve their UIA evidence without outlining the surrounding layout containers.
-        return IsAccessibility(control) && Type(control) is ("Pane" or "Custom" or "Group" or "Text") &&
+        return IsAccessibility(control) && Type(control) is ("" or "Unknown" or "Pane" or "Custom" or "Group" or "Text") &&
             !string.IsNullOrWhiteSpace(control.Name) &&
             !parents.Contains((control.WindowHwnd, control.RuntimeId));
     }
@@ -197,7 +220,7 @@ internal static class MapperHighlightModel
     }
 
     private static bool IsUia(AutomationObservation c) =>
-        !IsVisual(c) && !c.FrameworkId.StartsWith("UiAtlas.", StringComparison.OrdinalIgnoreCase) &&
+        !IsMsaa(c) && !IsVisual(c) && !c.FrameworkId.StartsWith("UiAtlas.", StringComparison.OrdinalIgnoreCase) &&
         !c.RuntimeId.StartsWith("win32:", StringComparison.OrdinalIgnoreCase) &&
         !c.RuntimeId.StartsWith("msaa:", StringComparison.OrdinalIgnoreCase);
 

@@ -293,8 +293,7 @@ public sealed class LiveMappingTests
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(100));
         try
         {
-            await Invoke("AtlasRecorderStart");
-            await Invoke("AtlasRecorderModeManual");
+            // A MapLock handoff starts an attended manual recording immediately.
             while (!output.Any(line => line.Contains("Recording ready. Engine: UIMaps native", StringComparison.Ordinal)))
             {
                 Assert.False(process.HasExited, string.Join("\n", output) + "\n" + (process.HasExited ? await errors : ""));

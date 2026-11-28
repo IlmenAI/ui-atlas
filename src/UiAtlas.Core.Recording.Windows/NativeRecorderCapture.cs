@@ -57,7 +57,7 @@ public sealed partial class NativeRecorderCapture
         var screen = new GuardedScreen(new IsolatedScreenCaptureProvider(runner), screenshotGuard);
         var topology = new TargetTopology(new IsolatedWindowTopologyProvider(runner), target);
         var service = new EpisodeCaptureService(new TargetDisplayCatalog(display), screen,
-            topology, new IsolatedAccessibilityProbe(runner), new SystemRecorderClock());
+            topology, new IsolatedAccessibilityProbe(runner, useNativeUia: true), new SystemRecorderClock());
         var episode = await service.CaptureAsync(display.DisplayId, request, effective, cancellationToken,
             stage => progress?.Invoke(stage.Pass == "visual_topology" ? "Capturing the application..." : "Reading the application structure...")).ConfigureAwait(false);
         if (!episode.SensorPackets.Any(packet => packet.Screenshot?.ImageBlob.Length > 0))
@@ -131,8 +131,18 @@ public sealed partial class NativeRecorderCapture
     {
         var started = DateTimeOffset.Parse(episode.StartedAtUtc, System.Globalization.CultureInfo.InvariantCulture);
         var ended = DateTimeOffset.Parse(episode.EndedAtUtc, System.Globalization.CultureInfo.InvariantCulture);
-        var windows = episode.SensorPackets.SelectMany(packet => packet.WindowTopology?.Windows ?? []).ToArray();
-        var byId = windows.ToDictionary(window => window.WindowEvidenceId, StringComparer.Ordinal);
+        var nativeWindows = episode.SensorPackets.SelectMany(packet => packet.WindowTopology?.Windows ?? []).ToArray();
+        var byId = nativeWindows.ToDictionary(window => window.WindowEvidenceId, StringComparer.Ordinal);
+        var scopeTruncated = nativeWindows.Length > RecordingContractLimits.MaxScopedWindows;
+        var presented = scopeTruncated
+            ? nativeWindows.OrderByDescending(window => Handle(window.WindowHandleEvidence) == target.Hwnd)
+                .ThenByDescending(window => Handle(window.WindowHandleEvidence) == target.RootOwnerHwnd)
+                .ThenByDescending(window => window.IsForeground || window.IsActive)
+                .ThenByDescending(window => window.IsVisible && !window.IsMinimized && !window.IsCloakedOrUnavailable)
+                .ThenBy(window => window.ZOrder).Take(RecordingContractLimits.MaxScopedWindows)
+            : nativeWindows.AsEnumerable();
+        var presentedHandles = presented.Select(window => window.WindowHandleEvidence).ToHashSet(StringComparer.Ordinal);
+        var windows = nativeWindows.Where(window => presentedHandles.Contains(window.WindowHandleEvidence));
         var observations = windows.Select(window => new WindowObservation(Handle(window.WindowHandleEvidence),
             Handle(window.RootOwnerHandleEvidence), checked((int)window.ProcessId), Text(window.ClassName, 512), Text(window.Title, 4096),
             Rect(window.BoundsPx), window.IsVisible, !window.HasIsEnabled || window.IsEnabled, window.IsMinimized, window.IsCloakedOrUnavailable,
@@ -175,6 +185,7 @@ public sealed partial class NativeRecorderCapture
                     DateTimeOffset from, DateTimeOffset to, string? attemptStatus = null)
                 {
                     byId.TryGetValue(windowId, out var owner);
+                    if (owner is not null && !presentedHandles.Contains(owner.WindowHandleEvidence)) return;
                     var controls = response.Nodes.Select(node => ProjectControl(node,
                         owner is null ? null : Handle(owner.WindowHandleEvidence))).ToArray();
                     streams.Add(new(attemptId + ":" + provider + ":" + windowId, provider, from, to,
@@ -187,14 +198,16 @@ public sealed partial class NativeRecorderCapture
                 streams.Add(new(packet.PacketId, "screenshot", packetStart, packetEnd, Status(packet.Health), [],
                     ScreenshotEntry: frameEntry, EvidenceKind: "pixels", ImageBounds: Rect(screenshot.Display.BoundsPx)));
             else if (packet.WindowTopology is { })
-                streams.Add(new(packet.PacketId, "native-window-topology", packetStart, packetEnd, Status(packet.Health), [],
-                    observations.Length, Windows: observations, EvidenceKind: "native-windows"));
+                streams.Add(new(packet.PacketId, "native-window-topology", packetStart, packetEnd,
+                    scopeTruncated ? "partial" : Status(packet.Health), [], nativeWindows.Length,
+                    Truncated: scopeTruncated, Windows: observations, EvidenceKind: "native-windows"));
         }
         var allControls = streams.SelectMany(stream => stream.Controls).ToArray();
         var stability = episode.ObservationConsistency?.Status ?? "unverified";
-        var status = stability == "changed" ? "interrupted" : stability != "stable" || episode.Health.State != HealthState.Complete
+        var status = stability == "changed" ? "interrupted" : scopeTruncated || stability != "stable" || episode.Health.State != HealthState.Complete
             ? "partial" : "ok";
-        var images = episode.WindowImages.Select(image => new WindowImageObservation(Handle(image.WindowHandleEvidence),
+        var images = episode.WindowImages.Where(image => presentedHandles.Contains(image.WindowHandleEvidence))
+            .Select(image => new WindowImageObservation(Handle(image.WindowHandleEvidence),
             Rect(image.BoundsPx), image.Png.IsEmpty ? null : $"raw/frames/frame-{sequence:D6}-window-{Handle(image.WindowHandleEvidence):X}.png",
             DateTimeOffset.Parse(image.StartedAtUtc), DateTimeOffset.Parse(image.EndedAtUtc), image.Method, image.Status)).ToArray();
         return new(sequence, ended, frameEntry, selected, allControls,
@@ -216,7 +229,7 @@ public sealed partial class NativeRecorderCapture
             node.ControlType is "RadioButton" or "ControlType.RadioButton";
         return new(node.AccessibilityEvidenceId, node.ParentEvidenceId,
             Text(node.AutomationId, 512), Text(node.Name, 4096),
-            Text(node.ControlType.StartsWith("ControlType.", StringComparison.Ordinal)
+            Text(node.ControlType.Length == 0 || node.ControlType.StartsWith("ControlType.", StringComparison.Ordinal)
                 ? node.ControlType : "ControlType." + node.ControlType, 512),
             Text(node.ClassName, 512), Rect(node.BoundsPx), node.IsEnabled, node.IsOffscreen, "",
             WindowHwnd: windowHwnd ?? 0, SupportedPatterns: node.SupportedPatterns.ToArray(),

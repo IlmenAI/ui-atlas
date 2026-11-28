@@ -633,7 +633,6 @@ internal static class Program
             catalog.EnsureSafe();
             var graph = await AtlasMapWorkspace.BuildAsync(recordingPaths, catalog.MapPath(args[1]), args[1]).ConfigureAwait(false);
             catalog.EnsureSafe();
-            AtlasMapWorkspace.SaveProjection(graph, catalog.MapPath(args[1]));
             foreach (var sourcePath in recordingPaths)
             {
                 using var bundle = RecordingBundle.Open(sourcePath);
@@ -1177,9 +1176,8 @@ internal static class Program
                     var graph = await AtlasMapWorkspace.BuildAsync(mergedRecordingPaths, workspace.MapPath,
                         workspace.LogicalMapId, gridReviews: workspace.DataGrids).ConfigureAwait(false);
                     beforeStart?.Invoke();
-                    panel.SetStatus("Saving the updated map. Almost done—keep UiAtlas open.");
-                    Console.WriteLine("Saving the updated map...");
-                    AtlasMapWorkspace.SaveProjection(graph, workspace.MapPath);
+                    panel.SetStatus("Checking the updated map. Almost done—keep UiAtlas open.");
+                    Console.WriteLine("Checking the updated map...");
                     var qualityReport = MapQualityInspector.Inspect(graph, mergedRecordingPaths, workspace.DataGrids);
                     try
                     {
@@ -2032,9 +2030,9 @@ internal static class Program
                     clickCaptureOutcome = session.FullRawObservations
                         ? await overlay.RunHiddenAsync(() => adaptive.CaptureClickAsync(
                             clickPoint, captureCheckpoint, cancellation.Token,
-                            recordedClick.WindowFromPointHwnd, dialogCheckpoint), cancellation.Token).ConfigureAwait(false)
+                            recordedClick.WindowFromPointHwnd, dialogCheckpoint, recordedClick.Button), cancellation.Token).ConfigureAwait(false)
                         : await adaptive.CaptureClickAsync(clickPoint, captureCheckpoint, cancellation.Token,
-                            recordedClick.WindowFromPointHwnd, dialogCheckpoint).ConfigureAwait(false);
+                            recordedClick.WindowFromPointHwnd, dialogCheckpoint, recordedClick.Button).ConfigureAwait(false);
                     if (session.FullRawObservations) manualClickCursorUtc = DateTimeOffset.UtcNow;
                     await immediateVisualFeedback.ConfigureAwait(false);
                     var highlightControl = adaptive.LastManualHighlightControl;
@@ -2082,7 +2080,14 @@ internal static class Program
                         session.CompleteInteraction(
                             pendingInteraction with
                             {
-                                Action = ResolveInteractionAction(highlightControl),
+                                Gesture = recordedClick.Button switch
+                                {
+                                    RecordedPointerButton.Secondary => InteractionGestureKind.RightClick,
+                                    RecordedPointerButton.Middle => InteractionGestureKind.MiddleClick,
+                                    _ => pendingInteraction.Gesture
+                                },
+                                Action = recordedClick.Button == RecordedPointerButton.Secondary
+                                    ? InteractionActionKind.Unknown : ResolveInteractionAction(highlightControl),
                                 SourceFrameSequence = interactionSourceFrameSequence
                             },
                             interactionOutcome,

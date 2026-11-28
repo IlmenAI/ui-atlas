@@ -42,6 +42,7 @@ foreach ($projectFile in $foundationProjects) {
         }
     }
     foreach ($package in $project.SelectNodes('//PackageReference')) {
+        if ($projectFile.Name -eq 'UIMaps.Recorder.ProviderProbe.csproj' -and $package.Include -eq 'Interop.UIAutomationClient') { continue }
         if ($package.Include -notin @('Google.Protobuf', 'Grpc.Tools', 'Microsoft.Data.Sqlite', 'System.Drawing.Common')) {
             throw "Unreviewed mapping foundation dependency: $($package.Include)"
         }

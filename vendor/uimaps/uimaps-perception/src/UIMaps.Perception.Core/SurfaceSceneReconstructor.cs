@@ -9,7 +9,7 @@ namespace UIMaps.Perception.Core;
 /// History is used only to recognize stable ownership; it never supplies missing scene content.</summary>
 public sealed class SurfaceSceneReconstructor
 {
-    public const string Version = "surface-scene/3";
+    public const string Version = "surface-scene/5";
     private Dictionary<string, List<RectPx>> _previous = new(StringComparer.Ordinal);
     private HashSet<string> _previousSurfaces = new(StringComparer.Ordinal);
     private (string Process, string Handle, string Key, string Episode)? _foreground;
@@ -67,6 +67,14 @@ public sealed class SurfaceSceneReconstructor
             }
         }
         var controls = objects.Where(value => value.ObjectKind is WorldObjectKind.AccessibilityElement or WorldObjectKind.VisualText).ToArray();
+        // A virtual menu row may be reported as an untyped UIA node or an MSAA client pane.
+        // Use the provider's actual menu opener and full-width row geometry inside a unique popup.
+        static bool GenericMenuRow(WorldObject row, WorldObject popup) =>
+            row.ObjectKind == WorldObjectKind.AccessibilityElement && !string.IsNullOrWhiteSpace(row.Name) &&
+            Property(row, "controlType") is "" or "ControlType." or "Unknown" or "Custom" or "ControlType.Custom" or "Pane" or "ControlType.Pane" &&
+            Valid(row.BoundsPx) && row.BoundsPx.Width >= popup.BoundsPx.Width * .75 &&
+            row.BoundsPx.Width >= row.BoundsPx.Height * 2L && row.BoundsPx.Height < popup.BoundsPx.Height &&
+            Contains(popup.BoundsPx, row.BoundsPx, 2);
         foreach (var control in controls)
         {
             // Old retained publications can be reconstructed with the same algorithm.
@@ -106,18 +114,25 @@ public sealed class SurfaceSceneReconstructor
                     Contains(window.BoundsPx, root.BoundsPx, 2) && Contains(root.BoundsPx, window.BoundsPx, 2))).ToArray();
             var hidden = ancestry.Any(value => Property(value, "isOffscreen").Equals("True", StringComparison.OrdinalIgnoreCase));
             Set(control, "sceneOffscreen", hidden.ToString());
-            if (reported is not null && owner == reported && popupRoots.Length > 0)
+            // Menu-bar providers can expose a popup row directly beneath its opener without a Menu node.
+            var ownerMenuRow = !hidden && IsMenuItem(control) && ancestry.Skip(1).Any(IsMenuItem);
+            var genericMenuChild = !hidden && ancestry.Length > 1 && IsMenuItem(ancestry[1]);
+            if (reported is not null && owner == reported && (popupRoots.Length > 0 || ownerMenuRow || genericMenuChild))
             {
                 var candidates = windows.Where(window => IsPopup(window) && IsVisible(window) &&
                     SameProcess(reported, window) && CompatibleOwner(reported, window) &&
-                    popupRoots.Any(root => Contains(window.BoundsPx, root.BoundsPx, 4) ||
-                        Contains(window.BoundsPx, control.BoundsPx, 2) && Intersect(root.BoundsPx, window.BoundsPx) is not null))
+                    ((ownerMenuRow || genericMenuChild && GenericMenuRow(control, window)) && Property(window, "surfaceClass") == "RawPopupWindow" &&
+                        window != reported && Contains(window.BoundsPx, control.BoundsPx, 2) ||
+                     popupRoots.Any(root => Contains(window.BoundsPx, root.BoundsPx, 4) ||
+                        Contains(window.BoundsPx, control.BoundsPx, 2) && Intersect(root.BoundsPx, window.BoundsPx) is not null)))
                     .OrderBy(window => Area(window.BoundsPx)).ToArray();
                 // Equal geometric candidates are ambiguous. Never use enumeration order as ownership.
                 if (candidates.Length > 0 && candidates[0].WorldObjectId != reported.WorldObjectId &&
-                    (candidates.Length == 1 || Area(candidates[0].BoundsPx) < Area(candidates[1].BoundsPx)))
+                    (candidates.Length == 1 || (ownerMenuRow || popupRoots.Length > 0) && Area(candidates[0].BoundsPx) < Area(candidates[1].BoundsPx)))
                 {
                     var popup = candidates[0];
+                    if (genericMenuChild && !ownerMenuRow && GenericMenuRow(control, popup))
+                        Set(control, "sceneInferredRole", "MenuItem");
                     var key = ContinuityKey(control, reported);
                     var stable = key is not null && _previous.TryGetValue(key, out var earlier) && earlier.Any(bounds => Continuous(bounds, control.BoundsPx));
                     if (stable)
@@ -213,6 +228,18 @@ public sealed class SurfaceSceneReconstructor
                 var namedRoot = members.Where(IsPopupBoundary).Where(control => !string.IsNullOrWhiteSpace(control.Name))
                     .OrderBy(control => Math.Abs(Area(control.BoundsPx) - Area(window.BoundsPx))).FirstOrDefault();
                 if (string.IsNullOrWhiteSpace(window.Name) && namedRoot is not null) window.Name = namedRoot.Name;
+                var menuRows = members.Where(c => IsMenuItem(c) || Property(c, "sceneInferredRole") == "MenuItem").Where(c => !string.IsNullOrWhiteSpace(c.Name) &&
+                    Property(c, "sceneOffscreen") != "True" && Contains(window.BoundsPx, c.BoundsPx, 2)).ToArray();
+                if (menuRows.Length > 0 && Property(window, "surfaceClass") == "RawPopupWindow")
+                {
+                    var openerNames = menuRows.Select(row => byId.GetValueOrDefault(originalParents[row.WorldObjectId]))
+                        .Where(p => p is not null && IsMenuItem(p) && ownerById.GetValueOrDefault(p.WorldObjectId) != window)
+                        .Select(p => p!.Name).Where(n => n.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
+                    if (openerNames is [var opener] && string.IsNullOrWhiteSpace(native?.Title)) window.Name = opener;
+                    if (string.IsNullOrWhiteSpace(window.Name)) window.Name = "Context menu";
+                    var commands = menuRows.Select(c => c.Name.Trim()).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
+                    Set(window, "menuCommandSignature", Hash(string.Join("\n", commands)));
+                }
             }
             if (IsPopup(window) && (window.ProcessInstanceEvidence.Length == 0 || Property(window, "windowHandleEvidence").Length == 0))
                 key += "|observation:" + bundle.EpisodeId + "|" + window.WorldObjectId;
@@ -272,6 +299,7 @@ public sealed class SurfaceSceneReconstructor
         return nativeOwner.Length == 0 || nativeOwner == Property(owner, "windowHandleEvidence") ||
             Property(popup, "rootOwnerWindowHandleEvidence") == Property(owner, "windowHandleEvidence");
     }
+    private static bool IsMenuItem(WorldObject value) => Property(value, "controlType") is "MenuItem" or "ControlType.MenuItem";
     private static bool IsPopupBoundary(WorldObject value)
     {
         var cls = Property(value, "className").Replace(" ", "").ToLowerInvariant();

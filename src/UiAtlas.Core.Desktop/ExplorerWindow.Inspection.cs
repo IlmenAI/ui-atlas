@@ -36,27 +36,53 @@ public sealed partial class ExplorerWindow
 
     private bool InspectingWorld => _inspectionLevel is UiUnderstandingLevel.RawWorld or UiUnderstandingLevel.SemanticWorld;
 
-    private string? SurfaceExclusion(UiMapVariantView variant)
+    private SurfacePreviewEvidence PreviewEvidence(UiMapVariantView variant)
     {
-        if (_evidence is null) return SurfaceFrameVisibility.Unknown;
-        try { return _evidence.SurfaceExclusion(variant); }
+        try { return _evidence?.SurfacePreview(variant) ?? SurfacePreviewEvidence.Unavailable; }
         catch (Exception ex) when (ex is System.IO.IOException or System.IO.InvalidDataException or System.Text.Json.JsonException)
-        { return SurfaceFrameVisibility.Unknown; }
+        { return SurfacePreviewEvidence.Unavailable; }
+    }
+
+    private bool BrowseSurface(UiMapSurfaceView surface)
+    {
+        if (_includeLimitedFrames.IsChecked == true || _evidence is null || surface.Level == UiUnderstandingLevel.RawDataStreams ||
+            !(surface.SurfaceKind.Contains("Popup", StringComparison.OrdinalIgnoreCase) ||
+              surface.SurfaceKind.Contains("Tooltip", StringComparison.OrdinalIgnoreCase))) return true;
+        var controls = _model!.LayerFor(surface.Level).ControlsForSurface(surface.Id);
+        return surface.Variants.Any(v =>
+        {
+            var image = PreviewEvidence(v);
+            return image.HasWindowImage || image.CanMaskComposite || image.DesktopExclusion is null ||
+                controls.Any(c => SurfaceFrameVisibility.ObservedControl(c, v) && ControlGeometry.IsRenderable(c.Bounds) && c.Bounds != v.Evidence?.Bounds);
+        });
     }
 
     private IReadOnlyList<UiInspectionFrameGroup> PreviewGroups(IReadOnlyList<UiMapVariantView> variants, UiUnderstandingLevel level)
     {
         var groups = UiInspectionPresentation.FrameGroups(variants);
         if (level is not (UiUnderstandingLevel.RawWorld or UiUnderstandingLevel.SemanticWorld)) return groups;
-        return groups.Select(group => group with { Frames = group.Frames.Where(f => SurfaceExclusion(f) is null).ToArray() })
-            .Where(group => group.Frames.Count > 0).ToArray();
+        return groups.Select(group =>
+        {
+            var byPage = group.Frames.GroupBy(f => PreviewEvidence(f).SelectedPage).ToArray();
+            var frames = byPage.SelectMany(page =>
+            {
+                if (_includeLimitedFrames.IsChecked == true) return page;
+                var preference = page.Min(f => PreviewEvidence(f).Preference);
+                return page.Where(f => PreviewEvidence(f).Preference == preference);
+            }).ToArray();
+            var labels = byPage.Select(page => page.Key).Where(name => name is not null).ToArray();
+            return group with { Frames = frames, Label = labels.Length > 0 ? string.Join(" / ", labels) : group.Label };
+        }).Where(g => g.Frames.Count > 0).ToArray();
     }
 
     private IReadOnlyList<UiInspectionFrameGroup> SurfacePreviewGroups(UiMapSurfaceView surface)
     {
-        var candidates = UiInspectionPresentation.IncludeEquivalentFrames(_model!.VariantsFor([surface]), surface.Variants);
+        var candidates = WorldFrames(_model!.VariantsFor([surface]), surface.Variants);
         return PreviewGroups(candidates, surface.Level);
     }
+
+    private IReadOnlyList<UiMapVariantView> WorldFrames(IReadOnlyList<UiMapVariantView> eligible, IEnumerable<UiMapVariantView> recorded) =>
+        _includeLimitedFrames.IsChecked == true ? recorded.ToArray() : UiInspectionPresentation.IncludeEquivalentFrames(eligible, recorded);
 
     private bool SelectHierarchyVariant(InspectionTreeSelection selection)
     {
@@ -81,9 +107,11 @@ public sealed partial class ExplorerWindow
         _variantCardsPanel.Children.Clear(); _variantCardButtons.Clear(); _variantCardSummaries.Clear();
         foreach (var frame in frames)
         {
-            var button = global::UiAtlas.Presentation.Appearance.Bind(new Button { Content = frame.FrameSequence.ToString(), MinWidth = 31, Height = 29,
+            var button = global::UiAtlas.Presentation.Appearance.Bind(new Button { Content = InspectingWorld && PreviewEvidence(frame).SelectedPage is { } page ? $"{frame.FrameSequence} · {page}" : frame.FrameSequence.ToString(), MinWidth = 31, Height = 29,
                 Margin = new(2), Padding = new(6, 2, 6, 2),                 Template = RoundedButtonTemplate(6), Tag = frame.Id },("BorderBrush", "LineBrush"),("Background", "PanelBrush"));
-            button.ToolTip = VariantCardToolTip(frame) + $"\nCapture status: {frame.CaptureStatus}\n{_rawExclusionReasons.GetValueOrDefault(frame.Id)}\n{_rawCaptureWarnings.GetValueOrDefault(frame.Id)}";
+            button.ToolTip = VariantCardToolTip(frame) + $"\nCapture status: {frame.CaptureStatus}\n" +
+                (InspectingWorld ? PreviewEvidence(frame).DesktopExclusion :
+                    $"{_rawExclusionReasons.GetValueOrDefault(frame.Id)}\n{_rawCaptureWarnings.GetValueOrDefault(frame.Id)}");
             AutomationProperties.SetName(button, VariantCardAccessibleName(frame));
             AutomationProperties.SetHelpText(button, "Recorded frame. Left/Right moves between frames; Home/End selects the first/last frame.");
             button.Click += (_, _) => SelectVariant(frame);

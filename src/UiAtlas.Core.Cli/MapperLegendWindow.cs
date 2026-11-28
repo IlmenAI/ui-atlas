@@ -76,7 +76,7 @@ internal sealed class MapperLegendWindow : Window
     private void RenderContent()
     {
         Width = IsCollapsed ? 34 : 292;
-        Height = IsCollapsed ? 34 : 312;
+        Height = IsCollapsed ? 34 : 350;
         var shell = global::UiAtlas.Presentation.Appearance.Bind(new Border {             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(IsCollapsed ? 12 : 20) },("BorderBrush", "LineBrush"),("Background", "SoftBrush"));
         if (IsCollapsed)
@@ -118,7 +118,8 @@ BorderThickness = new Thickness(0), Cursor = Cursors.Hand,
             stack.Children.Add(AtlasFluent.Text("Show on screen", 12, AtlasFluent.Muted));
             foreach (var (kind, symbol, label, color) in new[]
             {
-                (MapperHighlightKind.Uia, "━", "UIA / MSAA", "#0A84FF"),
+                (MapperHighlightKind.Uia, "━", "UIA", "#4F7EF7"),
+                (MapperHighlightKind.Msaa, "━", "MSAA", "#2DCE91"),
                 (MapperHighlightKind.ComputerVision, "⌜", "Computer vision", "#8B5CF6"),
                 (MapperHighlightKind.NativeGrid, "▦", "Native grid", "#008F83"),
                 (MapperHighlightKind.GridCandidate, "┄", "Grid candidate", "#C98208"),

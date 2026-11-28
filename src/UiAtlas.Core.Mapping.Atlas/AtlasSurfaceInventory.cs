@@ -82,6 +82,8 @@ internal sealed class AtlasSurfaceInventory
             {
                 MapInteractionKind.MapInteractionPointerPrimary => "invoke",
                 MapInteractionKind.MapInteractionPointerDoubleClick => "double-click",
+                MapInteractionKind.MapInteractionPointerSecondary => "right-click",
+                MapInteractionKind.MapInteractionPointerMiddle => "middle-click",
                 _ => ""
             };
             if (verb.Length > 0 && (!verbs.TryGetValue(verb, out var prior) ||

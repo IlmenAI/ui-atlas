@@ -76,6 +76,51 @@ public sealed class NativeParityTests
     }
 
     [Fact]
+    public void LargeWindowFamilyRetainsNativeEpisodeAndBoundsEveryPresentationReference()
+    {
+        var episode = EpisodeFixture.Create();
+        var topology = episode.SensorPackets.Single(packet => packet.WindowTopology is not null).WindowTopology;
+        var selected = topology.Windows[0].Clone();
+        topology.Windows.Clear();
+        for (var i = 0; i < 40; i++)
+        {
+            var child = selected.Clone();
+            child.WindowEvidenceId = $"child-{i}";
+            child.WindowHandleEvidence = (200 + i).ToString();
+            child.ZOrder = i;
+            child.IsForeground = i == 39;
+            topology.Windows.Add(child);
+        }
+        topology.Windows.Add(selected);
+        var payload = episode.SensorPackets.Single(packet => packet.Accessibility is not null).Accessibility;
+        var hidden = payload.Nodes[0].Clone();
+        hidden.WindowEvidenceId = "child-38";
+        hidden.Name = "Omitted from presentation";
+        payload.Nodes.Add(hidden);
+        foreach (var window in topology.Windows)
+            episode.WindowImages.Add(new WindowPixelEvidence { WindowHandleEvidence = window.WindowHandleEvidence,
+                StartedAtUtc = episode.StartedAtUtc, EndedAtUtc = episode.EndedAtUtc, Status = "unavailable",
+                Method = "windows-graphics-capture", BoundsPx = window.BoundsPx.Clone() });
+        var original = episode.ToByteArray();
+
+        var frame = NativeRecorderCapture.Project(episode, Target, 1, "fixture", new());
+        var handles = frame.ScopedWindows!.Select(window => window.Hwnd).ToArray();
+        Assert.Equal(RecordingContractLimits.MaxScopedWindows, handles.Length);
+        Assert.Contains(123L, handles);
+        Assert.Contains(239L, handles);
+        Assert.DoesNotContain(238L, handles);
+        Assert.Equal(handles, frame.ObservedWindowHwnds);
+        Assert.Equal(handles, frame.WindowImages!.Select(plane => plane.Hwnd));
+        Assert.Equal(handles, frame.Acquisition!.WindowCoverage!.Select(window => window.Hwnd));
+        var stream = Assert.Single(frame.RawStreams!, stream => stream.Windows is not null);
+        Assert.True(stream.Truncated);
+        Assert.Equal(41, stream.ReturnedCount);
+        Assert.Equal(handles, stream.Windows!.Select(window => window.Hwnd));
+        Assert.Equal("Save", Assert.Single(frame.Automation).Name);
+        Assert.Equal(original, episode.ToByteArray());
+    }
+
+    [Fact]
     public void MappingProfileIsBoundedSnapshotAndTopologyIdentityCannotBeReused()
     {
         var request = new CapturePolicyRequest { RequestedProfileId = "mapping-checkpoint",

@@ -27,7 +27,10 @@ public enum InputEventKind { PointerMove, PointerDown, PointerUp, Wheel, KeyDown
 public enum InteractionActor { User, AutoExplorer, DerivedCandidate }
 
 [JsonConverter(typeof(JsonStringEnumConverter<InteractionGestureKind>))]
-public enum InteractionGestureKind { Click, DoubleClick, Drag, Wheel, Keyboard, ProgrammaticInvoke, ProgrammaticSelect }
+public enum InteractionGestureKind { Click, DoubleClick, Drag, Wheel, Keyboard, ProgrammaticInvoke, ProgrammaticSelect, RightClick, MiddleClick }
+
+[JsonConverter(typeof(JsonStringEnumConverter<RecordedPointerButton>))]
+public enum RecordedPointerButton { Unknown, Primary, Secondary, Middle }
 
 [JsonConverter(typeof(JsonStringEnumConverter<InteractionActionKind>))]
 public enum InteractionActionKind { Invoke, Select, Expand, Collapse, Toggle, SetValue, Scroll, MoveResize, Dismiss, Unknown }
@@ -117,7 +120,8 @@ public sealed record InputEvent(
     string Text = "[redacted]",
     long WindowFromPointHwnd = 0,
     long RootOwnerHwnd = 0,
-    long ForegroundHwnd = 0);
+    long ForegroundHwnd = 0,
+    RecordedPointerButton Button = RecordedPointerButton.Unknown);
 
 public sealed record WindowObservation(
     long Hwnd,

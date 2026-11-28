@@ -656,13 +656,15 @@ public sealed record UiPipelineView(
     IReadOnlyList<UiPipelineEdgeView> Edges,
     IReadOnlyDictionary<int, string> ColumnHeaders);
 
-public sealed class UiMappingReadModel
+public sealed partial class UiMappingReadModel
 {
     private readonly IReadOnlyDictionary<UiUnderstandingLevel, UiMapLayerView> _layers;
+    private readonly Dictionary<string, GraphNode> _nodes;
 
     public UiMappingReadModel(UiKnowledgeGraph graph)
     {
         Graph = graph;
+        _nodes = graph.Nodes.ToDictionary(node => node.Id, StringComparer.Ordinal);
         Application = graph.Nodes.Single(node => node.Kind == GraphNodeKind.Application);
         ApplicationDisplayName = Application.Label;
         _layers = new Dictionary<UiUnderstandingLevel, UiMapLayerView>
@@ -785,6 +787,27 @@ public sealed class UiMappingReadModel
         return layer.Surfaces.Where(surface => ids.Contains(surface.Id)).ToArray();
     }
 
+    // A navigation family groups instances. Each graph surface and its own frames stay selectable.
+    public static string SurfaceNavigationFamily(UiMapSurfaceView surface)
+    {
+        var node = surface.Source;
+        if (surface.SurfaceKind is not ("RawWindow" or "RawDialogWindow") || string.IsNullOrWhiteSpace(surface.DisplayName) ||
+            Property(node, "ownerWindowHandleEvidence") is not { Length: > 0 } owner || owner == "0" ||
+            Property(node, "processId") is not { Length: > 0 } pid ||
+            Property(node, "processStartTimeEvidence") is not { Length: > 0 } started ||
+            Property(node, "className") is not { Length: > 0 } cls || surface.DisplayName == cls)
+            return surface.Id;
+        return string.Join('|', "owned-window", pid, started, owner, cls, surface.DisplayName);
+    }
+
+    public static string SurfaceNavigationLabel(UiMapSurfaceView surface)
+    {
+        if (!surface.SurfaceKind.Contains("Popup", StringComparison.OrdinalIgnoreCase)) return surface.DisplayName;
+        var sizes = surface.Variants.Where(v => v.IsVisibleByDefault).Select(v => v.Evidence?.Bounds)
+            .Where(ControlGeometry.IsRenderable).Select(b => $"{b!.Width} × {b.Height}").Distinct().Take(2).ToArray();
+        return surface.DisplayName + " · popup" + (sizes.Length == 1 ? $" · {sizes[0]}" : "");
+    }
+
     public IReadOnlyList<UiMapVariantView> VariantsFor(
         IReadOnlyList<UiMapSurfaceView> surfaces,
         UiMapControlView? requiredControl = null)
@@ -881,15 +904,17 @@ public sealed class UiMappingReadModel
                 .ThenBy(surface => surface.DisplayName, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(surface => surface.Id, StringComparer.Ordinal)
                 .ToArray();
-            for (var rawRow = 0; rawRow < rawSurfaces.Length; rawRow++)
+            var rawRow = 0;
+            foreach (var family in rawSurfaces.GroupBy(SurfaceNavigationFamily))
             {
-                var surface = rawSurfaces[rawRow];
+                var surface = family.First();
                 var id = "pipeline:raw:" + surface.Id;
                 var visibleVariantCount = surface.Variants.Count(variant => variant.IsVisibleByDefault);
-                nodes.Add(new(id, UiPipelineNodeKind.RawSurface, 3, rawRow, surface.DisplayName,
+                nodes.Add(new(id, UiPipelineNodeKind.RawSurface, 3, rawRow++, SurfaceNavigationLabel(surface),
+                    family.Count() > 1 ? $"{family.Count()} recorded window instances" :
                     $"{surface.SurfaceKind} | {surface.ControlCount} controls | {visibleVariantCount} observed variants",
-                    surface.Id, UiUnderstandingLevel.RawWorld, [surface.Id]));
-                var nativeSources = Properties(surface.Source, "sourceRawDataStreamSurfaceId")
+                    surface.Id, UiUnderstandingLevel.RawWorld, family.Select(s => s.Id).ToArray()));
+                var nativeSources = family.SelectMany(s => Properties(s.Source, "sourceRawDataStreamSurfaceId"))
                     .Select(source => nativeNodeByRdsSurface.GetValueOrDefault(source))
                     .Where(source => source is not null).Cast<string>().Distinct(StringComparer.Ordinal).ToArray();
                 foreach (var source in nativeSources.Length > 0 ? nativeSources : nativeNodeByRdsSurface.Values.Take(1))
@@ -899,13 +924,13 @@ public sealed class UiMappingReadModel
 
         if (horizon >= UiUnderstandingLevel.SemanticWorld)
         {
-            var rawRows = nodes.Where(node => node.Kind == UiPipelineNodeKind.RawSurface && node.SurfaceId is not null)
-                .ToDictionary(node => node.SurfaceId!, node => node.Row, StringComparer.Ordinal);
+            var rawNodes = nodes.Where(node => node.Kind == UiPipelineNodeKind.RawSurface)
+                .SelectMany(node => node.SourceIds.Select(id => (id, node))).ToDictionary(pair => pair.id, pair => pair.node);
             var usedRows = new HashSet<int>();
             var nextSemanticRow = 0;
             var semanticSurfaces = LayerFor(UiUnderstandingLevel.SemanticWorld).Surfaces
                 .OrderBy(surface => Properties(surface.Source, "sourceRawSurfaceId")
-                    .Select(source => rawRows.GetValueOrDefault(source, int.MaxValue)).DefaultIfEmpty(int.MaxValue).Min())
+                    .Select(source => rawNodes.GetValueOrDefault(source)?.Row ?? int.MaxValue).DefaultIfEmpty(int.MaxValue).Min())
                 .ThenBy(surface => IsPrimaryPipelineSurface(surface) ? 0 : 1)
                 .ThenBy(surface => surface.DisplayName, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(surface => surface.Id, StringComparer.Ordinal)
@@ -914,7 +939,7 @@ public sealed class UiMappingReadModel
             {
                 var id = "pipeline:semantic:" + surface.Id;
                 var inheritedRow = Properties(surface.Source, "sourceRawSurfaceId")
-                    .Select(source => rawRows.GetValueOrDefault(source, -1))
+                    .Select(source => rawNodes.GetValueOrDefault(source)?.Row ?? -1)
                     .Where(row => row >= 0)
                     .Select(row => (int?)row)
                     .FirstOrDefault() ?? -1;
@@ -922,10 +947,10 @@ public sealed class UiMappingReadModel
                     ? inheritedRow
                     : Enumerable.Range(nextSemanticRow, semanticSurfaces.Length + usedRows.Count + 1).First(usedRows.Add);
                 nextSemanticRow = Math.Max(nextSemanticRow, semanticRow + 1);
-                nodes.Add(new(id, UiPipelineNodeKind.SemanticSurface, 4, semanticRow, surface.DisplayName,
+                nodes.Add(new(id, UiPipelineNodeKind.SemanticSurface, 4, semanticRow, SurfaceNavigationLabel(surface),
                     $"{surface.SurfaceKind} | {surface.ControlCount} controls", surface.Id, UiUnderstandingLevel.SemanticWorld, [surface.Id]));
-                foreach (var sourceRawId in Properties(surface.Source, "sourceRawSurfaceId"))
-                    edges.Add(new("pipeline:raw:" + sourceRawId, id, "Semantic World"));
+                foreach (var raw in Properties(surface.Source, "sourceRawSurfaceId").Select(source => rawNodes.GetValueOrDefault(source)).OfType<UiPipelineNodeView>().Distinct())
+                    edges.Add(new(raw.Id, id, "Semantic World"));
             }
         }
 
@@ -951,9 +976,9 @@ public sealed class UiMappingReadModel
         return semanticClass.Equals("SemanticWindow", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static UiMapLayerView BuildLayer(UiKnowledgeGraph graph, UiUnderstandingLevel level, string layer, string displayName)
+    private UiMapLayerView BuildLayer(UiKnowledgeGraph graph, UiUnderstandingLevel level, string layer, string displayName)
     {
-        var byId = graph.Nodes.ToDictionary(node => node.Id, StringComparer.Ordinal);
+        var byId = _nodes;
         bool Hidden(GraphNode node)
         {
             var visited = new HashSet<string>(StringComparer.Ordinal);

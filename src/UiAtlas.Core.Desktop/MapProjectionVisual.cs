@@ -33,13 +33,11 @@ internal static class MapProjectionVisual
         UiUnderstandingLevel level, Brush stroke, bool isUnverified = false, bool isButtonCandidate = false,
         bool isCompactPopupAction = false, bool showMissingCropLabel = false)
     {
-        var highlightColor = isUnverified ? Color.FromRgb(0xFF, 0x8B, 0x3D) : Color.FromRgb(0x2D, 0xCE, 0x91);
+        var highlightColor = ((SolidColorBrush)stroke).Color;
         var rectangle = new Rectangle { Width = Math.Max(1, local.Width), Height = Math.Max(1, local.Height),
-            Stroke = isSelected || isButtonCandidate || isCompactPopupAction
-                ? new SolidColorBrush(highlightColor)
-                : stroke,
+            Stroke = stroke,
             StrokeThickness = isSelected ? 4 : isButtonCandidate || isCompactPopupAction ? 2 : 1.2,
-            StrokeDashArray = !isSelected && isButtonCandidate && !isCompactPopupAction ? [4, 2] : null,
+            StrokeDashArray = !isSelected && isUnverified && isButtonCandidate ? [4, 2] : null,
             Fill = (Brush?)controlCrop ?? (isSelected
                 ? new SolidColorBrush(Color.FromArgb(92, highlightColor.R, highlightColor.G, highlightColor.B))
                 : isButtonCandidate || isCompactPopupAction

@@ -1858,10 +1858,12 @@ public static class UiMapValidator
         }
         if (HasContainmentCycle(included))
             Finding(ValidationSeverity.ValidationError, "MAP_GRAPH_CONTAINMENT_CYCLE", "Map containment must be acyclic.");
-        foreach (var relationship in draft.Relationships.Where(x => included.Any(y => y.MapEntityRef == x.FromEntityRef || y.MapEntityRef == x.ToEntityRef)))
+        // Publishing drops relationships to deliberately excluded candidates. Unknown endpoints are still invalid.
+        var draftRefs = draft.Entities.Select(entity => entity.MapEntityRef).ToHashSet(StringComparer.Ordinal);
+        foreach (var relationship in draft.Relationships)
         {
-            if (!refSet.Contains(relationship.FromEntityRef) || !refSet.Contains(relationship.ToEntityRef))
-                Finding(ValidationSeverity.ValidationError, "MAP_GRAPH_RELATIONSHIP_INVALID", "Relationship endpoints must be in the published graph.", relationship.MapRelationshipRef);
+            if (!draftRefs.Contains(relationship.FromEntityRef) || !draftRefs.Contains(relationship.ToEntityRef))
+                Finding(ValidationSeverity.ValidationError, "MAP_GRAPH_RELATIONSHIP_INVALID", "Relationship endpoints must refer to existing draft entities.", relationship.MapRelationshipRef);
         }
         var dispositionKeys = draft.Dispositions.Select(x => (x.SourceObservationSetRef, x.SourceWorldObjectRef)).ToList();
         if (dispositionKeys.Count != dispositionKeys.Distinct().Count())

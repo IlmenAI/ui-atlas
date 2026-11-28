@@ -10,6 +10,8 @@ internal static class SemanticMapProjection
 
     internal static string ControlKind(MapEntity entity, IReadOnlyList<GraphNode> sources)
     {
+        if (sources.Count > 0 && sources.All(n => P(n, "sceneInferredRole") == "MenuItem" || P(n, "controlType") == "MenuItem"))
+            return "MenuItem";
         if (!entity.Role.StartsWith("MSAA.Role", StringComparison.Ordinal)) return entity.Role;
         var kinds = sources.Select(n => P(n, "controlType")).Where(k => k.Length > 0).Distinct().ToArray();
         return kinds.Length == 1 ? kinds[0] : entity.Role;

@@ -40,9 +40,11 @@ public sealed class OptimizedCaptureProfileTests
     }
 
     [Theory]
-    [InlineData("mapping-checkpoint", "uia")]
-    [InlineData("capture-optimized", "uia-cached")]
-    public async Task CandidateActuallyDispatchesCachedWorkerAndRetainsNativeAndMsaa(string id, string operation)
+    [InlineData("mapping-checkpoint", false, "uia")]
+    [InlineData("capture-optimized", false, "uia-cached")]
+    [InlineData("mapping-checkpoint", true, "uia-native")]
+    [InlineData("capture-optimized", true, "uia-native")]
+    public async Task RecordingDispatchesExpectedUiaWorkerAndRetainsNativeAndMsaa(string id, bool useNativeUia, string operation)
     {
         var policy = new CapturePolicyResolver(new CaptureProfileCatalogService()).Resolve(
             new CapturePolicyRequest { RequestedProfileId = id },
@@ -50,7 +52,8 @@ public sealed class OptimizedCaptureProfileTests
         var runner = new Runner();
         var windows = new[] { new WindowObservationRecord { WindowEvidenceId = "window", CaptureWindowId = "window",
             WindowHandleEvidence = "123", ProcessId = 1, ProcessInstanceEvidence = "process", IsVisible = true } };
-        await new IsolatedAccessibilityProbe(runner).CaptureAsync(windows, RecorderPolicy.FromEffective(policy), CancellationToken.None);
+        var packet = await new IsolatedAccessibilityProbe(runner, useNativeUia).CaptureAsync(windows, RecorderPolicy.FromEffective(policy), CancellationToken.None);
+        if (useNativeUia) Assert.Contains(packet.ProviderAttempts, attempt => attempt.ProviderId == "uia" && attempt.WorkerVersion == "native-uia/1");
         Assert.Equal(new[] { "native-accessibility", operation, id == "capture-optimized" ? "msaa-root-reuse" : "msaa" }, runner.Operations);
     }
 

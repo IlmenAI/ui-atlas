@@ -276,6 +276,7 @@ internal static class AtlasCatalogCommand
             var rawWorld = request.IncludeRawWorld ? ReadRawWorldSources(workspace, revision, token) : [];
             var parameters = request.IncludeRawWorld ? AtlasParameterMatching.Read(workspace, revision, rawWorld, token) : null;
             return new CatalogReply { Root = catalog.Root, RawWorldSources = rawWorld, Parameterization = parameters,
+                RecordingSources = request.IncludeRecordingSources ? AtlasRecordingProvenance.Read(workspace, revision, Path.GetFileNameWithoutExtension(path), token) : null,
                 RawWorldContractVersion = request.IncludeRawWorld ? 1 : 0, ExactRevision = new(reference, revision.CanonicalPayloadHash,
                 Encode(revision)!, Path.GetFileNameWithoutExtension(path), Path.GetFileName(workspace.DirectoryPath),
                 Encode(entry) ?? "", ready, entry?.Archived ?? false, DateTimeOffset.UtcNow.ToString("O")) };

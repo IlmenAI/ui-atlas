@@ -13,6 +13,7 @@ public sealed record CatalogRequest(string Operation, string Root, string? Recor
     CatalogMapBuildSettings? BuildSettings = null, bool AllowRetainedForReplay = false, string? FriendlyName = null, string? ExpectedFriendlyName = null)
 {
     public string[]? RecordedEntryControls { get; init; }
+    public bool IncludeRecordingSources { get; init; }
 }
 public sealed record CatalogMapBuildSettings(int MaxNodes, int MaxEdges, bool ExperimentalControlIdentity);
 public sealed record CatalogRecordingBuild(string RecordingId, string MapId, string IdentityPolicy,
@@ -53,6 +54,12 @@ public sealed record CatalogImportCandidate(string Path, string Kind, long Bytes
 // Full immutable bytes with eligibility observed at this read, never a latest alias.
 public sealed record CatalogRevision(string RevisionRef, string CanonicalPayloadHash, string Payload,
     string MapId, string Generation, string Entry, bool Ready, bool Archived, string ReadAtUtc, int Version = 1);
+// NativeOriginEpisodeId is the captured episode itself, or the native base of a recorded popup delta.
+public sealed record CatalogRecordingSource(string SourceRef, string RecordingId, string BundleSha256, string? NativeOriginEpisodeId = null);
+public sealed record CatalogRevisionRecordings(string MapId, string Revision, string Generation, CatalogRecordingSource[] Sources)
+{
+    public string[] SingleClickEventRefs { get; init; } = [];
+}
 // Fresh eligibility of an integrity-checked immutable revision, without retransmitting its bytes.
 public sealed record CatalogRevisionEligibility(string RevisionRef, string CanonicalPayloadHash,
     string MapId, string Generation, bool Ready, bool Archived, string ReadAtUtc, int Version = 1);
@@ -106,6 +113,7 @@ public sealed record CatalogReply
     public CatalogImportCandidate[] Imports { get; init; } = [];
     public string? Revision { get; init; }
     public CatalogRevision? ExactRevision { get; init; }
+    public CatalogRevisionRecordings? RecordingSources { get; init; }
     public CatalogRevisionEligibility? RevisionEligibility { get; init; }
     public CatalogRawWorldSource[] RawWorldSources { get; init; } = [];
     public int RawWorldContractVersion { get; init; }
